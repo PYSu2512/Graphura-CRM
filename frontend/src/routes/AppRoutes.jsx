@@ -1,12 +1,21 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import SuperAdminRoutes from "./superAdminRoutes";
+import AdminRoutes from "./adminRoutes";
+// import SuperAdminRoutes from "./superAdminRoutes"; ❌ abhi use nahi kar rahe
 
 function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/super-admin/dashboard" replace />} />
-        <Route path="/super-admin/*" element={<SuperAdminRoutes />} />
+
+        {/* Default → Admin */}
+        <Route path="/" element={<Navigate to="/admin" />} />
+
+        {/* Admin Panel */}
+        <Route path="/admin/*" element={<AdminRoutes />} />
+
+        {/* Super Admin (future use) */}
+        {/* <Route path="/super-admin/*" element={<SuperAdminRoutes />} /> */}
+
       </Routes>
     </BrowserRouter>
   );

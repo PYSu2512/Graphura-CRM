@@ -1,49 +1,26 @@
-import { Bell, Search } from "lucide-react";
-
-function Navbar() {
+function Navbar({ toggleSidebar }) {
   return (
-    <div className="h-[54px] bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
+    <div className="flex items-center justify-between">
 
-      {/* LEFT */}
+      {/* Left */}
+      <div className="flex items-center gap-3">
+        <button onClick={toggleSidebar} className="md:hidden text-xl">
+          ☰
+        </button>
+        <h1 className="text-lg font-semibold">CRM Dashboard</h1>
+      </div>
+
+      {/* Right */}
       <div className="flex items-center gap-4">
-
-        {/* Search */}
-        <div className="flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 w-[240px]">
-          <Search className="w-4 h-4 text-gray-400 mr-2" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent outline-none text-sm w-full"
-          />
-        </div>
-
+        <input
+          type="text"
+          placeholder="Search..."
+          className="hidden md:block px-3 py-1 border rounded-lg text-sm"
+        />
+        <span className="text-sm text-gray-600">Admin</span>
+        <div className="w-8 h-8 bg-blue-500 rounded-full"></div>
       </div>
 
-      {/* RIGHT */}
-      <div className="flex items-center gap-5">
-
-        {/* Notifications */}
-        <div className="relative cursor-pointer">
-          <Bell className="w-5 h-5 text-gray-600" />
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1 rounded-full">
-            3
-          </span>
-        </div>
-
-        {/* Profile */}
-        <div className="flex items-center gap-2 cursor-pointer">
-          
-          <div className="leading-tight">
-            <p className="text-sm font-semibold text-gray-800">
-              
-            </p>
-            <p className="text-[11px] text-gray-500">
-              
-            </p>
-          </div>
-        </div>
-
-      </div>
     </div>
   );
 }
