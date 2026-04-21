@@ -106,8 +106,8 @@ const salesMonthData = {
 // ── Recent projects ──
 const recentProjects = [
   { abbr: "GR", name: "Graphura Rebrand", status: "In Progress", statusColor: C.blue, team: 4, extra: "+2", deadline: "Oct 24, 2023" },
-  { abbr: "NX", name: "Nexus Integration", status: "Review", statusColor: "#f59e0b", team: 3, extra: "", deadline: "Nov 02, 2023" },
-  { abbr: "AP", name: "Alpha Portal Dev", status: "Planning", statusColor: C.navy, team: 2, extra: "+1", deadline: "Dec 15, 2023" },
+  { abbr: "NX", name: "Nexus Integration", status: "Review", statusColor: "#f59e0b", team: 3, extra: "+3", deadline: "Nov 02, 2023" },
+  { abbr: "AP", name: "Alpha Portal Dev", status: "Planning", statusColor: C.navy, team: 2, extra: "", deadline: "Dec 15, 2023" },
   { abbr: "ST", name: "System Upgrade", status: "On Hold", statusColor: C.subtle, team: 1, extra: "", deadline: "TBD" },
 ];
 
@@ -344,17 +344,15 @@ function Dashboard() {
           <div className="flex items-center justify-between mb-5">
             <h3 style={{ color: C.navy, fontWeight: 700, fontSize: 15 }}>Recent Projects</h3>
             <div className="flex items-center gap-2">
-              <Filter size={16} style={{ color: C.muted }} className="cursor-pointer" />
               <MoreVertical size={16} style={{ color: C.muted }} className="cursor-pointer" />
             </div>
           </div>
 
           <div className="grid grid-cols-12 gap-2 pb-3 border-b border-slate-100">
-            {["Project Name", "Status", "Assigned Team", "Deadline"].map((h, i) => (
-              <div key={h} className={i === 0 ? "col-span-4" : "col-span-3"} style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                {h}
-              </div>
-            ))}
+            <div className="col-span-4" style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Project Name</div>
+            <div className="col-span-3" style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Status</div>
+            <div className="col-span-2" style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Assigned Team</div>
+            <div className="col-span-3" style={{ color: C.muted, fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>Deadline</div>
           </div>
 
           {recentProjects.map((p) => (
@@ -579,7 +577,7 @@ function Dashboard() {
                     <div className="w-full h-6 rounded-lg overflow-hidden relative" style={{ background: `${C.sea}25` }}>
                       <div
                         className="h-full rounded-lg transition-all duration-500"
-                        style={{ width: `${Math.min(pct, 100)}%`, background: met ? "#22c55e" : C.navy }}
+                        style={{ width: `${Math.min(pct, 100)}%`, background: met ? C.navy : C.sea }}
                       />
                       <span
                         className="absolute inset-0 flex items-center justify-center text-xs font-bold"
@@ -594,7 +592,7 @@ function Dashboard() {
                       Target: <b style={{ color: C.navy }}>{t.target}</b>
                     </span>
                     <span style={{ color: C.muted, fontSize: 11 }}>
-                      Done: <b style={{ color: met ? "#22c55e" : C.blue }}>{t.achieved}</b>
+                      Done: <b style={{ color: met ? C.navy : C.blue }}>{t.achieved}</b>
                     </span>
                   </div>
                 </div>
