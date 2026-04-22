@@ -379,8 +379,8 @@ export default function Dashboard() {
       {/* ── 1. Page Header ── */}
       <Grid cols={12} gap={4}>
         <Heading
-          primaryText="Super Admin Dashboard"
-          secondaryText="Multi-company CRM platform overview"
+          primaryText="Super Admin"
+          secondaryText="Dashboard"
           size={12}
           fontSize="3xl"
         />
