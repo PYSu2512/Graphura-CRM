@@ -146,7 +146,7 @@ function SuperAdminRoutes() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
-        <Route path="dashboard" element={<Dashboard />} />
+        <Route index element={<Dashboard />} />
         <Route path="admins" element={<Admins />} />
         <Route path="departments" element={<Departments />} />
         <Route path="billing" element={<Billing />} />

@@ -3,7 +3,7 @@ import AdminRoutes from "./adminRoutes";
 import SuperAdminRoutes from "./superAdminRoutes";
 import AdminLogin from "../pages/auth/AdminLogin";
 import AdminRegister from "../pages/auth/AdminRegister";
-import SuperAdminRoutes from "./superAdminRoutes";
+
 
 function AppRoutes() {
   return (
