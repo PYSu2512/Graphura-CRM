@@ -30,7 +30,7 @@ const adminMenu = [
 ];
 
 const superAdminMenu = [
-  { name: "Dashboard", path: "/super-admin/dashboard", icon: LayoutDashboard },
+  { name: "Dashboard", path: "/super-admin/", icon: LayoutDashboard },
   { name: "Admins", path: "/super-admin/admins", icon: ShieldAlert },
   { name: "Departments", path: "/super-admin/departments", icon: Building2 },
   { name: "Billing", path: "/super-admin/billing", icon: Receipt },
