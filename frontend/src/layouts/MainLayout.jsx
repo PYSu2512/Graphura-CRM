@@ -1,10 +1,29 @@
 import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import GlobalCallModal from "../components/shared/GlobalCallModal";
 
 function MainLayout() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = () => setIsCollapsed(true);
+    const handleClose = () => setIsCollapsed(false);
+    window.addEventListener("open-modal", handleOpen);
+    window.addEventListener("open-global-call", handleOpen);
+    window.addEventListener("expand-table", handleOpen);
+    window.addEventListener("close-modal", handleClose);
+    window.addEventListener("collapse-table", handleClose);
+    return () => {
+      window.removeEventListener("open-modal", handleOpen);
+      window.removeEventListener("open-global-call", handleOpen);
+      window.removeEventListener("expand-table", handleOpen);
+      window.removeEventListener("close-modal", handleClose);
+      window.removeEventListener("collapse-table", handleClose);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#fff7ed_0%,_#f7f8f0_40%,_#eef4f7_100%)]">
@@ -18,11 +37,12 @@ function MainLayout() {
 
       {/* Sidebar */}
       <div
-        className={`fixed z-40 h-full w-64 transform shadow-lg md:static
+        className={`fixed z-40 h-full shadow-lg md:static flex-shrink-0
         ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        transition-transform duration-300 md:translate-x-0`}
+        ${isCollapsed ? "w-20" : "w-64"}
+        transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] md:translate-x-0`}
       >
-        <Sidebar />
+        <Sidebar isCollapsed={isCollapsed} toggleCollapse={() => setIsCollapsed(!isCollapsed)} />
       </div>
 
       {/* Main Content */}
@@ -39,6 +59,7 @@ function MainLayout() {
           </div>
         </div>
       </div>
+      <GlobalCallModal />
     </div>
   );
 }

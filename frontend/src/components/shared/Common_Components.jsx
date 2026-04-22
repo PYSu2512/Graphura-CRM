@@ -226,7 +226,7 @@ export const Button = ({
 }) => {
   const variantCls = {
     primary:
-      "bg-[#2a465a] text-white shadow-lg shadow-[#2a465a]/20 hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5",
+      "bg-[#2a465a] text-white shadow-lg shadow-[#2a465a]/20 hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5 shiny-sweep",
     secondary:
       "bg-white text-[#2a465a] border border-slate-200 hover:bg-slate-50 hover:-translate-y-0.5",
     danger:
@@ -501,7 +501,7 @@ export const DataTable = ({
   actions = [],        // [{ label: "Edit", icon, onClick: (row) => void, variant? }]
   title,
   size = 12,
-  pageSize = 10,
+  pageSize = 5,
   pageSizeOptions = [5, 10, 20, 50],
   searchable = true,
   // filters — pass an array of filter definitions; each filter shows as a
@@ -522,7 +522,7 @@ export const DataTable = ({
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [currentPageSize, setCurrentPageSize] = useState(
-    () => Number(pageSize) || 10,
+    () => Number(pageSize) || 5,
   );
   const [sortConfig, setSortConfig] = useState({
     key: columns?.[0]?.key || null,
@@ -697,7 +697,7 @@ export const DataTable = ({
   );
 
   const actionVariantCls = {
-    primary: "bg-[#2a465a] text-white hover:bg-[#1e3a52]",
+    primary: "bg-[#2a465a] text-white hover:bg-[#1e3a52] shiny-sweep",
     danger: "bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100",
     ghost: "bg-slate-100 text-slate-600 hover:bg-slate-200",
   };
@@ -995,9 +995,8 @@ export const DataTable = ({
               paginated.map((row, i) => (
                 <tr
                   key={i}
-                  className={`border-b border-slate-100 transition ${
-                    i % 2 === 0 ? "bg-white" : "bg-slate-50/60"
-                  } hover:bg-blue-50/40`}
+                  className={`border-b border-slate-100 transition ${i % 2 === 0 ? "bg-white" : "bg-slate-50/60"
+                    } hover:bg-blue-50/40`}
                 >
                   {columns.map((col) => {
                     if (col.key === "status") {
@@ -1108,11 +1107,10 @@ export const DataTable = ({
                   key={p}
                   type="button"
                   onClick={() => setPage(p)}
-                  className={`w-8 h-8 rounded-xl text-xs font-bold transition ${
-                    p === page
+                  className={`w-8 h-8 rounded-xl text-xs font-bold transition ${p === page
                       ? "bg-[#2a465a] text-white shadow"
                       : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                  }`}
+                    }`}
                 >
                   {p}
                 </button>
@@ -1208,6 +1206,7 @@ export const Heading = ({
   secondaryText = "",
   size = 12,
   fontSize = "2xl", // "sm" | "md" | "lg" | "xl" | "2xl" (default) | "3xl" | "4xl"
+  showAnimations = false, // Added to toggle floating squares and wave drops
 }) => {
   const fontSizeMap = {
     sm:  "text-sm",
@@ -1220,14 +1219,36 @@ export const Heading = ({
   };
   const cls = fontSizeMap[fontSize] ?? "text-2xl";
   return (
-    <div className={`${colSpan(size)}`}>
-      <h2 className={`${cls} font-black tracking-tight leading-tight`}>
-        <span className="text-[#2a465a]">{primaryText}</span>
-        {secondaryText && (
-          <span className="text-slate-400 font-extrabold"> {secondaryText}</span>
+    <div className={`${colSpan(size)} relative overflow-hidden rounded-2xl p-6 ${showAnimations ? 'bg-[#1e3445] shadow-md border border-[#152532]' : 'bg-transparent'}`}>
+      {/* Optional Background 3D Wave Drops & Half Square */}
+      {showAnimations && (
+        <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+          {/* Half Square / Polygon movement */}
+          <div className="absolute top-[20%] left-[20%] w-64 h-64 bg-gradient-to-br from-white to-transparent opacity-10" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', animation: "halfSquareMove 12s ease-in-out infinite" }} />
+          
+          <div className="absolute top-[10%] left-[5%] w-40 h-40 bg-gradient-to-br from-[#3e8ca7] to-transparent blur-[40px] opacity-40" style={{ animation: "dropRipple1 8s ease-in-out infinite" }} />
+          <div className="absolute top-[40%] left-[50%] w-56 h-56 bg-gradient-to-tr from-[#2a455a] to-[#3e8ca7] blur-[50px] opacity-30" style={{ animation: "dropRipple2 10s ease-in-out infinite" }} />
+          <div className="absolute -top-[20%] right-[10%] w-32 h-32 bg-gradient-to-bl from-[#38bdf8] to-transparent blur-[30px] opacity-20" style={{ animation: "dropRipple3 7s ease-in-out infinite" }} />
+        </div>
+      )}
+
+      <h2 className={`${cls} font-black tracking-tight leading-tight relative z-10 flex justify-between items-center`}>
+        <div>
+          <span className={showAnimations ? "text-white drop-shadow-sm" : "text-[#2a465a] drop-shadow-sm"}>{primaryText}</span>
+          {secondaryText && (
+            <span className={showAnimations ? "text-[#38bdf8] font-extrabold ml-2 opacity-90" : "text-slate-400 font-extrabold"}> {secondaryText}</span>
+          )}
+        </div>
+
+        {/* Optional Top-Right Floating Squares */}
+        {showAnimations && (
+          <div className="relative w-10 h-10 mr-2">
+            <div className="absolute inset-0 border-2 border-white/20 rounded-[8px] backdrop-blur-sm" style={{ animation: "squareOrbit1 6s linear infinite" }} />
+            <div className="absolute inset-1 border-2 border-[#38bdf8]/40 rounded-[6px]" style={{ animation: "squareOrbit2 8s linear infinite" }} />
+          </div>
         )}
       </h2>
-      <hr className="mt-3"/>
+      {!showAnimations && <hr className="mt-3 border-slate-200/60 relative z-10"/>}
     </div>
   );
 };
@@ -1562,21 +1583,21 @@ export const DashCard = ({
       // Mobile: col-span-12 (Full width)
       // Tablet: col-span-6 (Half width)
       // Desktop: col-span-{size} (Your custom size)
-      className={`col-span-12 md:col-span-6 lg:col-span-${size} rounded-2xl p-5 flex items-center gap-5 relative overflow-hidden transition-all duration-300 hover:translate-y-[-4px]`}
+      className={`col-span-12 md:col-span-6 lg:col-span-${size} rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group cursor-pointer`}
       style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
-        boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.04)",
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
       }}
     >
       <div
-        className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-3xl opacity-10 pointer-events-none"
+        className="absolute -right-4 -bottom-4 w-20 h-20 rounded-full blur-2xl opacity-10 pointer-events-none transition-opacity duration-300 group-hover:opacity-20"
         style={{ background: accentColor }}
       />
 
       {icon && (
         <div
-          className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
+          className="flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-105"
           style={{
             background: "#f8fafc",
             border: "1px solid #f1f5f9",
@@ -1599,11 +1620,13 @@ export const DashCard = ({
             letterSpacing: "0.05em",
             marginBottom: "2px",
           }}
+          title={title}
         >
           {title}
         </h3>
         <div className="flex items-center gap-2">
           <span
+            className="truncate"
             style={{
               color: "#0f172a",
               fontSize: fontSize,
@@ -1615,10 +1638,6 @@ export const DashCard = ({
           >
             {value}
           </span>
-          <div
-            className="w-2 h-2 rounded-full flex-shrink-0"
-            style={{ background: accentColor, opacity: 0.2 }}
-          />
         </div>
       </div>
     </div>
@@ -2346,9 +2365,8 @@ export const Modal = ({ id, title, children, size = "xl" }) => {
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       {/* Backdrop — covers the entire screen regardless of scroll position */}
       <div
-        className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${
-          show ? "opacity-100" : "opacity-0"
-        }`}
+        className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${show ? "opacity-100" : "opacity-0"
+          }`}
         onClick={handleCloseClick}
       />
 
@@ -2358,7 +2376,7 @@ export const Modal = ({ id, title, children, size = "xl" }) => {
           show
             ? "opacity-100 translate-y-0 scale-100"
             : "opacity-0 translate-y-4 scale-95"
-        }`}
+          }`}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
           <h3 className="text-lg font-bold text-[#2a465a]">{title}</h3>
@@ -2579,3 +2597,394 @@ export const ToggleButton = ({
   • size      — "sm" | "md" | "lg"  (default: "md")
   • disabled  — true | false  (default: false) — greys out and blocks interaction
 */
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 22. ENHANCED COMPONENTS (V2)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const EnhancedDashCard = ({
+  title = "Total Employees",
+  value = "0",
+  icon,
+  size = 4,
+  accentColor = "#ffffff",
+}) => {
+  const valueStr = String(value);
+  let fontSize = "28px";
+  if (valueStr.length > 12) fontSize = "18px";
+  else if (valueStr.length > 8) fontSize = "22px";
+  else if (valueStr.length > 6) fontSize = "24px";
+
+  const map = { 1: "col-span-12 md:col-span-6 lg:col-span-1", 2: "col-span-12 md:col-span-6 lg:col-span-2", 3: "col-span-12 md:col-span-6 lg:col-span-3", 4: "col-span-12 md:col-span-6 lg:col-span-4", 5: "col-span-12 md:col-span-6 lg:col-span-5", 6: "col-span-12 md:col-span-6 lg:col-span-6", 12: "col-span-12" };
+  const dashSpan = map[size] || "col-span-12 md:col-span-6 lg:col-span-4";
+
+  const cardRef = useRef(null);
+
+  const handleMouseMove = (e) => {
+    const el = cardRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const mx = ((e.clientX - rect.left) / rect.width - 0.5) * 30;
+    const my = ((e.clientY - rect.top) / rect.height - 0.5) * 30;
+    el.style.setProperty("--wx1", `calc(-30% + ${mx * 0.3}%)`);
+    el.style.setProperty("--wy1", `calc(-40% + ${my * 0.3}%)`);
+    el.style.setProperty("--wx2", `calc(-20% + ${mx * 0.5}%)`);
+    el.style.setProperty("--wy2", `calc(-30% + ${my * 0.5}%)`);
+    el.style.setProperty("--wx3", `calc(-40% + ${mx * 0.7}%)`);
+    el.style.setProperty("--wy3", `calc(-25% + ${my * 0.7}%)`);
+  };
+
+  const handleMouseLeave = () => {
+    const el = cardRef.current;
+    if (!el) return;
+    el.style.removeProperty("--wx1");
+    el.style.removeProperty("--wy1");
+    el.style.removeProperty("--wx2");
+    el.style.removeProperty("--wy2");
+    el.style.removeProperty("--wx3");
+    el.style.removeProperty("--wy3");
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={`${dashSpan} wave-card silver-shiny-border rounded-3xl p-5 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(56,189,248,0.25)] group cursor-pointer bg-gradient-to-br from-[#243f55] to-[#32526b] text-white overflow-hidden relative`}
+    >
+      {/* 3 visible wave layers */}
+      <div className="wave-layer wave-l1" />
+      <div className="wave-layer wave-l2" />
+      <div className="wave-layer wave-l3" />
+
+      {icon && (
+        <div
+          className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-lg bg-white/10 border border-white/10 backdrop-blur-md z-10"
+          style={{ color: accentColor }}
+        >
+          {icon}
+        </div>
+      )}
+
+      <div className="flex flex-col justify-center overflow-hidden w-full z-10 relative">
+        <h3 className="truncate text-xs font-bold uppercase tracking-widest text-slate-300/80 mb-1" title={title}>
+          {title}
+        </h3>
+        <div className="flex items-center gap-2">
+          <span
+            className="truncate drop-shadow-md font-black tracking-tighter transition-all duration-300 group-hover:text-white"
+            style={{ fontSize, lineHeight: "1" }}
+          >
+            {value}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export const EnhancedModal = ({ id, title, children, isVisible, onClose }) => {
+  const [show, setShow] = useState(false);
+  const [render, setRender] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = (e) => { if (e.detail.id === id) { setRender(true); } };
+    const handleClose = (e) => { if (!e.detail.id || e.detail.id === id) { setShow(false); setTimeout(() => setRender(false), 300); } };
+
+    window.addEventListener("open-modal", handleOpen);
+    window.addEventListener("close-modal", handleClose);
+
+    if (isVisible !== undefined) {
+      if (isVisible) { setRender(true); }
+      else if (render && !isVisible) { setShow(false); setTimeout(() => setRender(false), 300); }
+    }
+
+    return () => {
+      window.removeEventListener("open-modal", handleOpen);
+      window.removeEventListener("close-modal", handleClose);
+    };
+  }, [id, isVisible]);
+
+  useEffect(() => {
+    if (render) {
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => requestAnimationFrame(() => setShow(true)));
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [render]);
+
+  const handleCloseClick = () => {
+    setShow(false);
+    setTimeout(() => {
+      setRender(false);
+      if (onClose) onClose();
+      else closeModal(id);
+    }, 300);
+  };
+
+  if (!render) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 sm:p-6">
+      {/* Backdrop */}
+      <div
+        className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 ease-in-out ${show ? "opacity-100" : "opacity-0"}`}
+        onClick={handleCloseClick}
+      />
+
+      {/* Modal Content — centered, capped at 85vh so it never overflows */}
+      <div
+        className={`relative w-full max-w-7xl bg-white border border-slate-200/50 rounded-2xl shadow-2xl flex flex-col transition-all duration-300 ease-out transform ${show ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-8 scale-95"}`}
+        style={{ maxHeight: "90vh" }}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl flex-shrink-0">
+          <h3 className="text-lg font-bold text-[#2a465a]">{title}</h3>
+          <button
+            onClick={handleCloseClick}
+            className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-white hover:bg-rose-500 transition-all duration-200"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto overflow-x-hidden flex-1 custom-scrollbar">
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+export const EnhancedDataTable = ({
+  columns = [],
+  rows = [],
+  actions = [],
+  title,
+  size = 12,
+  pageSize = 5,
+  pageSizeOptions = [5, 10, 20, 50],
+  searchable = true,
+  importantColumnsCount = 4,
+}) => {
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [currentPageSize, setCurrentPageSize] = useState(() => Number(pageSize) || 5);
+  const [sortConfig, setSortConfig] = useState({ key: columns?.[0]?.key || null, direction: "asc" });
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  useEffect(() => { setCurrentPageSize(Number(pageSize) || 10); setPage(1); }, [pageSize]);
+
+  const handleSort = (key) => {
+    let direction = "asc";
+    if (sortConfig.key === key && sortConfig.direction === "asc") direction = "desc";
+    setSortConfig({ key, direction });
+  };
+
+  const filtered = useMemo(() => {
+    let result = rows;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(row => columns.some(col => String(row[col.key] ?? "").toLowerCase().includes(q)));
+    }
+    if (sortConfig.key) {
+      result = [...result].sort((a, b) => {
+        const aVal = a[sortConfig.key] ?? "";
+        const bVal = b[sortConfig.key] ?? "";
+        if (typeof aVal === "string" && typeof bVal === "string") return sortConfig.direction === "asc" ? aVal.localeCompare(bVal, undefined, { numeric: true }) : bVal.localeCompare(aVal, undefined, { numeric: true });
+        if (aVal < bVal) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    return result;
+  }, [rows, search, columns, sortConfig]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / currentPageSize));
+  const paginated = filtered.slice((page - 1) * currentPageSize, page * currentPageSize);
+  const colSpanClass = (s) => (s === 12 ? "col-span-12" : `col-span-12 sm:col-span-${s}`);
+
+  const actionVariantCls = {
+    primary: "bg-[#2a465a] text-white hover:bg-[#1e3a52] shiny-sweep",
+    danger: "bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100",
+    ghost: "bg-slate-100 text-slate-600 hover:bg-slate-200",
+  };
+
+  const renderTableContent = (displayColumns) => (
+    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm w-full table-trapezoid-corners relative z-10">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gradient-to-r from-[#2a465a] to-[#3a5a7a] border-b border-[#2a465a]/10">
+            {displayColumns.map((col) => (
+              <th key={col.key} onClick={() => handleSort(col.key)} className="group py-4 px-5 text-left text-xs font-black text-white uppercase tracking-[0.2em] whitespace-nowrap cursor-pointer hover:bg-white/5 transition-colors select-none">
+                <div className="flex items-center gap-2">
+                  {col.label}
+                  <ArrowUpDown size={14} className={`transition-all duration-200 ${sortConfig.key === col.key ? "opacity-100 text-[#38bdf8]" : "opacity-40 group-hover:opacity-100"}`} />
+                </div>
+              </th>
+            ))}
+            {actions.length > 0 && <th className="py-4 px-5 text-left text-xs font-black text-white uppercase tracking-[0.2em]">Actions</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {paginated.length === 0 ? (
+            <tr><td colSpan={displayColumns.length + (actions.length > 0 ? 1 : 0)} className="py-10 text-center text-slate-400 text-sm">No records found.</td></tr>
+          ) : (
+            paginated.map((row, i) => (
+              <tr key={i} className={`border-b border-slate-100 transition duration-300 ${i % 2 === 0 ? "bg-white" : "bg-slate-50/60"} hover:bg-[#38bdf8]/10`}>
+                {displayColumns.map((col) => {
+                  if (col.key === "status") {
+                    const val = row[col.key];
+                    let statusBg = "bg-slate-100 text-slate-600";
+                    if (val === "Completed" || val === "Approved" || val === "Active" || val === "Won") statusBg = "bg-emerald-100 text-emerald-800";
+                    else if (val === "Pending" || val === "In Progress" || val === "Interested" || val === "Proposal") statusBg = "bg-amber-100 text-amber-800";
+                    else if (val === "Failed" || val === "Cancelled" || val === "Inactive" || val === "Lost" || val === "Rejected") statusBg = "bg-rose-100 text-rose-800";
+                    return <td key={col.key} className="py-3.5 px-5 whitespace-nowrap"><span className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg}`}>{val ?? "—"}</span></td>;
+                  }
+                  return <td key={col.key} className={`py-3.5 px-5 text-[#1e3445] font-semibold ${isExpanded ? "whitespace-normal text-xs min-w-[120px]" : "whitespace-nowrap"}`}>{row[col.key] ?? "—"}</td>;
+                })}
+                {actions.length > 0 && (
+                  <td className="py-3 px-5">
+                    <div className="flex items-center gap-2">
+                      {actions.map((action, ai) => (
+                        <button key={ai} type="button" onClick={() => action.onClick(row)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition duration-150 active:scale-95 ${actionVariantCls[action.variant ?? "ghost"]}`}>
+                          {action.icon && <span className="w-3.5 h-3.5">{action.icon}</span>}
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                )}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  return (
+    <div className={`${colSpanClass(size)} flex bg-[#efefefb1] rounded-2xl p-4 flex-col gap-4 shadow-sm border border-slate-200/50 relative overflow-hidden`}>
+      
+      {/* Blue/Green Rotating Polygons Background */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-60">
+        {/* Top Right (near Show More) */}
+        <div className="absolute -top-[50px] right-[5%] w-80 h-80 bg-gradient-to-br from-[#0ea5e9]/40 to-[#10b981]/20 blur-2xl" style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)', animation: 'trapezoidFloat1 20s linear infinite' }} />
+        
+        {/* Bottom Middle */}
+        <div className="absolute -bottom-[80px] left-[35%] w-96 h-96 bg-gradient-to-bl from-[#34d399]/30 to-[#3b82f6]/20 blur-3xl" style={{ clipPath: 'polygon(0% 20%, 100% 0%, 80% 100%, 20% 100%)', animation: 'trapezoidFloat2 25s linear infinite reverse' }} />
+      </div>
+
+      {searchable && (
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
+          <div className="flex-1 w-full max-w-xl mx-auto relative group flex items-center gap-3">
+            <div className="relative flex-1">
+              <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400 group-focus-within:text-[#2a465a] transition-colors">
+                <Search size={16} />
+              </div>
+              <input
+                type="text"
+                placeholder="Search records..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                className="w-full rounded-full border border-slate-200 bg-white shadow-sm py-3 pl-10 pr-4 text-sm text-[#2a465a] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2a465a]/30 focus:border-[#2a465a] transition duration-300"
+              />
+            </div>
+            <button
+              onClick={() => { setIsExpanded(true); window.dispatchEvent(new CustomEvent("expand-table")); }}
+              className="flex-shrink-0 whitespace-nowrap flex items-center gap-2 px-5 py-3 rounded-full text-white font-bold text-sm shadow-lg overflow-hidden relative group active:scale-95 transition-transform duration-200 bg-[#2a465a]"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-[#1e3a52] to-[#2a465a]" />
+              <div className="absolute w-[200%] h-[200%] top-[-50%] left-[-50%] rounded-[40%] bg-white/10 group-hover:rotate-[180deg] transition-all duration-[3000ms] pointer-events-none ease-linear" />
+              <span className="relative z-10">Show More</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {renderTableContent(columns.slice(0, importantColumnsCount > 0 ? importantColumnsCount : columns.length))}
+
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1 mt-1">
+        <p className="text-xs text-slate-500 font-medium bg-white px-3 py-1.5 rounded-full border border-slate-200/60 shadow-sm">
+          Showing <span className="text-[#2a465a] font-bold">{filtered.length === 0 ? 0 : (page - 1) * currentPageSize + 1}–{Math.min(page * currentPageSize, filtered.length)}</span> of <span className="text-[#2a465a] font-bold">{filtered.length}</span>
+        </p>
+        <div className="flex items-center gap-1.5">
+          <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-[#2a465a] shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            <ChevronLeft size={16} />
+          </button>
+          <span className="text-xs font-bold text-slate-500 px-2">Page {page} of {totalPages}</span>
+          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 hover:text-[#2a465a] shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </div>
+
+      <EnhancedModal isVisible={isExpanded} onClose={() => { setIsExpanded(false); window.dispatchEvent(new CustomEvent("collapse-table")); }} id={`expanded-table-${title}`} title={title ? `${title} (Full Dataset)` : "Full Dataset"}>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 w-full bg-slate-50 p-3 rounded-2xl border border-slate-200/50">
+            <div className="relative flex-1 w-full max-w-sm">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input type="text" placeholder="Search across all fields..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20" />
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-auto">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest bg-white px-3 py-2 rounded-xl border border-slate-200 shadow-sm">Total: {filtered.length}</span>
+              <select value={currentPageSize} onChange={(e) => { setCurrentPageSize(Number(e.target.value)); setPage(1); }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 cursor-pointer shadow-sm">
+                {pageSizeOptions.map(opt => <option key={opt} value={opt}>Show {opt}</option>)}
+              </select>
+            </div>
+          </div>
+          {renderTableContent(columns)}
+        </div>
+      </EnhancedModal>
+    </div>
+  );
+};
+
+export const PanelModal = ({ id, title, children, isVisible, onClose }) => {
+  const [show, setShow] = useState(false);
+  const [render, setRender] = useState(false);
+
+  useEffect(() => {
+    const handleOpen = (e) => { if (e.detail.id === id) { setShow(true); setRender(true); } };
+    const handleClose = (e) => { if (e.detail.id === id) { setShow(false); } };
+    window.addEventListener("open-modal", handleOpen);
+    window.addEventListener("close-modal", handleClose);
+    return () => {
+      window.removeEventListener("open-modal", handleOpen);
+      window.removeEventListener("close-modal", handleClose);
+    };
+  }, [id]);
+
+  useEffect(() => {
+    if (isVisible) { setShow(true); setRender(true); }
+    else { setShow(false); }
+  }, [isVisible]);
+
+  const handleAnimEnd = () => { if (!show) setRender(false); };
+  const close = () => { setShow(false); if (onClose) onClose(); };
+
+  if (!render) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center pointer-events-auto px-4 py-6 sm:px-6">
+      <div className={`absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"}`} onClick={close} />
+      <div 
+        onTransitionEnd={handleAnimEnd} 
+        className={`relative w-full max-w-lg bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-400 cubic-bezier(0.34, 1.56, 0.64, 1) ${show ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
+      >
+        <div className="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+          <h3 className="text-lg font-black text-[#2a465a] tracking-tight">{title}</h3>
+          <button onClick={close} className="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors border border-transparent hover:border-rose-100">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-white">
+          {children}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};

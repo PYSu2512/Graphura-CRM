@@ -7,17 +7,31 @@ import HRMDashboard from "../pages/admin/HRMDashboard";
 import Support from "../pages/admin/Support";
 import Report from "../pages/admin/Report";
 
+// ── User Management ──
+import UserManagement from "../pages/admin/UserManagement";
+import AllUsers from "../pages/admin/user-management/AllUsers";
+import RolesPermissions from "../pages/admin/user-management/RolesPermissions";
+import UserApprovals from "../pages/admin/user-management/UserApprovals";
+import LoginLogs from "../pages/admin/user-management/LoginLogs";
+
+// ── Leads ──
+import Leads from "../pages/admin/Leads";
+import AllLeads from "../pages/admin/leads/AllLeads";
+import Prospects from "../pages/admin/leads/Prospects";
+import FollowUps from "../pages/admin/leads/FollowUps";
+import BulkUpload from "../pages/admin/leads/BulkUpload";
+import LeadDistribution from "../pages/admin/leads/LeadDistribution";
+import DumpData from "../pages/admin/leads/DumpData";
+
+// ── Sales ──
+import Sales from "../pages/admin/Sales";
+import Analytics from "../pages/admin/sales/Analytics";
+import Pipeline from "../pages/admin/sales/Pipeline";
+import Targets from "../pages/admin/sales/Targets";
+import CallPanel from "../pages/admin/sales/CallPanel";
+import Tickets from "../pages/admin/sales/Tickets";
+
 const pageContent = {
-  "User Management": {
-    eyebrow: "Access Control",
-    summary:
-      "Track team roles, new user onboarding, permission requests, and recent account activity.",
-    stats: [
-      { label: "Active Users", value: "148" },
-      { label: "Pending Invites", value: "12" },
-      { label: "Role Changes", value: "7" },
-    ],
-  },
   "Leads & Sales": {
     eyebrow: "Revenue Pipeline",
     summary:
@@ -26,6 +40,26 @@ const pageContent = {
       { label: "New Leads", value: "86" },
       { label: "Qualified", value: "31" },
       { label: "Won Deals", value: "14" },
+    ],
+  },
+  Leads: {
+    eyebrow: "Lead Management",
+    summary:
+      "Track incoming leads, qualify prospects, and manage your entire lead pipeline efficiently.",
+    stats: [
+      { label: "New Leads", value: "86" },
+      { label: "Contacted", value: "54" },
+      { label: "Qualified", value: "31" },
+    ],
+  },
+  Sales: {
+    eyebrow: "Sales Analytics",
+    summary:
+      "Analyze sales performance, track revenue targets, and monitor team achievements.",
+    stats: [
+      { label: "Won Deals", value: "14" },
+      { label: "Revenue", value: "₹18.5L" },
+      { label: "Avg Deal Size", value: "₹1.3L" },
     ],
   },
   System: {
@@ -118,8 +152,37 @@ function AdminRoutes() {
     <Routes>
       <Route element={<MainLayout />}>
         <Route index element={<Dashboard />} />
-        <Route path="users" element={<Page name="User Management" />} />
-        <Route path="leads" element={<Page name="Leads & Sales" />} />
+
+        {/* ── User Management (5 tabs) ── */}
+        <Route path="users" element={<UserManagement />}>
+          <Route index element={<Navigate to="all" replace />} />
+          <Route path="all" element={<AllUsers />} />
+          <Route path="roles" element={<RolesPermissions />} />
+          <Route path="approvals" element={<UserApprovals />} />
+          <Route path="logs" element={<LoginLogs />} />
+        </Route>
+
+        {/* ── Leads (5 tabs) ── */}
+        <Route path="leads" element={<Leads />}>
+          <Route index element={<Navigate to="all" replace />} />
+          <Route path="all" element={<AllLeads />} />
+          <Route path="prospects" element={<Prospects />} />
+          <Route path="followups" element={<FollowUps />} />
+          <Route path="bulk" element={<BulkUpload />} />
+          <Route path="distribution" element={<LeadDistribution />} />
+          <Route path="dump" element={<DumpData />} />
+        </Route>
+
+        {/* ── Sales (5 tabs) ── */}
+        <Route path="sales" element={<Sales />}>
+          <Route index element={<Navigate to="analytics" replace />} />
+          <Route path="analytics" element={<Analytics />} />
+          <Route path="pipeline" element={<Pipeline />} />
+          <Route path="targets" element={<Targets />} />
+          <Route path="calls" element={<CallPanel />} />
+          <Route path="tickets" element={<Tickets />} />
+        </Route>
+
         <Route path="projects" element={<Projects />} />
         <Route path="finance" element={<FinanceDashboard />} />
         <Route path="hrm" element={<HRMDashboard />} />
