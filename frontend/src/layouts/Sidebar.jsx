@@ -44,10 +44,9 @@ function Sidebar() {
               to={item.path}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200
-                ${
-                  isActive
-                    ? "bg-[#7AAACE] text-white shadow-md"
-                    : "text-gray-200 hover:bg-[#426b8c] hover:text-white hover:translate-x-1"
+                ${isActive
+                  ? "bg-[#7AAACE] text-white shadow-md"
+                  : "text-gray-200 hover:bg-[#426b8c] hover:text-white hover:translate-x-1"
                 }`
               }
             >

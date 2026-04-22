@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import Dashboard from "../pages/admin/Dashboard";
+import Projects from "../pages/admin/Projects";
 import FinanceDashboard from "../pages/admin/FinanceDashboard";
 import HRMDashboard from "../pages/admin/HRMDashboard";
 import Support from "../pages/admin/Support";
@@ -25,16 +26,6 @@ const pageContent = {
       { label: "New Leads", value: "86" },
       { label: "Qualified", value: "31" },
       { label: "Won Deals", value: "14" },
-    ],
-  },
-  Projects: {
-    eyebrow: "Delivery Tracker",
-    summary:
-      "Review active projects, milestone progress, team allocation, and delivery risk areas.",
-    stats: [
-      { label: "Active Projects", value: "24" },
-      { label: "On Track", value: "18" },
-      { label: "At Risk", value: "6" },
     ],
   },
   System: {
@@ -129,7 +120,7 @@ function AdminRoutes() {
         <Route index element={<Dashboard />} />
         <Route path="users" element={<Page name="User Management" />} />
         <Route path="leads" element={<Page name="Leads & Sales" />} />
-        <Route path="projects" element={<Page name="Projects" />} />
+        <Route path="projects" element={<Projects />} />
         <Route path="finance" element={<FinanceDashboard />} />
         <Route path="hrm" element={<HRMDashboard />} />
         <Route path="support" element={<Support />} />
