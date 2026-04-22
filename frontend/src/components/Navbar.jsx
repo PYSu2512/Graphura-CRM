@@ -1,6 +1,10 @@
 import { Bell, Menu, Search } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 function Navbar({ toggleSidebar }) {
+  const location = useLocation();
+  const isSuperAdmin = location.pathname.startsWith('/super-admin');
+
   return (
     <div className="flex h-16 w-full items-center justify-between">
       <div className="flex flex-1 items-center">
@@ -25,9 +29,11 @@ function Navbar({ toggleSidebar }) {
 
         <div className="flex cursor-pointer items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-700">
-            A
+            {isSuperAdmin ? 'SA' : 'A'}
           </div>
-          <span className="hidden text-sm font-medium text-gray-700 sm:block">Admin</span>
+          <span className="hidden text-sm font-medium text-gray-700 sm:block">
+            {isSuperAdmin ? 'Super Admin' : 'Admin'}
+          </span>
         </div>
       </div>
     </div>
