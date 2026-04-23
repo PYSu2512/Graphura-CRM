@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   User,
   Layers3,
@@ -13,6 +13,7 @@ import {
   EyeOff,
 } from "lucide-react";
 import GraphuraLogo from "../../assets/Logo/Graphura_Logo.webp";
+import { loginAdmin } from "../../services/authService";
 
 const FloatingBackground = () => (
   <div className="absolute inset-0 z-0 overflow-hidden opacity-5 pointer-events-none">
@@ -52,6 +53,7 @@ const FloatingBackground = () => (
 );
 
 const AdminLogin = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -62,6 +64,8 @@ const AdminLogin = () => {
   const [captchaCode, setCaptchaCode] = useState(generateCaptcha());
   const [captchaInput, setCaptchaInput] = useState("");
   const [captchaError, setCaptchaError] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function generateCaptcha() {
     return Math.floor(1000 + Math.random() * 9000).toString();
@@ -140,59 +144,74 @@ const AdminLogin = () => {
       return;
     }
 
-    // Get user's location and IP address
-    try {
-      // Get Geolocation
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-
-            // Get IP Address
-            try {
-              const ipResponse = await fetch(
-                "https://api.ipify.org?format=json",
-              );
-              const ipData = await ipResponse.json();
-              const ipAddress = ipData.ip;
-
-              console.log("=== USER LOGIN INFORMATION ===");
-              console.log("Latitude:", latitude);
-              console.log("Longitude:", longitude);
-              console.log("IP Address:", ipAddress);
-              console.log("==============================");
-            } catch (error) {
-              console.error("Error fetching IP address:", error);
-              console.log(
-                "Location - Latitude:",
-                latitude,
-                "Longitude:",
-                longitude,
-              );
-            }
-          },
-          (error) => {
-            console.error("Error getting geolocation:", error.message);
-            // Fallback: Try to get IP address anyway
-            fetch("https://api.ipify.org?format=json")
-              .then((response) => response.json())
-              .then((data) => {
-                console.log("IP Address:", data.ip);
-                console.log("Note: Geolocation permission denied by user");
-              })
-              .catch((err) => console.error("Error fetching IP:", err));
-          },
-        );
-      } else {
-        console.log("Geolocation is not supported by this browser.");
+    const getCurrentLocation = () => new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported by this browser."));
+        return;
       }
-    } catch (error) {
-      console.error("Error:", error);
-    }
 
-    setStatusType("success");
-    setStatusMessage("Credentials look good. You're ready to sign in.");
+      let isSettled = false;
+      const finish = (fn, payload) => {
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(fallbackTimer);
+        fn(payload);
+      };
+
+      const fallbackTimer = setTimeout(() => {
+        finish(reject, new Error("Location request timed out. Please try again."));
+      }, 12000);
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          finish(resolve, {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        () => {
+          finish(reject, new Error("Location access is required to sign in."));
+        },
+        {
+          enableHighAccuracy: false,
+          timeout: 8000,
+          maximumAge: 60000,
+        },
+      );
+    });
+
+    try {
+      setIsSubmitting(true);
+      setStatusType("info");
+      setStatusMessage("Checking location permission...");
+
+      const location = await getCurrentLocation();
+
+      setStatusType("info");
+      setStatusMessage("Signing you in securely...");
+
+      await loginAdmin({
+        email,
+        password,
+        latitude: location.latitude,
+        longitude: location.longitude,
+        rememberMe,
+      });
+
+      setStatusType("success");
+      setStatusMessage("Sign in successful. Redirecting...");
+
+      setTimeout(() => {
+        navigate("/admin");
+      }, 900);
+    } catch (error) {
+      setStatusType("error");
+      setStatusMessage(
+        error?.message || "Unable to sign in. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -380,6 +399,8 @@ const AdminLogin = () => {
                 <label className="flex items-center gap-2 text-slate-500 cursor-pointer">
                   <input
                     type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="w-4 h-4 rounded border-slate-300 accent-crm-navy"
                   />
                   Remember me
@@ -392,9 +413,10 @@ const AdminLogin = () => {
               {/* Visible Sign In Button */}
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="w-full mt-4 py-4 bg-[#2a465a] text-white font-bold rounded-2xl shadow-xl shadow-crm-navy/20 transition duration-300 ease-out transform hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-2xl hover:-translate-y-0.5 active:scale-95"
               >
-                Sign in →
+                {isSubmitting ? "Signing in..." : "Sign in →"}
               </button>
             </form>
 

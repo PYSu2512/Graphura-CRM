@@ -10,6 +10,7 @@ const {
   verifyOTPSchema,
   createAccountSchema,
   resendOTPSchema,
+  adminLoginSchema,
 } = require('../validators/auth.validator');
 
 const router = express.Router();
@@ -57,6 +58,17 @@ router.post(
   '/resend-otp',
   validate(resendOTPSchema, 'body'),
   authController.resendOTP
+);
+
+/**
+ * POST /api/auth/login
+ * Admin login with required geolocation metadata
+ * Body: { email, password, latitude, longitude, rememberMe? }
+ */
+router.post(
+  '/login',
+  validate(adminLoginSchema, 'body'),
+  authController.adminLogin
 );
 
 module.exports = router;

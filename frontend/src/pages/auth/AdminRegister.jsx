@@ -283,6 +283,14 @@ const AdminRegister = () => {
   // ── Final submit ──
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Guard against accidental form submits (e.g. Enter key)
+    // before reaching the final security step.
+    if (step < 2) {
+      nextStep();
+      return;
+    }
+
     const errs = {};
     if (!password.trim()) errs.password = "Password is required.";
     else if (password.length < 8)

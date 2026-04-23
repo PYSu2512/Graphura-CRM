@@ -181,10 +181,53 @@ const resendOTPSchema = Joi.object({
     .email(),
 });
 
+// ─────────────────────────────────────────────────────────────
+// ADMIN LOGIN
+// ─────────────────────────────────────────────────────────────
+const adminLoginSchema = Joi.object({
+  email: Joi.string()
+    .required()
+    .lowercase()
+    .email()
+    .messages({
+      'string.email': 'Enter a valid email',
+      'string.empty': 'Email is required',
+    }),
+
+  password: Joi.string()
+    .required()
+    .min(8)
+    .messages({
+      'string.empty': 'Password is required',
+      'string.min': 'Password must be at least 8 characters',
+    }),
+
+  latitude: Joi.number()
+    .required()
+    .min(-90)
+    .max(90)
+    .messages({
+      'any.required': 'Location permission is required to sign in',
+      'number.base': 'Location latitude must be a number',
+    }),
+
+  longitude: Joi.number()
+    .required()
+    .min(-180)
+    .max(180)
+    .messages({
+      'any.required': 'Location permission is required to sign in',
+      'number.base': 'Location longitude must be a number',
+    }),
+
+  rememberMe: Joi.boolean().optional(),
+});
+
 module.exports = {
   registerStep1Schema,
   sendOTPSchema,
   verifyOTPSchema,
   createAccountSchema,
   resendOTPSchema,
+  adminLoginSchema,
 };

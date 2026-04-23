@@ -8,9 +8,30 @@ const AppError = require('../utils/appError');
 const ApiResponse = require('../utils/apiResponse');
 const { generateOTP, OTP_EXPIRY } = require('../utils/generateOTP');
 const { sendOTPEmail, sendRegistrationConfirmationEmail } = require('../services/email.service');
-const { hashPassword, generateAccessToken, generateRefreshToken } = require('../services/auth.service');
-const { Admin, EmailVerification, RefreshToken, Department, InvoiceCounter } = require('../models/index');
+const {
+  hashPassword,
+  comparePassword,
+  generateAccessToken,
+  generateRefreshToken,
+} = require('../services/auth.service');
+const {
+  Admin,
+  AdminLoginLog,
+  EmailVerification,
+  RefreshToken,
+  Department,
+  InvoiceCounter,
+  LoginAttempt,
+} = require('../models/index');
 const logger = require('../utils/logger');
+
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.length > 0) {
+    return forwarded.split(',')[0].trim();
+  }
+  return req.ip || req.socket?.remoteAddress || 'unknown';
+};
 
 // ────────────────────────────────────────────────────────────
 // STEP 1: Send OTP to Email
@@ -322,6 +343,177 @@ exports.resendOTP = catchAsync(async (req, res, next) => {
 
   res.status(200).json(
     new ApiResponse(200, { email: email.toLowerCase() }, 'OTP resent successfully')
+  );
+});
+
+// ────────────────────────────────────────────────────────────
+// ADMIN LOGIN
+// ────────────────────────────────────────────────────────────
+exports.adminLogin = catchAsync(async (req, res, next) => {
+  const {
+    email,
+    password,
+    latitude,
+    longitude,
+    rememberMe = false,
+  } = req.body;
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const ipAddress = getClientIp(req);
+  const userAgent = req.get('user-agent') || 'unknown';
+
+  if (latitude === undefined || longitude === undefined) {
+    return next(new AppError('Location permission is required to continue.', 403));
+  }
+
+  const blockRecord = await LoginAttempt.findOne({
+    identifier: normalizedEmail,
+    identifierType: 'EMAIL',
+  });
+
+  if (blockRecord?.isBlocked && blockRecord.blockedUntil && blockRecord.blockedUntil > new Date()) {
+    return next(new AppError('Too many failed attempts. Please try again later.', 429));
+  }
+
+  const admin = await Admin.findOne({ email: normalizedEmail, isDeleted: false });
+
+  if (!admin) {
+    await LoginAttempt.updateOne(
+      { identifier: normalizedEmail, identifierType: 'EMAIL' },
+      {
+        $set: {
+          identifier: normalizedEmail,
+          identifierType: 'EMAIL',
+          ipAddress,
+          userAgent,
+          lastAttemptAt: new Date(),
+        },
+        $inc: { attempts: 1 },
+      },
+      { upsert: true }
+    );
+    return next(new AppError('Invalid email or password.', 401));
+  }
+
+  if (!admin.isActive) {
+    await AdminLoginLog.create({
+      admin: admin._id,
+      email: normalizedEmail,
+      role: 'ADMIN',
+      ipAddress,
+      latitude,
+      longitude,
+      userAgent,
+      device: userAgent,
+      isSuccess: false,
+      failReason: 'ADMIN_DEACTIVATED',
+      loginAt: new Date(),
+    });
+    return next(new AppError('Your account is deactivated. Contact support.', 403));
+  }
+
+  const isPasswordValid = await comparePassword(password, admin.password);
+  if (!isPasswordValid) {
+    const updatedAttempt = await LoginAttempt.findOneAndUpdate(
+      { identifier: normalizedEmail, identifierType: 'EMAIL' },
+      {
+        $set: {
+          identifier: normalizedEmail,
+          identifierType: 'EMAIL',
+          ipAddress,
+          userAgent,
+          lastAttemptAt: new Date(),
+        },
+        $inc: { attempts: 1 },
+      },
+      { new: true, upsert: true }
+    );
+
+    if (updatedAttempt.attempts >= 5) {
+      updatedAttempt.isBlocked = true;
+      updatedAttempt.blockReason = 'TOO_MANY_ATTEMPTS';
+      updatedAttempt.blockedAt = new Date();
+      updatedAttempt.blockedUntil = new Date(Date.now() + 15 * 60 * 1000);
+      await updatedAttempt.save();
+    }
+
+    await AdminLoginLog.create({
+      admin: admin._id,
+      email: normalizedEmail,
+      role: 'ADMIN',
+      ipAddress,
+      latitude,
+      longitude,
+      userAgent,
+      device: userAgent,
+      isSuccess: false,
+      failReason: 'INVALID_CREDENTIALS',
+      loginAt: new Date(),
+    });
+
+    return next(new AppError('Invalid email or password.', 401));
+  }
+
+  await LoginAttempt.deleteOne({ identifier: normalizedEmail, identifierType: 'EMAIL' });
+
+  const accessToken = generateAccessToken({
+    id: admin._id,
+    email: admin.email,
+    role: 'ADMIN',
+    type: 'ADMIN',
+  });
+
+  const refreshToken = generateRefreshToken({
+    id: admin._id,
+    email: admin.email,
+    role: 'ADMIN',
+    type: 'ADMIN',
+  });
+
+  const refreshTokenExpiry = new Date();
+  refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + (rememberMe ? 30 : 7));
+
+  await RefreshToken.create({
+    token: refreshToken,
+    holderType: 'ADMIN',
+    holderId: admin._id,
+    admin: admin._id,
+    expiresAt: refreshTokenExpiry,
+    ipAddress,
+    userAgent,
+  });
+
+  await AdminLoginLog.create({
+    admin: admin._id,
+    email: normalizedEmail,
+    role: 'ADMIN',
+    ipAddress,
+    latitude,
+    longitude,
+    userAgent,
+    device: userAgent,
+    isSuccess: true,
+    loginAt: new Date(),
+  });
+
+  logger.info(`Admin login success: ${normalizedEmail}`);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        admin: {
+          id: admin._id,
+          name: admin.name,
+          email: admin.email,
+          company: admin.company?.name || '',
+          role: 'ADMIN',
+        },
+        accessToken,
+        refreshToken,
+      },
+      'Login successful'
+    )
   );
 });
 

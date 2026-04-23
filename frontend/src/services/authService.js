@@ -81,6 +81,29 @@ export const resendOTP = async (email, adminName) => {
 };
 
 /**
+ * Admin login
+ * @param {Object} payload - { email, password, latitude, longitude, rememberMe? }
+ * @returns {Promise<Object>} Response with tokens and admin profile
+ */
+export const loginAdmin = async (payload) => {
+  try {
+    const response = await apiClient.post('/auth/login', payload, {
+      skipAuthRedirect: true,
+    });
+
+    if (response.data.data?.accessToken) {
+      localStorage.setItem('accessToken', response.data.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.data.refreshToken);
+      localStorage.setItem('admin', JSON.stringify(response.data.data.admin));
+    }
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
  * Logout — Clear tokens
  */
 export const logout = () => {
