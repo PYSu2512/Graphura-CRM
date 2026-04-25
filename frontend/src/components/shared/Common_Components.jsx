@@ -108,6 +108,8 @@ export const InputField = ({
   value,
   onChange,
   disabled = false,
+  readOnly = false,
+  className = "",
 }) => (
   <div className={`${colSpan(size)}`}>
     <input
@@ -118,12 +120,14 @@ export const InputField = ({
       value={value}
       onChange={onChange}
       disabled={disabled}
+      readOnly={readOnly}
       className={`
         w-full rounded-2xl border border-slate-200 bg-slate-50/90
         py-3.5 px-4 text-[#2a465a] placeholder:text-slate-400 text-sm font-medium
         focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
         disabled:opacity-50 disabled:cursor-not-allowed
         transition duration-200
+        ${className}
       `}
     />
   </div>
@@ -151,6 +155,8 @@ export const InputField = ({
   • value       — controlled value
   • onChange    — change handler (e) => void
   • disabled    — true | false  (default: false)
+  • readOnly    — true | false  (default: false)
+  • className   — custom classes
 */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -197,6 +203,8 @@ export const DataField = ({
   value,
   onChange,
   disabled = false,
+  readOnly = false,
+  className = "",
 }) => (
   <div className={`${colSpan(size)} flex flex-col gap-1.5`}>
     {label && (
@@ -215,12 +223,14 @@ export const DataField = ({
       value={value}
       onChange={onChange}
       disabled={disabled}
+      readOnly={readOnly}
       className={`
         w-full rounded-2xl border border-slate-200 bg-slate-50/90
         py-3.5 px-4 text-[#2a465a] placeholder:text-slate-400 text-sm font-medium
         focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
         disabled:opacity-50 disabled:cursor-not-allowed
         transition duration-200
+        ${className}
       `}
     />
   </div>
