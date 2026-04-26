@@ -134,6 +134,8 @@ function Support() {
     });
   }, [filters, tickets]);
 
+  const tableTickets = useMemo(() => filteredTickets, [filteredTickets]);
+
   const stats = useMemo(() => {
     const total = tickets.length;
     const open = tickets.filter((ticket) => ticket.status === "Open").length;
@@ -172,15 +174,6 @@ function Support() {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
-  function openCreateModal() {
-    setForm(defaultForm);
-    setIsCreateOpen(true);
-  }
-
-  function closeCreateModal() {
-    setIsCreateOpen(false);
-  }
-
   function handleFormChange(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -217,9 +210,7 @@ function Support() {
   }
 
   function updateActiveTicket(field, value) {
-    if (!activeTicket) {
-      return;
-    }
+    if (!activeTicket) return;
 
     setTickets((current) =>
       current.map((ticket) =>
@@ -252,11 +243,14 @@ function Support() {
                 Ticket Management System
               </p>
               <h2 className="mt-1 text-xl font-semibold text-[#355872]">
-                Filter tickets and open details in a popup
+                Filter tickets and review details in table format
               </h2>
             </div>
             <button
-              onClick={openCreateModal}
+              onClick={() => {
+                setForm(defaultForm);
+                setIsCreateOpen(true);
+              }}
               className="inline-flex items-center gap-2 rounded-xl bg-[#355872] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d4a60]"
             >
               <Plus size={16} />
@@ -265,13 +259,13 @@ function Support() {
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-3">
-          {filterConfig.map((filter) => (
-            <div key={filter.key} className="rounded-2xl border border-[#e6edf2] bg-[#fdfefe] p-4">
-              <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#355872]">
-                <filter.icon size={15} />
-                {filter.title}
-              </div>
-              <div className="relative">
+            {filterConfig.map((filter) => (
+              <div key={filter.key} className="rounded-2xl border border-[#e6edf2] bg-[#fdfefe] p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#355872]">
+                  <filter.icon size={15} />
+                  {filter.title}
+                </div>
+                <div className="relative">
                   <select
                     value={filters[filter.key]}
                     onChange={(event) => handleFilterChange(filter.key, event.target.value)}
@@ -290,64 +284,83 @@ function Support() {
             ))}
           </div>
 
-          <div className="mt-5 space-y-4">
-            {filteredTickets.length === 0 ? (
-              <div className="rounded-[24px] border border-dashed border-[#d6e2ea] bg-[#fafcfd] p-8 text-center text-sm text-slate-500">
-                No tickets match the selected filters.
-              </div>
-            ) : (
-              filteredTickets.map((ticket) => (
-                <article
-                  key={ticket.id}
-                  className="rounded-[24px] border border-[#e2ebf1] bg-[linear-gradient(180deg,_#ffffff_0%,_#f9fbfd_100%)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-[#355872]">{ticket.id}</span>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClasses(ticket.priority, "priority")}`}
-                        >
-                          {ticket.priority} Priority
-                        </span>
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClasses(ticket.status, "status")}`}
-                        >
-                          {ticket.status}
-                        </span>
-                      </div>
-
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-800">{ticket.issue}</h3>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {ticket.user} • {ticket.role} • {ticket.department} • {ticket.category}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-                        <span className="rounded-full bg-[#f2f7fa] px-3 py-1">
-                          Assigned: {ticket.assignedTo}
-                        </span>
-                        <span className="rounded-full bg-[#f2f7fa] px-3 py-1">
-                          {ticket.time}
-                        </span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-[#fef4eb] px-3 py-1 text-[#b7651c]">
-                          <Paperclip size={14} />
-                          {ticket.attachment}
-                        </span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => setActiveTicket(ticket)}
-                      className="rounded-xl border border-[#cedee8] bg-white px-4 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f3f8fb]"
-                    >
-                      View Details
-                    </button>
-                  </div>
-                </article>
-              ))
-            )}
+          <div className="mt-5 overflow-hidden rounded-2xl border border-[#d9e6ef]">
+            <div className="overflow-x-auto bg-white">
+              <table className="w-full min-w-[980px] text-left text-sm">
+                <thead className="bg-[#355872] text-white">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Ticket ID</th>
+                    <th className="px-4 py-3 font-semibold">User</th>
+                    <th className="px-4 py-3 font-semibold">Department</th>
+                    <th className="px-4 py-3 font-semibold">Category</th>
+                    <th className="px-4 py-3 font-semibold">Assigned To</th>
+                    <th className="px-4 py-3 font-semibold">Priority</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Time</th>
+                    <th className="px-4 py-3 font-semibold">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableTickets.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
+                        No tickets found.
+                      </td>
+                    </tr>
+                  ) : (
+                    tableTickets.map((ticket, index) => (
+                      <tr
+                        key={ticket.id}
+                        className={index % 2 === 0 ? "bg-white" : "bg-[#f8fbfd]"}
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-[#1e3445]">{ticket.id}</p>
+                          <p className="text-xs text-slate-500">{ticket.issue}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-[#1e3445]">{ticket.user}</p>
+                          <p className="text-xs text-slate-500">{ticket.role}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold text-cyan-800">
+                            {ticket.department}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-fuchsia-100 px-3 py-1 text-xs font-semibold text-fuchsia-800">
+                            {ticket.category}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-lime-100 px-3 py-1 text-xs font-semibold text-lime-800">
+                            {ticket.assignedTo}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClasses(ticket.priority, "priority")}`}>
+                            {ticket.priority}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${badgeClasses(ticket.status, "status")}`}>
+                            {ticket.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{ticket.time}</td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => setActiveTicket(ticket)}
+                            className="rounded-lg border border-[#cedee8] px-3 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f3f8fb]"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       </div>
@@ -365,7 +378,7 @@ function Support() {
                 </h2>
               </div>
               <button
-                onClick={closeCreateModal}
+                onClick={() => setIsCreateOpen(false)}
                 className="rounded-full bg-[#f3f7fa] p-2 text-slate-500 transition hover:bg-[#e7eef3]"
               >
                 <X size={18} />
@@ -472,7 +485,7 @@ function Support() {
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
-                  onClick={closeCreateModal}
+                  onClick={() => setIsCreateOpen(false)}
                   className="rounded-xl border border-[#d5e3eb] px-4 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f5f9fb]"
                 >
                   Cancel
@@ -564,7 +577,7 @@ function Support() {
                   <p className="mt-2 font-semibold text-slate-800">{activeTicket.assignedTo}</p>
                 </div>
                 <div className="rounded-2xl bg-[#f5f9fb] p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Date & Time</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Date and Time</p>
                   <p className="mt-2 font-semibold text-slate-800">{activeTicket.time}</p>
                 </div>
               </div>

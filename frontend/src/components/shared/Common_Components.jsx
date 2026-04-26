@@ -645,6 +645,8 @@ export const DataTable = ({
   pageSize = 5,
   pageSizeOptions = [5, 10, 20, 50],
   searchable = true,
+  hideRecordSummary = false,
+  hidePagination = false,
   // filters — pass an array of filter definitions; each filter shows as a
   // labeled text input inside the Filter modal. Example:
   //   filters={[
@@ -974,22 +976,26 @@ export const DataTable = ({
             </button>
           )}
 
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Show
-          </span>
-          <Select
-            value={currentPageSize}
-            onChange={(e) => {
-              setCurrentPageSize(Number(e.target.value));
-              setPage(1);
-            }}
-            size={3}
-          >
-            {pageSizeOptions.map((option) => (
-              <Option key={option} value={option} label={String(option)} />
-            ))}
-          </Select>
-          <span className="text-xs text-slate-400">rows</span>
+          {!hidePagination && (
+            <>
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Show
+              </span>
+              <Select
+                value={currentPageSize}
+                onChange={(e) => {
+                  setCurrentPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                size={3}
+              >
+                {pageSizeOptions.map((option) => (
+                  <Option key={option} value={option} label={String(option)} />
+                ))}
+              </Select>
+              <span className="text-xs text-slate-400">rows</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -1425,8 +1431,8 @@ export const DataTable = ({
       )}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-slate-400 font-medium">
+      {!(hideRecordSummary && hidePagination) && <div className="flex items-center justify-between px-1">
+        {hideRecordSummary ? <div /> : <p className="text-xs text-slate-400 font-medium">
           Showing{" "}
           <span className="text-[#2a465a] font-bold">
             {filtered.length === 0 ? 0 : (page - 1) * currentPageSize + 1}–
@@ -1434,8 +1440,8 @@ export const DataTable = ({
           </span>{" "}
           of <span className="text-[#2a465a] font-bold">{filtered.length}</span>{" "}
           records
-        </p>
-        <div className="flex items-center gap-1">
+        </p>}
+        {!hidePagination && <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -1483,8 +1489,8 @@ export const DataTable = ({
           >
             <ChevronRight size={14} />
           </button>
-        </div>
-      </div>
+        </div>}
+      </div>}
     </div>
   );
 };
