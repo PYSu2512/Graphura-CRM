@@ -1231,7 +1231,7 @@ export const DataTable = ({
                 </th>
               ))}
               {actions.length > 0 && (
-                <th style={{ width: "25%", minWidth: "25%", maxWidth: "25%" }} className="py-4 px-4 text-left text-xs font-black text-white uppercase tracking-[0.1em]">
+                <th style={{ width: "auto", minWidth: "200px" }} className="py-4 px-4 text-left text-xs font-black text-white uppercase tracking-[0.1em]">
                   Actions
                 </th>
               )}
@@ -1346,8 +1346,8 @@ export const DataTable = ({
                     );
                   })}
                   {actions.length > 0 && (
-                    <td style={{ width: "25%", minWidth: "25%", maxWidth: "25%" }} className="py-3 px-4 align-middle">
-                      <div className="flex flex-wrap items-center gap-2">
+                    <td style={{ width: "auto", minWidth: "200px" }} className="py-3 px-4 align-middle">
+                      <div className="flex flex-nowrap items-center gap-2">
                         {actions.map((action, ai) => {
                           const isIconOnly = action.icon && !action.label;
                           return (
@@ -1356,7 +1356,7 @@ export const DataTable = ({
                                 type="button"
                                 onClick={() => action.onClick(row)}
                                 className={`
-                                  flex items-center justify-center gap-1.5
+                                  flex flex-nowrap items-center justify-center gap-1.5
                                   transition duration-150 active:scale-95
                                   ${isIconOnly
                                     ? `w-8 h-8 rounded-xl ${actionVariantCls[action.variant ?? "ghost"]}`
@@ -3356,6 +3356,7 @@ export const EnhancedDashCard = ({
   icon,
   size = 4,
   accentColor = "#ffffff",
+  onClick,
 }) => {
   const valueStr = String(value);
   let fontSize = "28px";
@@ -3398,6 +3399,7 @@ export const EnhancedDashCard = ({
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onClick={onClick}
       className={`${dashSpan} wave-card silver-shiny-border rounded-3xl p-5 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(56,189,248,0.25)] group cursor-pointer bg-gradient-to-br from-[#243f55] to-[#32526b] text-white overflow-hidden relative`}
     >
       {/* 3 visible wave layers */}

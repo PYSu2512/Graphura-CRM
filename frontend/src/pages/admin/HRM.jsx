@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Users, UserCheck, UserX, Calendar, Download, Check, X } from 'lucide-react';
+import { Users, UserCheck, UserX, Calendar, Download, Check, X, Eye } from 'lucide-react';
 import {
   Heading,
   P,
   DashGrid,
+  EnhancedDashCard,
   DataTable,
   GLineChart,
   GDoughnutChart,
@@ -38,46 +39,46 @@ const leaveStatusData = [
 
 // Employees
 const employeesColumns = [
-  { key: "name", label: "NAME" },
-  { key: "department", label: "DEPARTMENT" },
-  { key: "date", label: "JOIN DATE" },
-  { key: "attendance", label: "ATTENDANCE %" },
-  { key: "leaveTaken", label: "LEAVE TAKEN" },
-  { key: "status", label: "STATUS" },
+  { key: "name", label: "EMPLOYEE NAME", width: "20%" },
+  { key: "department", label: "DEPARTMENT", width: "15%" },
+  { key: "attendance", label: "ATTENDANCE %", width: "15%" },
+  { key: "totalLeaves", label: "TOTAL LEAVES", width: "15%" },
+  { key: "workingDays", label: "WORKING DAYS", width: "15%" },
+  { key: "status", label: "CURRENT STATUS", width: "15%" },
 ];
 const employeesRows = [
-  { name: "Alice Smith", department: "Sales", date: "2024-01-15", attendance: "98%", leaveTaken: "2 Days", status: "Active" },
-  { name: "Bob Johnson", department: "Engineering", date: "2023-11-01", attendance: "95%", leaveTaken: "5 Days", status: "Active" },
-  { name: "Charlie Brown", department: "Finance", date: "2022-05-20", attendance: "88%", leaveTaken: "10 Days", status: "Inactive" },
-  { name: "David Clark", department: "Support", date: "2024-03-10", attendance: "92%", leaveTaken: "1 Day", status: "Active" },
-  { name: "Emma Wilson", department: "Marketing", date: "2023-08-05", attendance: "100%", leaveTaken: "0 Days", status: "Active" },
+  { name: "Alice Smith", department: "Sales", date: "2024-01-15", attendance: "98%", totalLeaves: "2", workingDays: "22", status: "Active" },
+  { name: "Bob Johnson", department: "Engineering", date: "2023-11-01", attendance: "95%", totalLeaves: "5", workingDays: "20", status: "Active" },
+  { name: "Charlie Brown", department: "Finance", date: "2022-05-20", attendance: "88%", totalLeaves: "10", workingDays: "18", status: "Inactive" },
+  { name: "David Clark", department: "Support", date: "2024-03-10", attendance: "92%", totalLeaves: "1", workingDays: "21", status: "Active" },
+  { name: "Emma Wilson", department: "Marketing", date: "2023-08-05", attendance: "100%", totalLeaves: "0", workingDays: "22", status: "Active" },
 ];
 
 // Attendance
 const attendanceColumns = [
-  { key: "name", label: "NAME" },
-  { key: "department", label: "DEPARTMENT" },
-  { key: "date", label: "DATE" },
-  { key: "clockIn", label: "CLOCK IN" },
-  { key: "clockOut", label: "CLOCK OUT" },
-  { key: "totalHours", label: "TOTAL HOURS" },
-  { key: "status", label: "STATUS" },
+  { key: "name", label: "NAME", width: "20%" },
+  { key: "department", label: "DEPARTMENT", width: "15%" },
+  { key: "date", label: "DATE", width: "15%" },
+  { key: "clockIn", label: "CLOCK IN", width: "13%" },
+  { key: "clockOut", label: "CLOCK OUT", width: "13%" },
+  { key: "totalHours", label: "TOTAL HOURS", width: "12%" },
+  { key: "status", label: "STATUS", width: "12%" },
 ];
 const attendanceRows = [
   { name: "Alice Smith", department: "Sales", date: "2024-11-01", clockIn: "09:00 AM", clockOut: "05:00 PM", totalHours: "8h", status: "Present" },
   { name: "Bob Johnson", department: "Engineering", date: "2024-11-01", clockIn: "09:15 AM", clockOut: "05:30 PM", totalHours: "8h 15m", status: "Late" },
   { name: "Charlie Brown", department: "Finance", date: "2024-11-01", clockIn: "-", clockOut: "-", totalHours: "0h", status: "Absent" },
-  { name: "David Clark", department: "Support", date: "2024-11-01", clockIn: "08:50 AM", clockOut: "05:05 PM", totalHours: "8h 15m", status: "Present" },
-  { name: "Emma Wilson", department: "Marketing", date: "2024-11-02", clockIn: "09:00 AM", clockOut: "05:00 PM", totalHours: "8h", status: "Present" },
+  { name: "David Clark", department: "Support", date: "2024-11-01", clockIn: "09:00 AM", clockOut: "01:00 PM", totalHours: "4h", status: "Half Day" },
+  { name: "Emma Wilson", department: "Marketing", date: "2024-11-02", clockIn: "-", clockOut: "-", totalHours: "0h", status: "On Leave" },
 ];
 
 // Leave Requests
 const leaveColumns = [
-  { key: "name", label: "NAME" },
-  { key: "leaveType", label: "LEAVE TYPE" },
-  { key: "dates", label: "FROM - TO DATES" },
-  { key: "days", label: "DAYS" },
-  { key: "status", label: "STATUS" },
+  { key: "name", label: "NAME", width: "15%" },
+  { key: "leaveType", label: "LEAVE TYPE", width: "15%" },
+  { key: "dates", label: "FROM - TO DATES", width: "25%" },
+  { key: "days", label: "DAYS", width: "10%" },
+  { key: "status", label: "STATUS", width: "10%" },
 ];
 const leaveRows = [
   { name: "Bob Johnson", leaveType: "Sick Leave", dates: "2024-11-05 to 2024-11-06", days: "2", status: "Approved" },
@@ -89,10 +90,9 @@ const leaveRows = [
 
 // Approvals
 const approvalsColumns = [
-  { key: "name", label: "NAME" },
-  { key: "leaveDates", label: "LEAVE DATES" },
-  { key: "reason", label: "REASON" },
-  { key: "status", label: "STATUS" },
+  { key: "name", label: "NAME", width: "15%" },
+  { key: "leaveDates", label: "LEAVE DATES", width: "20%" },
+  { key: "reason", label: "REASON", width: "25%" },
 ];
 const approvalsRows = [
   { id: 1, name: "Charlie Brown", leaveDates: "2024-11-10 to 2024-11-15", reason: "Family Vacation", status: "Pending" },
@@ -105,6 +105,10 @@ const approvalsRows = [
 export default function HRM() {
   const [activeTab, setActiveTab] = useState('Overview');
   const tabs = ['Overview', 'Employees', 'Attendance', 'Leave Requests', 'Approvals'];
+
+  // Modal states
+  const [selectedApproval, setSelectedApproval] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Attendance filter states
   const [filterDate, setFilterDate] = useState('');
@@ -119,7 +123,10 @@ export default function HRM() {
     {
       label: "Approve",
       icon: <Check size={16} />,
-      onClick: (row) => console.log("Approved", row),
+      onClick: (row) => {
+        setSelectedApproval(row);
+        setIsModalOpen(true);
+      },
       variant: "primary"
     },
     {
@@ -197,50 +204,34 @@ export default function HRM() {
       {activeTab === 'Overview' && (
         <div className="space-y-10">
           <DashGrid cols={12} gap={6}>
-            <div className="col-span-12 sm:col-span-6 lg:col-span-3">
-              <div className="rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 h-full" style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}>
-                <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
-                  <Users size={18} />
-                </div>
-                <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Total Employees</h3>
-                  <span className="text-[24px] font-extrabold leading-none tracking-tight">135</span>
-                </div>
-              </div>
-            </div>
-            <div className="col-span-12 sm:col-span-6 lg:col-span-3">
-              <div className="rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 h-full" style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}>
-                <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
-                  <UserCheck size={18} />
-                </div>
-                <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Present Today</h3>
-                  <span className="text-[24px] font-extrabold leading-none tracking-tight">118</span>
-                </div>
-              </div>
-            </div>
-            <div className="col-span-12 sm:col-span-6 lg:col-span-3">
-              <div className="rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 h-full" style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}>
-                <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
-                  <UserX size={18} />
-                </div>
-                <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Absent Today</h3>
-                  <span className="text-[24px] font-extrabold leading-none tracking-tight">7</span>
-                </div>
-              </div>
-            </div>
-            <div className="col-span-12 sm:col-span-6 lg:col-span-3">
-              <div className="rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 h-full" style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}>
-                <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
-                  <Calendar size={18} />
-                </div>
-                <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
-                  <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">On Leave</h3>
-                  <span className="text-[24px] font-extrabold leading-none tracking-tight">10</span>
-                </div>
-              </div>
-            </div>
+            <EnhancedDashCard
+              title="Total Employees"
+              value="135"
+              icon={<Users size={22} />}
+              accentColor="#38bdf8"
+              size={3}
+            />
+            <EnhancedDashCard
+              title="Present Today"
+              value="118"
+              icon={<UserCheck size={22} />}
+              accentColor="#22c55e"
+              size={3}
+            />
+            <EnhancedDashCard
+              title="Absent Today"
+              value="7"
+              icon={<UserX size={22} />}
+              accentColor="#f43f5e"
+              size={3}
+            />
+            <EnhancedDashCard
+              title="On Leave"
+              value="10"
+              icon={<Calendar size={22} />}
+              accentColor="#eab308"
+              size={3}
+            />
           </DashGrid>
 
           <DashGrid cols={12} gap={6}>
@@ -419,12 +410,51 @@ export default function HRM() {
         <div className="bg-[#efefefb1] rounded-xl p-3 flex-col gap-3 w-full">
           <DataTable
             columns={approvalsColumns}
-            rows={approvalsRows}
+            rows={approvalsRows.filter(row => row.status === 'Pending')}
             actions={approvalActions}
             size={12}
             pageSize={5}
             searchable={true}
           />
+        </div>
+      )}
+
+      {/* ── Approval Modal ── */}
+      {isModalOpen && selectedApproval && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-[#2a465a]">Confirm Approval</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-3 mb-6">
+              <p className="text-sm text-slate-600">Are you sure you want to approve this leave request?</p>
+              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 text-sm space-y-2">
+                <div className="flex justify-between"><span className="font-semibold text-slate-500">Employee:</span> <span className="font-medium text-[#2a465a]">{selectedApproval.name}</span></div>
+                <div className="flex justify-between"><span className="font-semibold text-slate-500">Dates:</span> <span className="font-medium text-[#2a465a]">{selectedApproval.leaveDates}</span></div>
+                <div className="flex justify-between"><span className="font-semibold text-slate-500">Reason:</span> <span className="font-medium text-[#2a465a]">{selectedApproval.reason}</span></div>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  console.log("Confirmed Approval for", selectedApproval);
+                  setIsModalOpen(false);
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#355872] text-white hover:bg-[#2a465a] transition-colors flex items-center gap-2"
+              >
+                <Check size={16} /> Confirm Approve
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

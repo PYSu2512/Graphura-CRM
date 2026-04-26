@@ -3,7 +3,7 @@ import { DollarSign, AlertCircle, Clock } from 'lucide-react';
 import InvoiceManagement from './InvoiceManagement';
 import ExpenseManagement from './ExpenseManagement';
 import {
-  DashGrid, DashCard, Heading, P, Button,
+  DashGrid, EnhancedDashCard, Heading, P, Button,
   GColumnChart, GDoughnutChart, DataTable, Modal, openModal
 } from '../../components/Shared/Common_Components';
 
@@ -88,67 +88,36 @@ export default function FinanceDashboard() {
       {activeTab === 'overview' && (
         <DashGrid cols={12} gap={6}>
 
-          <div 
-             className="col-span-12 md:col-span-6 lg:col-span-3 rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 h-full"
-             style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}
-          >
-            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
-              <DollarSign size={16} />
-            </div>
-            <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Total Revenue</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-[24px] font-extrabold leading-none tracking-tight">$124,500</span>
-              </div>
-            </div>
-          </div>
-
-          <div 
-             className="col-span-12 md:col-span-6 lg:col-span-3 rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 h-full"
-             style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}
-          >
-            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
-              <DollarSign size={16} />
-            </div>
-            <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Today's Revenue</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-[24px] font-extrabold leading-none tracking-tight">$3,450</span>
-              </div>
-            </div>
-          </div>
-          
-          <div 
-             className="col-span-12 md:col-span-6 lg:col-span-3 rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer h-full"
-             style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}
-             onClick={() => openModal('pending-modal')}
-          >
-            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
-              <Clock size={16} />
-            </div>
-            <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Pending Payments</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-[24px] font-extrabold leading-none tracking-tight">${pendingSum.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-
-          <div 
-             className="col-span-12 md:col-span-6 lg:col-span-3 rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer h-full"
-             style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}
-             onClick={() => openModal('failed-modal')}
-          >
-            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
-              <AlertCircle size={16} />
-            </div>
-            <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
-              <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Failed Payments</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-[24px] font-extrabold leading-none tracking-tight">${failedSum.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
+          <EnhancedDashCard
+            title="Total Revenue"
+            value="$124,500"
+            icon={<DollarSign size={22} />}
+            accentColor="#38bdf8"
+            size={3}
+          />
+          <EnhancedDashCard
+            title="Today's Revenue"
+            value="$3,450"
+            icon={<DollarSign size={22} />}
+            accentColor="#22c55e"
+            size={3}
+          />
+          <EnhancedDashCard
+            title="Pending Payments"
+            value={`$${pendingSum.toLocaleString()}`}
+            icon={<Clock size={22} />}
+            accentColor="#eab308"
+            size={3}
+            onClick={() => openModal('pending-modal')}
+          />
+          <EnhancedDashCard
+            title="Failed Payments"
+            value={`$${failedSum.toLocaleString()}`}
+            icon={<AlertCircle size={22} />}
+            accentColor="#f43f5e"
+            size={3}
+            onClick={() => openModal('failed-modal')}
+          />
 
           <GColumnChart
             title="Weekly Revenue"
