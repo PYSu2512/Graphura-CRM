@@ -278,7 +278,7 @@ export const Button = ({
     primary:
       "bg-[#2a465a] text-white shadow-lg shadow-[#2a465a]/20 hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5 shiny-sweep",
     secondary:
-      "bg-white text-[#355872] border border-slate-200 hover:bg-slate-50 hover:-translate-y-0.5",
+      "bg-white text-[#2a465a] border border-slate-200 hover:bg-slate-50 hover:-translate-y-0.5",
     danger:
       "bg-rose-500 text-white shadow-lg shadow-rose-500/20 hover:bg-rose-600 hover:-translate-y-0.5",
     ghost: "bg-transparent text-[#2a465a] hover:bg-slate-100",
@@ -397,18 +397,17 @@ export const Select = ({
   return (
     <div className={`${colSpan(size)} relative`} ref={selectRef}>
       <button
-        id={id}
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setIsOpen((open) => !open)}
         className={`
-          w-full min-h-[52px] rounded-2xl border border-slate-200 bg-white py-3.5 pl-4 pr-4 text-sm font-medium text-[#0f172a] text-left
+          w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-4 pr-8 text-sm font-medium text-[#0f172a] text-left
           focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
           disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 flex items-center justify-between gap-2
         `}
       >
         <span
-          className={`min-w-0 flex-1 truncate ${selectedLabel ? "text-[#0f172a]" : "text-slate-400"}`}
+          className={`${selectedLabel ? "text-[#0f172a]" : "text-slate-400"}`}
         >
           {selectedLabel || placeholder}
         </span>
@@ -786,10 +785,12 @@ export const DataTable = ({
     setPage(1);
   }, [pageSize]);
 
-  const handleSort = (key) => {
-    const column = columns.find((col) => col.key === key);
-    if (column?.sortable === false) return;
+  // Clear bulk selection whenever filters or search change
+  useEffect(() => {
+    setSelectedRows(new Set());
+  }, [search, appliedFilters, appliedDateFrom, appliedDateTo, singleDate]);
 
+  const handleSort = (key) => {
     let direction = "asc";
     if (sortConfig.key === key && sortConfig.direction === "asc") {
       direction = "desc";
@@ -804,11 +805,10 @@ export const DataTable = ({
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter((row) =>
-        columns.some((col) =>
-          String(getSearchValue(row, col) ?? "")
-            .toLowerCase()
-            .includes(q),
-        ),
+        columns.some((col) => {
+          const val = col.searchValue ? col.searchValue(row) : (row[col.key] ?? "");
+          return String(val).toLowerCase().includes(q);
+        }),
       );
     }
 
@@ -851,12 +851,10 @@ export const DataTable = ({
     }
 
     if (sortConfig.key) {
-      const activeColumn = columns.find((col) => col.key === sortConfig.key);
-      if (!activeColumn) return result;
-
+      const sortCol = columns.find((c) => c.key === sortConfig.key);
       result = [...result].sort((a, b) => {
-        const aVal = getSortValue(a, activeColumn) ?? "";
-        const bVal = getSortValue(b, activeColumn) ?? "";
+        const aVal = sortCol?.sortValue ? sortCol.sortValue(a) : (a[sortConfig.key] ?? "");
+        const bVal = sortCol?.sortValue ? sortCol.sortValue(b) : (b[sortConfig.key] ?? "");
 
         if (typeof aVal === "string" && typeof bVal === "string") {
           return sortConfig.direction === "asc"
@@ -878,9 +876,6 @@ export const DataTable = ({
     (page - 1) * currentPageSize,
     page * currentPageSize,
   );
-  const missingRows =
-    paginated.length > 0 ? Math.max(0, currentPageSize - paginated.length) : 0;
-  const fillerRowHeight = 57;
 
   const actionVariantCls = {
     primary: "bg-[#2a465a] text-white hover:bg-[#1e3a52]",
@@ -920,14 +915,13 @@ export const DataTable = ({
 
   return (
     <div
-      className={`${colSpan(size)} flex bg-[#efefefb1] rounded-xl p-5 flex-col gap-3`}
+      className={`${colSpan(size)} flex bg-[#efefefb1] rounded-xl p-3 flex-col gap-3`}
     >
       {title ? (
         <HeadingForDataTable primaryText={title} secondaryText="Data table" size={12} />
       ) : null}
 
       {/* Search + date picker + page size + filter button */}
-      {!hideTopBar && (
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {searchable ? (
           <div className="relative flex-1">
@@ -998,7 +992,6 @@ export const DataTable = ({
           <span className="text-xs text-slate-400">rows</span>
         </div>
       </div>
-      )}
 
       {/* ── Filter Modal — rendered via portal into document.body so it is
            always fixed to the true viewport and never moves with page scroll,
@@ -1216,26 +1209,30 @@ export const DataTable = ({
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  onClick={() => handleSort(col.key)}
-                  className="group py-4 px-5 text-left text-xs font-black text-white uppercase tracking-[0.2em] whitespace-nowrap cursor-pointer hover:bg-white/5 transition-colors select-none"
+                  onClick={() => !col.headerNode && handleSort(col.key)}
+                  className={`group py-4 px-5 text-left text-xs font-black text-white uppercase tracking-[0.2em] whitespace-nowrap transition-colors select-none ${col.headerNode ? "" : "cursor-pointer hover:bg-white/5"}`}
                 >
-                  <div className="flex items-center gap-2">
-                    {col.label}
-                    <ArrowUpDown
-                      size={14}
-                      className={`transition-all duration-200 ${sortConfig.key === col.key ? "opacity-100 text-[#38bdf8]" : "opacity-40 group-hover:opacity-100"}`}
-                    />
-                  </div>
+                  {col.headerNode ? (
+                    col.headerNode
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      {col.label}
+                      <ArrowUpDown
+                        size={14}
+                        className={`transition-all duration-200 ${sortConfig.key === col.key ? "opacity-100 text-[#38bdf8]" : "opacity-40 group-hover:opacity-100"}`}
+                      />
+                    </div>
+                  )}
                 </th>
               ))}
               {actions.length > 0 && (
-                <th style={{ width: "25%", minWidth: "25%", maxWidth: "25%" }} className="py-4 px-4 text-left text-xs font-black text-white uppercase tracking-[0.1em]">
+                <th className="py-4 px-5 text-left text-xs font-black text-white uppercase tracking-[0.2em]">
                   Actions
                 </th>
               )}
             </tr>
           </thead>
-          <tbody className="bg-white">
+          <tbody>
             {paginated.length === 0 ? (
               <tr>
                 <td
@@ -1246,7 +1243,10 @@ export const DataTable = ({
                 </td>
               </tr>
             ) : (
-              paginated.map((row, i) => (
+              paginated.map((row, i) => {
+                const filteredIdx = (page - 1) * currentPageSize + i;
+                const isSelected  = selectedRows.has(filteredIdx);
+                return (
                 <tr
                   key={i}
                   className={`border-b border-slate-100 transition ${
@@ -1278,26 +1278,49 @@ export const DataTable = ({
                   {columns.map((col) => {
                     if (col.key === "status") {
                       const val = row[col.key];
-                      let statusBg = "bg-slate-100";
-                      let statusText = "text-slate-600";
-                      if (val === "Completed") {
-                        statusBg = "bg-emerald-100";
-                        statusText = "text-emerald-700";
-                      } else if (val === "Pending" || val === "In Progress") {
-                        statusBg = "bg-amber-100";
-                        statusText = "text-amber-700";
-                      } else if (val === "Failed" || val === "Cancelled") {
-                        statusBg = "bg-rose-100";
-                        statusText = "text-rose-700";
-                      }
+                      // ── Status → colour map ──────────────────────────────
+                      // Green  — positive / done
+                      // Amber  — in-progress / warm / pending
+                      // Blue   — new / cold / info
+                      // Purple — prospect / interested
+                      // Rose   — failed / dump / hot (urgent)
+                      // Slate  — default / unknown
+                      const STATUS_MAP = {
+                        // ── Green ──
+                        Completed:  ["bg-emerald-100", "text-emerald-700"],
+                        Converted:  ["bg-emerald-100", "text-emerald-700"],
+                        Done:       ["bg-emerald-100", "text-emerald-700"],
+                        Active:     ["bg-emerald-100", "text-emerald-700"],
+                        Approved:   ["bg-emerald-100", "text-emerald-700"],
+                        Won:        ["bg-emerald-100", "text-emerald-700"],
+                        Valid:      ["bg-emerald-100", "text-emerald-700"],
+                        // ── Amber ──
+                        "In Progress": ["bg-amber-100", "text-amber-700"],
+                        Pending:       ["bg-amber-100", "text-amber-700"],
+                        "Follow-up":   ["bg-amber-100", "text-amber-700"],
+                        Warm:          ["bg-amber-100", "text-amber-700"],
+                        Proposal:      ["bg-amber-100", "text-amber-700"],
+                        Interested:    ["bg-amber-100", "text-amber-700"],
+                        // ── Blue ──
+                        New:  ["bg-blue-100", "text-blue-700"],
+                        Cold: ["bg-blue-100", "text-blue-700"],
+                        // ── Purple ──
+                        Prospect:   ["bg-purple-100", "text-purple-700"],
+                        Qualified:  ["bg-purple-100", "text-purple-700"],
+                        // ── Rose ──
+                        Failed:    ["bg-rose-100", "text-rose-700"],
+                        Cancelled: ["bg-rose-100", "text-rose-700"],
+                        Dump:      ["bg-rose-100", "text-rose-700"],
+                        Hot:       ["bg-rose-100", "text-rose-700"],
+                        Lost:      ["bg-rose-100", "text-rose-700"],
+                        Rejected:  ["bg-rose-100", "text-rose-700"],
+                        Inactive:  ["bg-rose-100", "text-rose-700"],
+                        Invalid:   ["bg-rose-100", "text-rose-700"],
+                      };
+                      const [statusBg, statusText] = STATUS_MAP[val] ?? ["bg-slate-100", "text-slate-600"];
                       return (
-                        <td
-                          key={col.key}
-                          className="py-3.5 px-5 whitespace-nowrap"
-                        >
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg} ${statusText}`}
-                          >
+                        <td key={col.key} className="py-3.5 px-5 whitespace-nowrap">
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg} ${statusText}`}>
                             {val ?? "—"}
                           </span>
                         </td>
@@ -1364,7 +1387,8 @@ export const DataTable = ({
                     </td>
                   )}
                 </tr>
-              ))
+              );
+              })
             )}
           </tbody>
         </table>
@@ -1401,7 +1425,6 @@ export const DataTable = ({
       )}
 
       {/* Pagination */}
-      {!hidePagination && (
       <div className="flex items-center justify-between px-1">
         <p className="text-xs text-slate-400 font-medium">
           Showing{" "}
@@ -1462,7 +1485,6 @@ export const DataTable = ({
           </button>
         </div>
       </div>
-      )}
     </div>
   );
 };
@@ -1762,21 +1784,21 @@ export const Grid = ({ children, cols = 12, gap = 4 }) => {
 // THEME TOKENS  (Graphura CRM dark palette)
 // ─────────────────────────────────────────────────────────────────────────────
 const T = {
-  bg: "#F7F8F0", // card background
-  bgDeep: "#ffffff", // deeper background / icon bg
+  bg: "#e7e7e7b1", // card background
+  bgDeep: "#f8fafc", // deeper background / icon bg
   bgInner: "#f1f5f9", // inner elements
-  border: "#e2e8f0", // subtle border
-  navy: "#355872", // primary accent (from palette)
-  blue: "#7AAACE", // secondary blue (from palette)
-  sky: "#9CD5FF", // light blue (from palette)
+  border: "#aeb0b477", // subtle border
+  navy: "#2a465a", // primary accent (login brand color)
+  blue: "#3b82f6", // chart blue
   teal: "#14b8a6", // chart teal
-  green: "#10b981", // positive trend
+  green: "#22c55e", // positive trend
   amber: "#f59e0b", // chart amber
   rose: "#f43f5e", // negative trend / danger
   violet: "#8b5cf6", // chart violet
-  textPrimary: "#355872", // light theme text
-  textSecondary: "#64748b", // medium text
-  textMuted: "#94a3b8", // muted text
+  sky: "#38bdf8", // chart sky
+  textPrimary: "#0f172a", // light theme text
+  textSecondary: "#475569", // medium text
+  textMuted: "#64748b", // muted text
 };
 
 // 8 chart colours cycling
@@ -2036,12 +2058,11 @@ export const DashCard = ({
     ro.observe(container);
     return () => ro.disconnect();
   }, [value, fitText]);
+
   return (
     <div
-      // Mobile: col-span-12 (Full width)
-      // Tablet: col-span-6 (Half width)
-      // Desktop: col-span-{size} (Your custom size)
-      className={`col-span-12 md:col-span-6 lg:col-span-${size} rounded-2xl p-5 flex items-center gap-5 relative overflow-hidden transition-all duration-300 hover:translate-y-[-4px]`}
+      ref={containerRef}
+      className={`col-span-12 md:col-span-6 lg:col-span-${size} rounded-2xl flex items-center relative overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group cursor-pointer`}
       style={{
         background: "#ffffff",
         border: "1px solid #e2e8f0",
@@ -2059,7 +2080,8 @@ export const DashCard = ({
       {/* Icon box */}
       {icon && (
         <div
-          className="flex-shrink-0 w-14 h-14 rounded-2xl flex items-center justify-center"
+          ref={iconBoxRef}
+          className="flex-shrink-0 rounded-xl flex items-center justify-center transition-transform duration-300 group-hover:scale-105"
           style={{
             width: "48px",
             height: "48px",
@@ -2072,8 +2094,11 @@ export const DashCard = ({
         </div>
       )}
 
-      <div className="flex flex-col justify-center">
+      {/* Text */}
+      <div className="flex flex-col justify-center min-w-0 w-full">
         <h3
+          ref={titleRef}
+          className="whitespace-nowrap"
           style={{
             color: "#64748b",
             fontSize: "12px",
@@ -2081,6 +2106,7 @@ export const DashCard = ({
             textTransform: "uppercase",
             letterSpacing: "0.05em",
             marginBottom: "2px",
+            overflow: "visible",
           }}
         >
           {title}
@@ -2148,7 +2174,7 @@ export const GLineChart = ({
 }) => (
   // dataKey is derived from the data so ChartCard only animates when data actually changes.
   <ChartCard title={title} subtitle={subtitle} size={size} height={height} filters={filters} dataKey={JSON.stringify(data)}>
-    <LineChart data={data} margin={{ top: 15, right: 30, left: 0, bottom: 10 }}>
+    <LineChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
       <XAxis
         dataKey="name"
@@ -2238,7 +2264,7 @@ export const GBarChart = ({
     <BarChart
       data={data}
       layout="vertical"
-      margin={{ top: 15, right: 30, left: 10, bottom: 10 }}
+      margin={{ top: 5, right: 10, left: 10, bottom: 0 }}
     >
       <CartesianGrid
         strokeDasharray="3 3"
@@ -2324,7 +2350,7 @@ export const GColumnChart = ({
 }) => (
   // dataKey is derived from the data so ChartCard only animates when data actually changes.
   <ChartCard title={title} subtitle={subtitle} size={size} height={height} filters={filters} dataKey={JSON.stringify(data)}>
-    <BarChart data={data} margin={{ top: 15, right: 30, left: 0, bottom: 10 }}>
+    <BarChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
       <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
       <XAxis
         dataKey="name"
@@ -2404,7 +2430,7 @@ export const GAreaChart = ({
 }) => (
   // dataKey is derived from the data so ChartCard only animates when data actually changes.
   <ChartCard title={title} subtitle={subtitle} size={size} height={height} filters={filters} dataKey={JSON.stringify(data)}>
-    <AreaChart data={data} margin={{ top: 15, right: 30, left: 0, bottom: 10 }}>
+    <AreaChart data={data} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
       <defs>
         {areas.map((a, i) => {
           const color = a.color ?? CHART_COLORS[i % CHART_COLORS.length];
@@ -2535,7 +2561,7 @@ export const GDoughnutChart = ({
 }) => (
   // dataKey is derived from the data so ChartCard only animates when data actually changes.
   <ChartCard title={title} subtitle={subtitle} size={size} height={height} filters={filters} dataKey={JSON.stringify(data)}>
-    <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+    <PieChart>
       <Pie
         data={data}
         cx="50%"
@@ -2609,7 +2635,7 @@ export const GPieChart = ({
 }) => (
   // dataKey is derived from the data so ChartCard only animates when data actually changes.
   <ChartCard title={title} subtitle={subtitle} size={size} height={height} filters={filters} dataKey={JSON.stringify(data)}>
-    <PieChart margin={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+    <PieChart>
       <Pie
         data={data}
         cx="50%"

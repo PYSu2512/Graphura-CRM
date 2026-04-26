@@ -407,9 +407,6 @@ export default function HRM() {
             size={12}
             pageSize={5}
             searchable={true}
-            filters={[
-              { title: "Status", type: "select" }
-            ]}
           />
         </div>
       )}

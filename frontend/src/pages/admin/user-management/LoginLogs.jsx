@@ -51,7 +51,7 @@ export default function LoginLogs() {
   ).length;
 
   // ── Filter Logic ──
-  const filteredLogs = useMemo(() => {
+  const filtered = useMemo(() => {
     return logs.filter((log) => {
       const q = searchQuery.toLowerCase();
       const matchSearch =
