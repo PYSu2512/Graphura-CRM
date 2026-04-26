@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   LogIn,
   AlertTriangle,
@@ -14,46 +14,45 @@ import {
   EnhancedDataTable as DataTable,
 } from "../../../components/shared/Common_Components";
 
-// ── Mock login log data ──
-const mockLogs = [
-  { id: 1, user: "Rahul Sharma", ip: "192.168.1.45", device: "Chrome / Windows", location: "Mumbai", loginTime: "Apr 21, 2026 10:32 AM", status: "Success", logoutTime: "—" },
-  { id: 2, user: "Priya Patel", ip: "10.0.0.12", device: "Safari / macOS", location: "Delhi", loginTime: "Apr 21, 2026 10:15 AM", status: "Success", logoutTime: "Apr 21, 2026 10:45 AM" },
-  { id: 3, user: "Unknown", ip: "203.45.67.89", device: "Firefox / Linux", location: "Kolkata", loginTime: "Apr 21, 2026 09:58 AM", status: "Failed", logoutTime: "—" },
-  { id: 4, user: "Amit Verma", ip: "172.16.0.8", device: "Chrome / Android", location: "Bangalore", loginTime: "Apr 21, 2026 09:45 AM", status: "Success", logoutTime: "—" },
-  { id: 5, user: "Sneha Joshi", ip: "192.168.1.92", device: "Edge / Windows", location: "Pune", loginTime: "Apr 21, 2026 09:30 AM", status: "Success", logoutTime: "Apr 21, 2026 11:00 AM" },
-  { id: 6, user: "Unknown", ip: "45.123.45.67", device: "Chrome / Windows", location: "Chennai", loginTime: "Apr 21, 2026 09:20 AM", status: "Failed", logoutTime: "—" },
-  { id: 7, user: "Vikram Das", ip: "10.0.0.34", device: "Safari / iOS", location: "Hyderabad", loginTime: "Apr 21, 2026 09:05 AM", status: "Success", logoutTime: "—" },
-  { id: 8, user: "Neha Singh", ip: "192.168.1.67", device: "Chrome / Windows", location: "Mumbai", loginTime: "Apr 21, 2026 08:50 AM", status: "Success", logoutTime: "Apr 21, 2026 09:30 AM" },
-  { id: 9, user: "Unknown", ip: "78.90.12.34", device: "Firefox / Windows", location: "Jaipur", loginTime: "Apr 21, 2026 08:30 AM", status: "Failed", logoutTime: "—" },
-  { id: 10, user: "Arjun Kumar", ip: "192.168.2.11", device: "Chrome / macOS", location: "Delhi", loginTime: "Apr 21, 2026 08:15 AM", status: "Success", logoutTime: "—" },
-  { id: 11, user: "Kavita Reddy", ip: "10.0.1.22", device: "Chrome / Windows", location: "Bangalore", loginTime: "Apr 20, 2026 06:45 PM", status: "Success", logoutTime: "Apr 20, 2026 08:00 PM" },
-  { id: 12, user: "Ravi Mehta", ip: "172.16.0.45", device: "Safari / macOS", location: "Mumbai", loginTime: "Apr 20, 2026 05:30 PM", status: "Success", logoutTime: "Apr 20, 2026 07:15 PM" },
-  { id: 13, user: "Unknown", ip: "112.34.56.78", device: "Tor Browser / Linux", location: "Unknown", loginTime: "Apr 20, 2026 04:00 PM", status: "Failed", logoutTime: "—" },
-  { id: 14, user: "Deepika Nair", ip: "192.168.1.88", device: "Chrome / Android", location: "Chennai", loginTime: "Apr 20, 2026 03:15 PM", status: "Success", logoutTime: "Apr 20, 2026 05:00 PM" },
-  { id: 15, user: "Suresh Gupta", ip: "10.0.0.5", device: "Chrome / Windows", location: "Delhi", loginTime: "Apr 20, 2026 02:30 PM", status: "Success", logoutTime: "—" },
-];
-
 const statusOptions = ["All", "Success", "Failed"];
 
 export default function LoginLogs() {
+  const [logs, setLogs] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [isLoading, setIsLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
+  useEffect(() => {
+    const fetchLogs = async () => {
+      try {
+        setIsLoading(true);
+        // Placeholder until actual backend logs are implemented
+        setLogs([]);
+      } catch (error) {
+        console.error("Failed to fetch logs:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchLogs();
+  }, []);
+
   // ── Stats ──
-  const totalLogins = mockLogs.length;
-  const failedAttempts = mockLogs.filter((l) => l.status === "Failed").length;
+  const totalLogins = logs.length;
+  const failedAttempts = logs.filter((l) => l.status === "Failed").length;
   const uniqueUsers = new Set(
-    mockLogs.filter((l) => l.user !== "Unknown").map((l) => l.user)
+    logs.filter((l) => l.user !== "Unknown").map((l) => l.user)
   ).size;
-  const activeSessions = mockLogs.filter(
-    (l) => l.status === "Success" && l.logoutTime === "—"
+  const activeSessions = logs.filter(
+    (l) => l.status === "Success"
   ).length;
 
-  // ── Filtered logs ──
-  const filtered = useMemo(() => {
-    return mockLogs.filter((log) => {
+  // ── Filter Logic ──
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
       const q = searchQuery.toLowerCase();
       const matchSearch =
         !q ||

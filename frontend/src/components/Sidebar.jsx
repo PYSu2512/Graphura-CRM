@@ -68,9 +68,10 @@ const MENUS = {
       { name: "System", path: "/admin/system", icon: Settings },
     ],
   },
-  sales: {
-    title: "Sales",
+  "sales-manager": {
+    title: "Sales Manager",
     items: [
+<<<<<<< HEAD
       { name: "Dashboard", path: "/sales", icon: LayoutDashboard, end: true },
       { name: "My Leads", path: "/sales/leads", icon: Target },
       { name: "Pipeline", path: "/sales/pipeline", icon: GitBranch },
@@ -78,6 +79,40 @@ const MENUS = {
       { name: "Tickets", path: "/sales/tickets", icon: Ticket },
       { name: "Targets", path: "/sales/targets", icon: TrendingUp },
       { name: "Reports", path: "/sales/reports", icon: BarChart2 },
+=======
+      { name: "Dashboard",  path: "/sales-manager",          icon: LayoutDashboard, end: true },
+      { name: "My Leads",   path: "/sales-manager/leads",    icon: Target },
+      { name: "team Management",   path: "/sales-manager/team-leader",    icon: Users },
+      { name: "Pipeline",   path: "/sales-manager/pipeline", icon: GitBranch },
+      { name: "Call Panel", path: "/sales-manager/calls",    icon: PhoneCall },
+      { name: "Tickets",    path: "/sales-manager/tickets",  icon: Ticket },
+      { name: "Targets",    path: "/sales-manager/targets",  icon: TrendingUp },
+      { name: "Reports",    path: "/sales-manager/reports",  icon: BarChart2 },
+    ],
+  },
+  "sales-team-leader": {
+    title: "Sales Team Leader",
+    items: [
+      { name: "Dashboard",  path: "/sales-team-leader",          icon: LayoutDashboard, end: true },
+      { name: "My Leads",   path: "/sales-team-leader/leads",    icon: Target },
+      { name: "Pipeline",   path: "/sales-team-leader/pipeline", icon: GitBranch },
+      { name: "Call Panel", path: "/sales-team-leader/calls",    icon: PhoneCall },
+      { name: "Tickets",    path: "/sales-team-leader/tickets",  icon: Ticket },
+      { name: "Targets",    path: "/sales-team-leader/targets",  icon: TrendingUp },
+      { name: "Reports",    path: "/sales-team-leader/reports",  icon: BarChart2 },
+    ],
+  },
+  "sales-executive": {
+    title: "Sales Executive",
+    items: [
+      { name: "Dashboard",  path: "/sales-executive",          icon: LayoutDashboard, end: true },
+      { name: "My Leads",   path: "/sales-executive/leads",    icon: Target },
+      { name: "Pipeline",   path: "/sales-executive/pipeline", icon: GitBranch },
+      { name: "Call Panel", path: "/sales-executive/calls",    icon: PhoneCall },
+      { name: "Tickets",    path: "/sales-executive/tickets",  icon: Ticket },
+      { name: "Targets",    path: "/sales-executive/targets",  icon: TrendingUp },
+      { name: "Reports",    path: "/sales-executive/reports",  icon: BarChart2 },
+>>>>>>> 8f87bd0d6306d28679f1d649b7e35e034d70b527
     ],
   },
   finance: {
@@ -116,7 +151,7 @@ const MENUS = {
 
 function useRole() {
   const { pathname } = useLocation();
-  const roles = ["super-admin", "admin", "sales", "finance", "management", "client"];
+  const roles = ["super-admin", "admin", "sales-manager", "sales-team-leader", "sales-executive", "finance", "management", "client"];
   return roles.find((r) => pathname.startsWith(`/${r}`)) ?? "admin";
 }
 

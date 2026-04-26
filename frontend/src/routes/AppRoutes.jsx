@@ -10,11 +10,11 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<Navigate to="/login" replace />} />
         {/* Authentication Pages */}
         <Route path="/login" element={<AdminLogin />} />
         <Route path="/register" element={<AdminRegister />} />
         {/* Admin Routes */}
-        <Route path="/" element={<Navigate to="/admin" replace />} />
         <Route path="/admin/*" element={<AdminRoutes />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
         {/* Super_Admin Routes */}

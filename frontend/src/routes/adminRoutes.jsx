@@ -3,7 +3,7 @@ import MainLayout from "../layouts/MainLayout";
 import Dashboard from "../pages/admin/Dashboard";
 import Projects from "../pages/admin/Projects";
 import FinanceDashboard from "../pages/admin/FinanceDashboard";
-import HRMDashboard from "../pages/admin/HRMDashboard";
+import HRM from "../pages/admin/HRM";
 import Support from "../pages/admin/Support";
 import Report from "../pages/admin/Report";
 
@@ -185,7 +185,7 @@ function AdminRoutes() {
 
         <Route path="projects" element={<Projects />} />
         <Route path="finance" element={<FinanceDashboard />} />
-        <Route path="hrm" element={<HRMDashboard />} />
+        <Route path="hrm" element={<HRM />} />
         <Route path="support" element={<Support />} />
         <Route path="reports" element={<Report />} />
         <Route path="system" element={<Page name="System" />} />

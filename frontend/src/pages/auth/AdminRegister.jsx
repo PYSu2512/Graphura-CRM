@@ -255,8 +255,8 @@ const AdminRegister = () => {
       if (!companyEmail.trim()) errs.companyEmail = "Email is required.";
       else if (!validateEmail(companyEmail))
         errs.companyEmail = "Enter a valid email address.";
-      else if (!otpVerified)
-        errs.otpInput = "Please verify your email before continuing.";
+      // else if (!otpVerified)
+      //   errs.otpInput = "Please verify your email before continuing.";
       if (!companyAddress.trim())
         errs.companyAddress = "Company address is required.";
     }

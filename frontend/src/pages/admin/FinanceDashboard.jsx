@@ -1,34 +1,15 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import React, { useState } from 'react';
+import { DollarSign, AlertCircle, Clock } from 'lucide-react';
 import InvoiceManagement from './InvoiceManagement';
 import ExpenseManagement from './ExpenseManagement';
+import {
+  DashGrid, DashCard, Heading, P, Button,
+  GColumnChart, GDoughnutChart, DataTable, Modal, openModal
+} from '../../components/Shared/Common_Components';
 
 export default function FinanceDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [pendingExpanded, setPendingExpanded] = useState(false);
-  const [failedExpanded, setFailedExpanded] = useState(false);
   
-  const pendingRef = useRef(null);
-  const failedRef = useRef(null);
-
-  useEffect(() => {
-    if (pendingExpanded && pendingRef.current) {
-      // Use setTimeout to ensure DOM is fully painted before scrolling
-      setTimeout(() => {
-        pendingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 50);
-    }
-  }, [pendingExpanded]);
-
-  useEffect(() => {
-    if (failedExpanded && failedRef.current) {
-      setTimeout(() => {
-        failedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 50);
-    }
-  }, [failedExpanded]);
-  
-  // Chart Data
   const weeklyRevenue = [
     { name: 'Mon', revenue: 3500 },
     { name: 'Tue', revenue: 3000 },
@@ -40,266 +21,186 @@ export default function FinanceDashboard() {
   ];
 
   const revenueStreams = [
-    { name: 'Services', value: 55, color: '#355872' },
-    { name: 'Products', value: 30, color: '#7AAACE' },
-    { name: 'Subscriptions', value: 15, color: '#9CD5FF' },
+    { name: 'Services', value: 55 },
+    { name: 'Products', value: 30 },
+    { name: 'Subscriptions', value: 15 },
   ];
 
   const pendingList = [
-    { id: 'INV-012', client: 'Alpha Corp', product: 'Cloud Services', branch: 'NY-East', role: 'Admin', amount: 3200, date: 'Nov 01' },
-    { id: 'INV-013', client: 'Beta LLC', product: 'Consulting', branch: 'SF-West', role: 'Manager', amount: 1450, date: 'Nov 02' },
-    { id: 'INV-014', client: 'Gamma Inc', product: 'Software License', branch: 'LDN-Central', role: 'User', amount: 800, date: 'Nov 02' }
-  ];
+    { idText: 'INV-012', client: 'Alpha Corp', product: 'Cloud Services', branch: 'NY-East', role: 'Admin', amount: 3200, date: 'Nov 01' },
+    { idText: 'INV-013', client: 'Beta LLC', product: 'Consulting', branch: 'SF-West', role: 'Manager', amount: 1450, date: 'Nov 02' },
+    { idText: 'INV-014', client: 'Gamma Inc', product: 'Software License', branch: 'LDN-Central', role: 'User', amount: 800, date: 'Nov 02' }
+  ].map(i => ({...i, amountLabel: `$${i.amount.toLocaleString()}`, status: 'Pending'}));
 
   const failedList = [
-    { id: 'TRX-981', client: 'Delta Co', product: 'Cloud Services', branch: 'NY-East', role: 'Admin', amount: 2100, date: 'Oct 30' },
-    { id: 'TRX-982', client: 'Epsilon Ltd', product: 'Hardware', branch: 'TX-South', role: 'User', amount: 550, date: 'Oct 31' }
-  ];
+    { idText: 'TRX-981', client: 'Delta Co', product: 'Cloud Services', branch: 'NY-East', role: 'Admin', amount: 2100, date: 'Oct 30' },
+    { idText: 'TRX-982', client: 'Epsilon Ltd', product: 'Hardware', branch: 'TX-South', role: 'User', amount: 550, date: 'Oct 31' }
+  ].map(i => ({...i, amountLabel: `$${i.amount.toLocaleString()}`, status: 'Failed'}));
 
   const pendingSum = pendingList.reduce((acc, curr) => acc + curr.amount, 0);
   const failedSum = failedList.reduce((acc, curr) => acc + curr.amount, 0);
 
+  const tableColumns = [
+    { key: "idText", label: "ID" },
+    { key: "client", label: "Client" },
+    { key: "product", label: "Product" },
+    { key: "date", label: "Date" },
+    { key: "amountLabel", label: "Amount" },
+    { key: "status", label: "Status" }
+  ];
+
   return (
-    <div className="w-full h-full flex flex-col font-sans bg-[#F7F8F0] p-6 lg:p-8 min-h-screen">
+    <div className="w-full min-h-screen bg-white p-4 md:p-8">
       
-      {/* Header & Tabs */}
       <div className="flex flex-col mb-8">
-        <div className="flex justify-between items-start mb-6">
+        <div className="flex flex-col gap-4 mb-6 w-full">
           <div>
-            <h1 className="text-2xl font-bold text-[#355872]">Finance Dashboard</h1>
-            <p className="text-gray-500 text-sm mt-1">Overview of your revenue and transactions.</p>
+            <Heading primaryText="Finance" secondaryText="Dashboard" size={12} />
+            <P text="Overview of your revenue and transactions." size="sm" />
           </div>
         </div>
         
-        {/* Tabs */}
-        <div className="flex space-x-8 border-b border-gray-200 overflow-x-auto whitespace-nowrap">
+        <div className="flex space-x-8 border-b border-slate-200 overflow-x-auto whitespace-nowrap pt-2">
           <button 
-            className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === 'overview' ? 'text-[#355872]' : 'text-gray-500 hover:text-[#355872]'}`}
+            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'overview' ? 'text-[#2a465a]' : 'text-slate-400 hover:text-[#2a465a]'}`}
             onClick={() => setActiveTab('overview')}
           >
             Overview
-            {activeTab === 'overview' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#355872] rounded-t-lg"></div>}
+            {activeTab === 'overview' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2a465a] rounded-t-lg"></div>}
           </button>
           <button 
-            className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === 'invoices' ? 'text-[#355872]' : 'text-gray-500 hover:text-[#355872]'}`}
+            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'invoices' ? 'text-[#2a465a]' : 'text-slate-400 hover:text-[#2a465a]'}`}
             onClick={() => setActiveTab('invoices')}
           >
             Invoice Management
-            {activeTab === 'invoices' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#355872] rounded-t-lg"></div>}
+            {activeTab === 'invoices' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2a465a] rounded-t-lg"></div>}
           </button>
           <button 
-            className={`pb-3 font-medium text-sm transition-colors relative ${activeTab === 'expenses' ? 'text-[#355872]' : 'text-gray-500 hover:text-[#355872]'}`}
+            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'expenses' ? 'text-[#2a465a]' : 'text-slate-400 hover:text-[#2a465a]'}`}
             onClick={() => setActiveTab('expenses')}
           >
             Expense Management
-            {activeTab === 'expenses' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#355872] rounded-t-lg"></div>}
+            {activeTab === 'expenses' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2a465a] rounded-t-lg"></div>}
           </button>
         </div>
       </div>
 
-      {/* Tab Content */}
       {activeTab === 'overview' && (
-        <div className="flex flex-col gap-8">
+        <DashGrid cols={12} gap={6}>
 
-          {/* Top 4 Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
-            
-            {/* Total Revenue */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-300 flex flex-col justify-center">
-              <p className="text-sm font-bold text-[#355872] mb-2 uppercase tracking-wide">Total Revenue</p>
-              <h3 className="text-2xl xl:text-3xl font-bold text-gray-900">124,500.00</h3>
-              <p className="text-xs text-gray-500 mt-2">
-                <span className="text-[#7AAACE] font-medium">↗ +12.5%</span> from last month
-              </p>
+          <div 
+             className="col-span-12 md:col-span-6 lg:col-span-3 rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 h-full"
+             style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}
+          >
+            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
+              <DollarSign size={16} />
             </div>
-
-            {/* Today's Revenue */}
-            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-300 flex flex-col justify-center">
-              <p className="text-sm font-bold text-[#355872] mb-2 uppercase tracking-wide">Today's Revenue</p>
-              <h3 className="text-2xl xl:text-3xl font-bold text-gray-900">3,450.00</h3>
-              <p className="text-xs text-gray-500 mt-2">
-                <span className="text-[#7AAACE] font-medium">↗ +5.2%</span> from last month
-              </p>
-            </div>
-
-            {/* Pending Payments */}
-            <div 
-              className={`bg-white rounded-xl p-6 shadow-sm border ${pendingExpanded ? 'border-[#355872] ring-1 ring-[#355872]' : 'border-gray-300'} flex flex-col justify-center cursor-pointer transition-all hover:shadow-md`}
-              onClick={() => setPendingExpanded(!pendingExpanded)}
-            >
-              <div className="flex justify-between items-center mb-2">
-                <p className="text-sm font-bold text-[#355872] uppercase tracking-wide">Pending Payments</p>
-                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+            <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Total Revenue</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[24px] font-extrabold leading-none tracking-tight">$124,500</span>
               </div>
-              <h3 className="text-2xl xl:text-3xl font-bold text-gray-900">{pendingSum.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
-              <p className="text-xs text-gray-500 mt-2 hover:text-[#355872] transition-colors">{pendingExpanded ? 'Hide details' : 'View details'}</p>
             </div>
-
-            {/* Failed Payments */}
-            <div 
-              className={`bg-white rounded-xl p-6 shadow-sm border ${failedExpanded ? 'border-[#355872] ring-1 ring-[#355872]' : 'border-gray-300'} flex flex-col justify-center cursor-pointer transition-all hover:shadow-md`}
-              onClick={() => setFailedExpanded(!failedExpanded)}
-            >
-              <div className="flex justify-between items-center mb-2">
-                <p className="text-sm font-bold text-[#355872] uppercase tracking-wide">Failed Payments</p>
-                <div className="w-2 h-2 rounded-full bg-[#355872] opacity-80"></div>
-              </div>
-              <h3 className="text-2xl xl:text-3xl font-bold text-gray-900">{failedSum.toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
-              <p className="text-xs text-gray-500 mt-2 hover:text-[#355872] transition-colors">{failedExpanded ? 'Hide details' : 'View details'}</p>
-            </div>
-
           </div>
 
-          {/* Middle Section: Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-             
-             <div className="lg:col-span-2 min-w-0 bg-white rounded-xl p-6 shadow-sm border border-gray-300 flex flex-col">
-                <h3 className="font-bold text-[#355872] mb-6 text-lg">Weekly Revenue</h3>
-                <div className="flex-1 w-full min-h-[300px] mt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={weeklyRevenue} margin={{ top: 10, right: 30, left: 10, bottom: 10 }}>
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#9CA3AF', fontSize: 12}} dy={10} />
-                      <Tooltip 
-                        cursor={{fill: '#F3F4F6'}}
-                        contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                      />
-                      <Bar dataKey="revenue" fill="#7AAACE" radius={[4, 4, 0, 0]} maxBarSize={40} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-             </div>
-
-             <div className="lg:col-span-1 flex flex-col bg-white rounded-xl p-6 shadow-sm border border-gray-300">
-                <h3 className="font-bold text-[#355872] mb-6 text-lg">Revenue Streams</h3>
-                <div className="flex-1 w-full flex flex-col items-center justify-center min-h-[300px]">
-                  <div className="h-[240px] w-full relative mb-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={revenueStreams}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={75}
-                        outerRadius={105}
-                        paddingAngle={5}
-                        dataKey="value"
-                        stroke="none"
-                      >
-                        {revenueStreams.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                         contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                
-                <div className="flex flex-wrap justify-center gap-4 mt-6 text-xs text-gray-600 font-medium">
-                   {revenueStreams.map((entry, idx) => (
-                     <div key={idx} className="flex items-center gap-1.5">
-                       <div className="w-3 h-3 rounded-full shadow-sm" style={{backgroundColor: entry.color}}></div>
-                       {entry.name}
-                     </div>
-                   ))}
-                </div>
+          <div 
+             className="col-span-12 md:col-span-6 lg:col-span-3 rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 h-full"
+             style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}
+          >
+            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
+              <DollarSign size={16} />
+            </div>
+            <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Today's Revenue</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[24px] font-extrabold leading-none tracking-tight">$3,450</span>
               </div>
-             </div>
-
+            </div>
+          </div>
+          
+          <div 
+             className="col-span-12 md:col-span-6 lg:col-span-3 rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer h-full"
+             style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}
+             onClick={() => openModal('pending-modal')}
+          >
+            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
+              <Clock size={16} />
+            </div>
+            <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Pending Payments</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[24px] font-extrabold leading-none tracking-tight">${pendingSum.toLocaleString()}</span>
+              </div>
+            </div>
           </div>
 
-          {/* Expanded Sections Below Charts */}
-          {pendingExpanded && (
-            <div ref={pendingRef} className="w-full bg-white rounded-xl shadow-sm border border-gray-300 p-6 scroll-mt-24">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-[#355872] text-lg flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div> Pending Payments Details
-                </h3>
-              </div>
-              <div className="overflow-x-auto w-full">
-                <table className="w-full min-w-[800px] text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Invoice ID</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Client</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Product Name</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Branch</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Role</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Date</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingList.map((item, i) => (
-                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#F7F8F0] transition-colors">
-                        <td className="py-4 text-sm text-gray-600 font-medium">{item.id}</td>
-                        <td className="py-4 text-sm text-gray-900 font-semibold">{item.client}</td>
-                        <td className="py-4 text-sm text-gray-600">{item.product}</td>
-                        <td className="py-4 text-sm text-gray-600">{item.branch}</td>
-                        <td className="py-4 text-sm text-gray-600">{item.role}</td>
-                        <td className="py-4 text-sm text-gray-500">{item.date}</td>
-                        <td className="py-4 text-sm font-bold text-gray-900 text-right">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          <div 
+             className="col-span-12 md:col-span-6 lg:col-span-3 rounded-2xl p-4 flex items-center gap-3 shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer h-full"
+             style={{ backgroundColor: "#355872", border: "1px solid #35587233" }}
+             onClick={() => openModal('failed-modal')}
+          >
+            <div className="flex-shrink-0 w-[40px] h-[40px] rounded-[14px] flex items-center justify-center bg-white/20 text-white shadow-sm">
+              <AlertCircle size={16} />
+            </div>
+            <div className="flex flex-col justify-center min-w-0 flex-1 text-white">
+              <h3 className="text-[11px] font-bold uppercase tracking-wider leading-tight mb-1 truncate opacity-90">Failed Payments</h3>
+              <div className="flex items-center gap-2">
+                <span className="text-[24px] font-extrabold leading-none tracking-tight">${failedSum.toLocaleString()}</span>
               </div>
             </div>
-          )}
+          </div>
 
-          {failedExpanded && (
-            <div ref={failedRef} className="w-full bg-white rounded-xl shadow-sm border border-gray-300 p-6 scroll-mt-24">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-[#355872] text-lg flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#355872] opacity-80"></div> Failed Payments Details
-                </h3>
-              </div>
-              <div className="overflow-x-auto w-full">
-                <table className="w-full min-w-[800px] text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Transaction ID</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Client</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Product Name</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Branch</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Role</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500">Date</th>
-                      <th className="pb-3 text-sm font-semibold text-gray-500 text-right">Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {failedList.map((item, i) => (
-                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#F7F8F0] transition-colors">
-                        <td className="py-4 text-sm text-gray-600 font-medium">{item.id}</td>
-                        <td className="py-4 text-sm text-gray-900 font-semibold">{item.client}</td>
-                        <td className="py-4 text-sm text-gray-600">{item.product}</td>
-                        <td className="py-4 text-sm text-gray-600">{item.branch}</td>
-                        <td className="py-4 text-sm text-gray-600">{item.role}</td>
-                        <td className="py-4 text-sm text-gray-500">{item.date}</td>
-                        <td className="py-4 text-sm font-bold text-gray-900 text-right">${item.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-        </div>
+          <GColumnChart
+            title="Weekly Revenue"
+            subtitle="Revenue across the week"
+            data={weeklyRevenue}
+            bars={[{ key: "revenue", label: "Revenue", color: "#7AAACE" }]}
+            size={6}
+            height={320}
+          />
+          <GDoughnutChart
+             title="Revenue Streams"
+             subtitle="Distribution by product type"
+             data={revenueStreams}
+             colors={["#355872", "#7AAACE", "#9CD5FF"]}
+             size={6}
+             height={320}
+             innerRadius={70}
+          />
+        </DashGrid>
       )}
 
       {activeTab === 'invoices' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-300 p-6 flex-1 mt-6">
+        <div className="mt-6">
           <InvoiceManagement isEmbedded={true} />
         </div>
       )}
 
       {activeTab === 'expenses' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-300 p-6 flex-1 mt-6">
+        <div className="mt-6">
           <ExpenseManagement isEmbedded={true} />
         </div>
       )}
+
+      <Modal id="pending-modal" title="Pending Payments Details" size="xl">
+         <DataTable
+           columns={tableColumns}
+           rows={pendingList}
+           size={12}
+           pageSize={5}
+           searchable={false}
+         />
+      </Modal>
+
+      <Modal id="failed-modal" title="Failed Payments Details" size="xl">
+         <DataTable
+           columns={tableColumns}
+           rows={failedList}
+           size={12}
+           pageSize={5}
+           searchable={false}
+         />
+      </Modal>
       
     </div>
   );
