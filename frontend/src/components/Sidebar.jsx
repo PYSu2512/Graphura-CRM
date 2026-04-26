@@ -37,22 +37,22 @@ const MENUS = {
   "super-admin": {
     title: "Super Admin",
     items: [
-      { name: "Dashboard",       path: "/super-admin/",                icon: LayoutDashboard, end: true },
-      { name: "Admins",          path: "/super-admin/admins",          icon: ShieldAlert },
-      { name: "Departments",     path: "/super-admin/departments",     icon: Building2 },
-      { name: "Billing",         path: "/super-admin/billing",         icon: Receipt },
-      { name: "Communication",   path: "/super-admin/communication",   icon: MessageSquare },
-      { name: "Login Logs",      path: "/super-admin/login-logs",      icon: History },
-      { name: "Support",         path: "/super-admin/support",         icon: LifeBuoy },
-      { name: "API Config",      path: "/super-admin/api-config",      icon: Webhook },
+      { name: "Dashboard", path: "/super-admin/", icon: LayoutDashboard, end: true },
+      { name: "Admins", path: "/super-admin/admins", icon: ShieldAlert },
+      { name: "Departments", path: "/super-admin/departments", icon: Building2 },
+      { name: "Billing", path: "/super-admin/billing", icon: Receipt },
+      { name: "Communication", path: "/super-admin/communication", icon: MessageSquare },
+      { name: "Login Logs", path: "/super-admin/login-logs", icon: History },
+      { name: "Support", path: "/super-admin/support", icon: LifeBuoy },
+      { name: "API Config", path: "/super-admin/api-config", icon: Webhook },
       { name: "Data Management", path: "/super-admin/data-management", icon: Database },
     ],
   },
   admin: {
     title: "Admin",
     items: [
-      { name: "Dashboard",       path: "/admin",          icon: LayoutDashboard, end: true },
-      { name: "User Management", path: "/admin/users",    icon: Users },
+      { name: "Dashboard", path: "/admin", icon: LayoutDashboard, end: true },
+      { name: "User Management", path: "/admin/users", icon: Users },
       {
         name: "Leads & Sales", icon: TrendingUp,
         children: [
@@ -61,11 +61,11 @@ const MENUS = {
         ],
       },
       { name: "Projects", path: "/admin/projects", icon: FolderOpen },
-      { name: "Finance",  path: "/admin/finance",  icon: Briefcase },
-      { name: "HRM",      path: "/admin/hrm",      icon: UserCheck },
-      { name: "Support",  path: "/admin/support",  icon: LifeBuoy },
-      { name: "Reports",  path: "/admin/reports",  icon: BarChart2 },
-      { name: "System",   path: "/admin/system",   icon: Settings },
+      { name: "Finance", path: "/admin/finance", icon: Briefcase },
+      { name: "HRM", path: "/admin/hrm", icon: UserCheck },
+      { name: "Support", path: "/admin/support", icon: LifeBuoy },
+      { name: "Reports", path: "/admin/reports", icon: BarChart2 },
+      { name: "System", path: "/admin/system", icon: Settings },
     ],
   },
   "sales-manager": {
@@ -73,7 +73,6 @@ const MENUS = {
     items: [
       { name: "Dashboard",  path: "/sales-manager",          icon: LayoutDashboard, end: true },
       { name: "My Leads",   path: "/sales-manager/leads",    icon: Target },
-      { name: "team Management",   path: "/sales-manager/team-leader",    icon: Users },
       { name: "Pipeline",   path: "/sales-manager/pipeline", icon: GitBranch },
       { name: "Call Panel", path: "/sales-manager/calls",    icon: PhoneCall },
       { name: "Tickets",    path: "/sales-manager/tickets",  icon: Ticket },
@@ -84,57 +83,57 @@ const MENUS = {
   "sales-team-leader": {
     title: "Sales Team Leader",
     items: [
-      { name: "Dashboard",  path: "/sales-team-leader",          icon: LayoutDashboard, end: true },
-      { name: "My Leads",   path: "/sales-team-leader/leads",    icon: Target },
-      { name: "Pipeline",   path: "/sales-team-leader/pipeline", icon: GitBranch },
-      { name: "Call Panel", path: "/sales-team-leader/calls",    icon: PhoneCall },
-      { name: "Tickets",    path: "/sales-team-leader/tickets",  icon: Ticket },
-      { name: "Targets",    path: "/sales-team-leader/targets",  icon: TrendingUp },
-      { name: "Reports",    path: "/sales-team-leader/reports",  icon: BarChart2 },
+      { name: "Dashboard", path: "/sales-team-leader", icon: LayoutDashboard, end: true },
+      { name: "My Leads", path: "/sales-team-leader/leads", icon: Target },
+      { name: "Pipeline", path: "/sales-team-leader/pipeline", icon: GitBranch },
+      { name: "Call Panel", path: "/sales-team-leader/calls", icon: PhoneCall },
+      { name: "Tickets", path: "/sales-team-leader/tickets", icon: Ticket },
+      { name: "Targets", path: "/sales-team-leader/targets", icon: TrendingUp },
+      { name: "Reports", path: "/sales-team-leader/reports", icon: BarChart2 },
     ],
   },
   "sales-executive": {
     title: "Sales Executive",
     items: [
-      { name: "Dashboard",  path: "/sales-executive",          icon: LayoutDashboard, end: true },
-      { name: "My Leads",   path: "/sales-executive/leads",    icon: Target },
-      { name: "Pipeline",   path: "/sales-executive/pipeline", icon: GitBranch },
-      { name: "Call Panel", path: "/sales-executive/calls",    icon: PhoneCall },
-      { name: "Tickets",    path: "/sales-executive/tickets",  icon: Ticket },
-      { name: "Targets",    path: "/sales-executive/targets",  icon: TrendingUp },
-      { name: "Reports",    path: "/sales-executive/reports",  icon: BarChart2 },
+      { name: "Dashboard", path: "/sales-executive", icon: LayoutDashboard, end: true },
+      { name: "My Leads", path: "/sales-executive/leads", icon: Target },
+      { name: "Pipeline", path: "/sales-executive/pipeline", icon: GitBranch },
+      { name: "Call Panel", path: "/sales-executive/calls", icon: PhoneCall },
+      { name: "Tickets", path: "/sales-executive/tickets", icon: Ticket },
+      { name: "Targets", path: "/sales-executive/targets", icon: TrendingUp },
+      { name: "Reports", path: "/sales-executive/reports", icon: BarChart2 },
     ],
   },
   finance: {
     title: "Finance",
     items: [
-      { name: "Dashboard", path: "/finance",          icon: LayoutDashboard, end: true },
-      { name: "Invoices",  path: "/finance/invoices", icon: FileText },
-      { name: "Payments",  path: "/finance/payments", icon: CreditCard },
-      { name: "Expenses",  path: "/finance/expenses", icon: Receipt },
-      { name: "Billing",   path: "/finance/billing",  icon: DollarSign },
-      { name: "Reports",   path: "/finance/reports",  icon: BarChart2 },
+      { name: "Dashboard", path: "/finance", icon: LayoutDashboard, end: true },
+      { name: "Invoices", path: "/finance/invoices", icon: FileText },
+      { name: "Payments", path: "/finance/payments", icon: CreditCard },
+      { name: "Expenses", path: "/finance/expenses", icon: Receipt },
+      { name: "Billing", path: "/finance/billing", icon: DollarSign },
+      { name: "Reports", path: "/finance/reports", icon: BarChart2 },
     ],
   },
   management: {
     title: "Management",
     items: [
-      { name: "Dashboard",   path: "/management",             icon: LayoutDashboard, end: true },
-      { name: "Teams",       path: "/management/teams",       icon: Users },
-      { name: "Projects",    path: "/management/projects",    icon: FolderOpen },
+      { name: "Dashboard", path: "/management", icon: LayoutDashboard, end: true },
+      { name: "Teams", path: "/management/teams", icon: Users },
+      { name: "Projects", path: "/management/projects", icon: FolderOpen },
       { name: "Performance", path: "/management/performance", icon: TrendingUp },
-      { name: "Approvals",   path: "/management/approvals",   icon: ClipboardList },
-      { name: "Reports",     path: "/management/reports",     icon: BarChart2 },
+      { name: "Approvals", path: "/management/approvals", icon: ClipboardList },
+      { name: "Reports", path: "/management/reports", icon: BarChart2 },
     ],
   },
   client: {
     title: "Client Portal",
     items: [
-      { name: "Dashboard",   path: "/client",           icon: LayoutDashboard, end: true },
-      { name: "My Projects", path: "/client/projects",  icon: FolderOpen },
-      { name: "Invoices",    path: "/client/invoices",  icon: FileText },
-      { name: "Support",     path: "/client/support",   icon: LifeBuoy },
-      { name: "Documents",   path: "/client/documents", icon: Globe },
+      { name: "Dashboard", path: "/client", icon: LayoutDashboard, end: true },
+      { name: "My Projects", path: "/client/projects", icon: FolderOpen },
+      { name: "Invoices", path: "/client/invoices", icon: FileText },
+      { name: "Support", path: "/client/support", icon: LifeBuoy },
+      { name: "Documents", path: "/client/documents", icon: Globe },
     ],
   },
 };
@@ -147,13 +146,13 @@ function useRole() {
 
 // Active / inactive link classes — defined outside the component so the
 // reference is stable and won't cause child re-renders.
-const activeCls   = "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium bg-[#3e8ca7] text-white";
+const activeCls = "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium bg-[#3e8ca7] text-white";
 const inactiveCls = "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-300 hover:bg-[#2a455a] hover:text-white transition-colors duration-150";
-const getLinkCls  = ({ isActive }) => (isActive ? activeCls : inactiveCls);
+const getLinkCls = ({ isActive }) => (isActive ? activeCls : inactiveCls);
 
-const activeIconCls   = "flex items-center justify-center w-10 h-10 rounded-lg mx-auto bg-[#3e8ca7] text-white";
+const activeIconCls = "flex items-center justify-center w-10 h-10 rounded-lg mx-auto bg-[#3e8ca7] text-white";
 const inactiveIconCls = "flex items-center justify-center w-10 h-10 rounded-lg mx-auto text-gray-300 hover:bg-[#2a455a] hover:text-white transition-colors duration-150";
-const getIconCls      = ({ isActive }) => (isActive ? activeIconCls : inactiveIconCls);
+const getIconCls = ({ isActive }) => (isActive ? activeIconCls : inactiveIconCls);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Tooltip — CSS-only, no JS state, zero re-renders
@@ -276,10 +275,9 @@ const NavGroup = memo(function NavGroup({ group, expanded, onExpand, onNavClick 
                     to={child.path}
                     onClick={onNavClick ?? undefined}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150 ${
-                        isActive
-                          ? "bg-[#3e8ca7] text-white"
-                          : "text-gray-300 hover:bg-[#2a455a] hover:text-white"
+                      `flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150 ${isActive
+                        ? "bg-[#3e8ca7] text-white"
+                        : "text-gray-300 hover:bg-[#2a455a] hover:text-white"
                       }`
                     }
                   >
@@ -305,7 +303,7 @@ function Sidebar({ expanded, onExpand, onNavClick }) {
   const role = useRole();
   const menu = MENUS[role] ?? MENUS.admin;
 
-  const stableOnExpand  = useCallback(() => onExpand?.(), [onExpand]);
+  const stableOnExpand = useCallback(() => onExpand?.(), [onExpand]);
   const stableOnNavClick = useCallback(() => onNavClick?.(), [onNavClick]);
 
   return (
