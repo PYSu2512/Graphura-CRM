@@ -5,7 +5,7 @@ import ExpenseManagement from './ExpenseManagement';
 import {
   DashGrid, EnhancedDashCard, Heading, P, Button,
   GColumnChart, GDoughnutChart, DataTable, Modal, openModal
-} from '../../components/Shared/Common_Components';
+} from '../../components/shared/Common_Components';
 
 export default function FinanceDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
