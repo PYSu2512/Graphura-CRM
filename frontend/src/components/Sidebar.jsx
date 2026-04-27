@@ -16,6 +16,7 @@ import {
   History,
   LayoutDashboard,
   LifeBuoy,
+  LogOut,
   MessageSquare,
   PhoneCall,
   PieChart,
@@ -29,6 +30,7 @@ import {
   Users,
   Webhook,
 } from "lucide-react";
+import logo from "../assets/Logo/Graphura_Logo.webp";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MENU REGISTRY
@@ -36,104 +38,222 @@ import {
 const MENUS = {
   "super-admin": {
     title: "Super Admin",
-    items: [
-      { name: "Dashboard", path: "/super-admin/", icon: LayoutDashboard, end: true },
-      { name: "Admins", path: "/super-admin/admins", icon: ShieldAlert },
-      { name: "Departments", path: "/super-admin/departments", icon: Building2 },
-      { name: "Billing", path: "/super-admin/billing", icon: Receipt },
-      { name: "Communication", path: "/super-admin/communication", icon: MessageSquare },
-      { name: "Login Logs", path: "/super-admin/login-logs", icon: History },
-      { name: "Support", path: "/super-admin/support", icon: LifeBuoy },
-      { name: "API Config", path: "/super-admin/api-config", icon: Webhook },
-      { name: "Data Management", path: "/super-admin/data-management", icon: Database },
+    initials: "SA",
+    sections: [
+      {
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/super-admin/", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Management",
+        items: [
+          { name: "Admins", path: "/super-admin/admins", icon: ShieldAlert },
+          { name: "Departments", path: "/super-admin/departments", icon: Building2 },
+          { name: "Billing", path: "/super-admin/billing", icon: Receipt },
+          { name: "Communication", path: "/super-admin/communication", icon: MessageSquare },
+        ],
+      },
+      {
+        label: "System",
+        items: [
+          { name: "Login Logs", path: "/super-admin/login-logs", icon: History },
+          { name: "Support", path: "/super-admin/support", icon: LifeBuoy },
+          { name: "API Config", path: "/super-admin/api-config", icon: Webhook },
+          { name: "Data Management", path: "/super-admin/data-management", icon: Database },
+        ],
+      },
     ],
   },
   admin: {
     title: "Admin",
-    items: [
-      { name: "Dashboard", path: "/admin", icon: LayoutDashboard, end: true },
-      { name: "User Management", path: "/admin/users", icon: Users },
+    initials: "AD",
+    sections: [
       {
-        name: "Leads & Sales", icon: TrendingUp,
-        children: [
-          { name: "Leads", path: "/admin/leads", icon: Target },
-          { name: "Sales", path: "/admin/sales", icon: PieChart },
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/admin", icon: LayoutDashboard, end: true },
         ],
       },
-      { name: "Projects", path: "/admin/projects", icon: FolderOpen },
-      { name: "Finance", path: "/admin/finance", icon: Briefcase },
-      { name: "HRM", path: "/admin/hrm", icon: UserCheck },
-      { name: "Support", path: "/admin/support", icon: LifeBuoy },
-      { name: "Reports", path: "/admin/reports", icon: BarChart2 },
-      { name: "System", path: "/admin/system", icon: Settings },
+      {
+        label: "Operations",
+        items: [
+          { name: "User Management", path: "/admin/users", icon: Users },
+          {
+            name: "Leads & Sales", icon: TrendingUp,
+            children: [
+              { name: "Leads", path: "/admin/leads", icon: Target },
+              { name: "Sales", path: "/admin/sales", icon: PieChart },
+            ],
+          },
+          { name: "Projects", path: "/admin/projects", icon: FolderOpen },
+          { name: "HRM", path: "/admin/hrm", icon: UserCheck },
+        ],
+      },
+      {
+        label: "Finance & Reports",
+        items: [
+          { name: "Finance", path: "/admin/finance", icon: Briefcase },
+          { name: "Reports", path: "/admin/reports", icon: BarChart2 },
+        ],
+      },
+      {
+        label: "Settings",
+        items: [
+          { name: "Support", path: "/admin/support", icon: LifeBuoy },
+          { name: "System", path: "/admin/system", icon: Settings },
+        ],
+      },
     ],
   },
   "sales-manager": {
     title: "Sales Manager",
-    items: [
-      { name: "Dashboard",  path: "/sales-manager",          icon: LayoutDashboard, end: true },
-      { name: "My Leads",   path: "/sales-manager/leads",    icon: Target },
-      { name: "Pipeline",   path: "/sales-manager/pipeline", icon: GitBranch },
-      { name: "Call Panel", path: "/sales-manager/calls",    icon: PhoneCall },
-      { name: "Tickets",    path: "/sales-manager/tickets",  icon: Ticket },
-      { name: "Targets",    path: "/sales-manager/targets",  icon: TrendingUp },
-      { name: "Reports",    path: "/sales-manager/reports",  icon: BarChart2 },
+    initials: "SM",
+    sections: [
+      {
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/sales-manager", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Sales",
+        items: [
+          { name: "My Leads", path: "/sales-manager/leads", icon: Target },
+          { name: "Pipeline", path: "/sales-manager/pipeline", icon: GitBranch },
+          { name: "Call Panel", path: "/sales-manager/calls", icon: PhoneCall },
+          { name: "Tickets", path: "/sales-manager/tickets", icon: Ticket },
+        ],
+      },
+      {
+        label: "Performance",
+        items: [
+          { name: "Targets", path: "/sales-manager/targets", icon: TrendingUp },
+          { name: "Reports", path: "/sales-manager/reports", icon: BarChart2 },
+        ],
+      },
     ],
   },
   "sales-team-leader": {
-    title: "Sales Team Leader",
-    items: [
-      { name: "Dashboard", path: "/sales-team-leader", icon: LayoutDashboard, end: true },
-      { name: "My Leads", path: "/sales-team-leader/leads", icon: Target },
-      { name: "Pipeline", path: "/sales-team-leader/pipeline", icon: GitBranch },
-      { name: "Call Panel", path: "/sales-team-leader/calls", icon: PhoneCall },
-      { name: "Tickets", path: "/sales-team-leader/tickets", icon: Ticket },
-      { name: "Targets", path: "/sales-team-leader/targets", icon: TrendingUp },
-      { name: "Reports", path: "/sales-team-leader/reports", icon: BarChart2 },
+    title: "Team Leader",
+    initials: "TL",
+    sections: [
+      {
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/sales-team-leader", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Sales",
+        items: [
+          { name: "My Leads", path: "/sales-team-leader/leads", icon: Target },
+          { name: "Pipeline", path: "/sales-team-leader/pipeline", icon: GitBranch },
+          { name: "Call Panel", path: "/sales-team-leader/calls", icon: PhoneCall },
+          { name: "Tickets", path: "/sales-team-leader/tickets", icon: Ticket },
+        ],
+      },
+      {
+        label: "Performance",
+        items: [
+          { name: "Targets", path: "/sales-team-leader/targets", icon: TrendingUp },
+          { name: "Reports", path: "/sales-team-leader/reports", icon: BarChart2 },
+        ],
+      },
     ],
   },
   "sales-executive": {
     title: "Sales Executive",
-    items: [
-      { name: "Dashboard", path: "/sales-executive", icon: LayoutDashboard, end: true },
-      { name: "My Leads", path: "/sales-executive/leads", icon: Target },
-      { name: "Pipeline", path: "/sales-executive/pipeline", icon: GitBranch },
-      { name: "Call Panel", path: "/sales-executive/calls", icon: PhoneCall },
-      { name: "Tickets", path: "/sales-executive/tickets", icon: Ticket },
-      { name: "Targets", path: "/sales-executive/targets", icon: TrendingUp },
-      { name: "Reports", path: "/sales-executive/reports", icon: BarChart2 },
+    initials: "SE",
+    sections: [
+      {
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/sales-executive", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Sales",
+        items: [
+          { name: "My Leads", path: "/sales-executive/leads", icon: Target },
+          { name: "Pipeline", path: "/sales-executive/pipeline", icon: GitBranch },
+          { name: "Call Panel", path: "/sales-executive/calls", icon: PhoneCall },
+          { name: "Tickets", path: "/sales-executive/tickets", icon: Ticket },
+        ],
+      },
+      {
+        label: "Performance",
+        items: [
+          { name: "Targets", path: "/sales-executive/targets", icon: TrendingUp },
+          { name: "Reports", path: "/sales-executive/reports", icon: BarChart2 },
+        ],
+      },
     ],
   },
   finance: {
     title: "Finance",
-    items: [
-      { name: "Dashboard", path: "/finance", icon: LayoutDashboard, end: true },
-      { name: "Invoices", path: "/finance/invoices", icon: FileText },
-      { name: "Payments", path: "/finance/payments", icon: CreditCard },
-      { name: "Expenses", path: "/finance/expenses", icon: Receipt },
-      { name: "Billing", path: "/finance/billing", icon: DollarSign },
-      { name: "Reports", path: "/finance/reports", icon: BarChart2 },
+    initials: "FN",
+    sections: [
+      {
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/finance", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Finance",
+        items: [
+          { name: "Invoices", path: "/finance/invoices", icon: FileText },
+          { name: "Payments", path: "/finance/payments", icon: CreditCard },
+          { name: "Expenses", path: "/finance/expenses", icon: Receipt },
+          { name: "Billing", path: "/finance/billing", icon: DollarSign },
+          { name: "Reports", path: "/finance/reports", icon: BarChart2 },
+        ],
+      },
     ],
   },
   management: {
     title: "Management",
-    items: [
-      { name: "Dashboard", path: "/management", icon: LayoutDashboard, end: true },
-      { name: "Teams", path: "/management/teams", icon: Users },
-      { name: "Projects", path: "/management/projects", icon: FolderOpen },
-      { name: "Performance", path: "/management/performance", icon: TrendingUp },
-      { name: "Approvals", path: "/management/approvals", icon: ClipboardList },
-      { name: "Reports", path: "/management/reports", icon: BarChart2 },
+    initials: "MG",
+    sections: [
+      {
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/management", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Operations",
+        items: [
+          { name: "Teams", path: "/management/teams", icon: Users },
+          { name: "Projects", path: "/management/projects", icon: FolderOpen },
+          { name: "Performance", path: "/management/performance", icon: TrendingUp },
+          { name: "Approvals", path: "/management/approvals", icon: ClipboardList },
+          { name: "Reports", path: "/management/reports", icon: BarChart2 },
+        ],
+      },
     ],
   },
   client: {
     title: "Client Portal",
-    items: [
-      { name: "Dashboard", path: "/client", icon: LayoutDashboard, end: true },
-      { name: "My Projects", path: "/client/projects", icon: FolderOpen },
-      { name: "Invoices", path: "/client/invoices", icon: FileText },
-      { name: "Support", path: "/client/support", icon: LifeBuoy },
-      { name: "Documents", path: "/client/documents", icon: Globe },
+    initials: "CP",
+    sections: [
+      {
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/client", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "My Account",
+        items: [
+          { name: "My Projects", path: "/client/projects", icon: FolderOpen },
+          { name: "Invoices", path: "/client/invoices", icon: FileText },
+          { name: "Support", path: "/client/support", icon: LifeBuoy },
+          { name: "Documents", path: "/client/documents", icon: Globe },
+        ],
+      },
     ],
   },
 };
@@ -144,40 +264,28 @@ function useRole() {
   return roles.find((r) => pathname.startsWith(`/${r}`)) ?? "admin";
 }
 
-// Active / inactive link classes — defined outside the component so the
-// reference is stable and won't cause child re-renders.
-const activeCls = "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium bg-[#3e8ca7] text-white";
-const inactiveCls = "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[14px] font-medium text-gray-300 hover:bg-[#2a455a] hover:text-white transition-colors duration-150";
-const getLinkCls = ({ isActive }) => (isActive ? activeCls : inactiveCls);
-
-const activeIconCls = "flex items-center justify-center w-10 h-10 rounded-lg mx-auto bg-[#3e8ca7] text-white";
-const inactiveIconCls = "flex items-center justify-center w-10 h-10 rounded-lg mx-auto text-gray-300 hover:bg-[#2a455a] hover:text-white transition-colors duration-150";
-const getIconCls = ({ isActive }) => (isActive ? activeIconCls : inactiveIconCls);
-
 // ─────────────────────────────────────────────────────────────────────────────
-// Tooltip — CSS-only, no JS state, zero re-renders
+// TOOLTIP — CSS-only, zero JS state
 // ─────────────────────────────────────────────────────────────────────────────
 function Tooltip({ label, children }) {
   return (
     <div className="relative group/tip w-full flex justify-center">
       {children}
-      {/* opacity + translateX transition is GPU-composited (no layout/paint) */}
       <div className="pointer-events-none absolute left-full top-1/2 -translate-y-1/2 ml-3 z-[200]
                       opacity-0 translate-x-1
                       group-hover/tip:opacity-100 group-hover/tip:translate-x-0
                       transition-[opacity,transform] duration-150 whitespace-nowrap">
-        <div className="bg-[#1e293b] text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg shadow-lg">
+        <div className="bg-[#0f172a] text-white text-xs font-medium px-3 py-1.5 rounded-lg shadow-xl ring-1 ring-white/10">
           {label}
         </div>
-        <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#1e293b]" />
+        <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#0f172a]" />
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NAV ITEM — memoized so it only re-renders when its own props change,
-// not when sibling items or the sidebar expand state changes.
+// NAV ITEM
 // ─────────────────────────────────────────────────────────────────────────────
 const NavItem = memo(function NavItem({ item, expanded, onExpand, onNavClick }) {
   const Icon = item.icon;
@@ -189,25 +297,63 @@ const NavItem = memo(function NavItem({ item, expanded, onExpand, onNavClick }) 
 
   if (expanded) {
     return (
-      <NavLink to={item.path} end={item.end ?? false} onClick={handleClick} className={getLinkCls}>
-        <Icon size={18} className="flex-shrink-0" />
-        <span>{item.name}</span>
+      <NavLink
+        to={item.path}
+        end={item.end ?? false}
+        onClick={handleClick}
+        className={({ isActive }) =>
+          `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-150 ${
+            isActive
+              ? "bg-white/10 text-white shadow-sm"
+              : "text-slate-400 hover:bg-white/6 hover:text-slate-200"
+          }`
+        }
+      >
+        {({ isActive }) => (
+          <>
+            {/* Left accent bar */}
+            <span
+              className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-200 ${
+                isActive ? "h-5 bg-[#38bdf8]" : "h-0 bg-transparent"
+              }`}
+            />
+            <span className={`flex-shrink-0 transition-colors duration-150 ${isActive ? "text-[#38bdf8]" : "text-slate-500 group-hover:text-slate-300"}`}>
+              <Icon size={17} />
+            </span>
+            <span>{item.name}</span>
+          </>
+        )}
       </NavLink>
     );
   }
 
   return (
     <Tooltip label={item.name}>
-      <NavLink to={item.path} end={item.end ?? false} onClick={handleClick} className={getIconCls}>
-        <Icon size={18} />
+      <NavLink
+        to={item.path}
+        end={item.end ?? false}
+        onClick={handleClick}
+        className={({ isActive }) =>
+          `relative flex items-center justify-center w-10 h-10 rounded-xl mx-auto transition-all duration-150 ${
+            isActive
+              ? "bg-white/10 text-[#38bdf8]"
+              : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
+          }`
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <span className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-200 ${isActive ? "h-5 bg-[#38bdf8]" : "h-0"}`} />
+            <Icon size={17} />
+          </>
+        )}
       </NavLink>
     </Tooltip>
   );
 });
-// KEY FIX: Uses `grid-template-rows: 0fr / 1fr` instead of `max-height`
-// transition. max-height animates through potentially hundreds of intermediate
-// pixel values; grid-template-rows collapses to exactly 0 in one step and is
-// fully GPU-composited — buttery smooth.
+
+// ─────────────────────────────────────────────────────────────────────────────
+// NAV GROUP (collapsible)
 // ─────────────────────────────────────────────────────────────────────────────
 const NavGroup = memo(function NavGroup({ group, expanded, onExpand, onNavClick }) {
   const { pathname } = useLocation();
@@ -224,22 +370,25 @@ const NavGroup = memo(function NavGroup({ group, expanded, onExpand, onNavClick 
     }
   }, [expanded, onExpand]);
 
-  const triggerBase = `flex w-full items-center gap-3 rounded-lg py-2.5 font-medium
-    transition-colors duration-150
-    ${isGroupActive ? "bg-[#3e8ca7]/40 text-white" : "text-gray-300 hover:bg-[#2a455a] hover:text-white"}`;
-
   const trigger = (
     <button
       onClick={handleTrigger}
-      className={`${triggerBase} ${expanded ? "px-3" : "justify-center w-10 h-10 mx-auto px-0"}`}
+      className={`group relative flex w-full items-center gap-3 rounded-xl py-2.5 text-[13.5px] font-medium transition-all duration-150
+        ${expanded ? "px-3" : "justify-center w-10 h-10 mx-auto px-0"}
+        ${isGroupActive ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/6 hover:text-slate-200"}`}
     >
-      <Icon size={18} className="flex-shrink-0" />
+      {isGroupActive && (
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[#38bdf8] rounded-r-full" />
+      )}
+      <span className={`flex-shrink-0 transition-colors duration-150 ${isGroupActive ? "text-[#38bdf8]" : "text-slate-500 group-hover:text-slate-300"}`}>
+        <Icon size={17} />
+      </span>
       {expanded && (
         <>
-          <span className="flex-1 text-left text-[14px]">{group.name}</span>
-          {/* rotate uses transform — GPU-composited, zero layout cost */}
+          <span className="flex-1 text-left">{group.name}</span>
           <ChevronDown
-            size={16}
+            size={15}
+            className="text-slate-500"
             style={{
               transform: open ? "rotate(180deg)" : "rotate(0deg)",
               transition: "transform 250ms cubic-bezier(0.4,0,0.2,1)",
@@ -254,9 +403,6 @@ const NavGroup = memo(function NavGroup({ group, expanded, onExpand, onNavClick 
     <div>
       {expanded ? trigger : <Tooltip label={group.name}>{trigger}</Tooltip>}
 
-      {/* grid-template-rows trick: animates from `0fr` to `1fr`.
-          The inner div needs min-height:0 so `0fr` can actually collapse it.
-          This is fully GPU-composited — no layout reflow per frame. */}
       {expanded && (
         <div
           style={{
@@ -266,7 +412,7 @@ const NavGroup = memo(function NavGroup({ group, expanded, onExpand, onNavClick 
           }}
         >
           <div style={{ minHeight: 0, overflow: "hidden" }}>
-            <div className="ml-3 mt-0.5 space-y-0.5 border-l border-white/10 pl-3">
+            <div className="ml-4 mt-1 space-y-0.5 border-l border-white/8 pl-3 pb-1">
               {group.children.map((child) => {
                 const ChildIcon = child.icon;
                 return (
@@ -275,14 +421,19 @@ const NavGroup = memo(function NavGroup({ group, expanded, onExpand, onNavClick 
                     to={child.path}
                     onClick={onNavClick ?? undefined}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors duration-150 ${isActive
-                        ? "bg-[#3e8ca7] text-white"
-                        : "text-gray-300 hover:bg-[#2a455a] hover:text-white"
+                      `flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
+                        isActive
+                          ? "bg-white/10 text-white"
+                          : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
                       }`
                     }
                   >
-                    <ChildIcon size={15} className="flex-shrink-0" />
-                    <span>{child.name}</span>
+                    {({ isActive }) => (
+                      <>
+                        <ChildIcon size={14} className={`flex-shrink-0 ${isActive ? "text-[#38bdf8]" : ""}`} />
+                        <span>{child.name}</span>
+                      </>
+                    )}
                   </NavLink>
                 );
               })}
@@ -295,9 +446,21 @@ const NavGroup = memo(function NavGroup({ group, expanded, onExpand, onNavClick 
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SECTION LABEL
+// ─────────────────────────────────────────────────────────────────────────────
+function SectionLabel({ label, expanded }) {
+  if (!expanded) {
+    return <div className="my-2 mx-auto w-6 border-t border-white/10" />;
+  }
+  return (
+    <p className="mt-4 mb-1.5 px-3 text-[10.5px] font-semibold uppercase tracking-widest text-slate-600 select-none">
+      {label}
+    </p>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR
-// The sidebar content itself does NOT animate — only its wrapper in MainLayout
-// changes width. This means no Sidebar re-render is triggered by the animation.
 // ─────────────────────────────────────────────────────────────────────────────
 function Sidebar({ expanded, onExpand, onNavClick }) {
   const role = useRole();
@@ -307,57 +470,87 @@ function Sidebar({ expanded, onExpand, onNavClick }) {
   const stableOnNavClick = useCallback(() => onNavClick?.(), [onNavClick]);
 
   return (
-    <div className="flex h-full w-full flex-col border-r border-[#152532] bg-[#1e3445] pb-4 font-sans text-gray-300">
+    <div className="flex h-full w-full flex-col bg-[#1a2e3f] pb-3 font-sans rounded-r-lg">
 
-      {/* Title / logo — no transition-all here; opacity on the text only */}
-      <div className={`flex items-center p-4 text-white font-bold ${expanded ? "text-lg gap-2 px-5" : "justify-center text-xs py-5"}`}>
+      {/* ── Logo ── */}
+      <div className={`flex items-center border-b border-white/8 ${expanded ? "px-2 py-1.5 gap-3" : "justify-center py-3.5"}`}>
         {expanded ? (
-          // Fade the label in so it doesn't flash during the width animation
-          <span style={{ opacity: 1, transition: "opacity 120ms ease 100ms" }}>
-            CRM {menu.title}
-          </span>
+          <div className="bg-white rounded-lg w-full h-14">
+            <img
+              src={logo}
+              alt="Graphura"
+              className="flex-shrink-0 h-full w-full object-contain"
+            />
+          </div>
         ) : (
-          <span>CRM</span>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white shadow-md select-none flex-shrink-0">
+            <span className="text-2xl font-extrabold bg-gradient-to-br from-sky-400 via-blue-500 to-violet-600 bg-clip-text text-transparent leading-none">
+              G
+            </span>
+          </div>
         )}
       </div>
 
-      {/* Nav — overflow-y:auto on a fixed-height flex child is fine;
-          overflow-x:hidden prevents tooltip overflow from causing scrollbars. */}
+      {/* ── Nav ── */}
       <nav
-        className="mt-1 flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar space-y-0.5"
-        style={{ paddingLeft: expanded ? "0.75rem" : "0.5rem", paddingRight: expanded ? "0.75rem" : "0.5rem" }}
+        className="flex-1 overflow-y-auto overflow-x-hidden sidebar-scroll"
+        style={{
+          paddingLeft: expanded ? "0.625rem" : "0.375rem",
+          paddingRight: expanded ? "0.625rem" : "0.375rem",
+          paddingTop: "0.5rem",
+        }}
       >
-        {menu.items.map((item) =>
-          item.children ? (
-            <NavGroup
-              key={item.name}
-              group={item}
-              expanded={expanded}
-              onExpand={stableOnExpand}
-              onNavClick={stableOnNavClick}
-            />
-          ) : (
-            <NavItem
-              key={item.path}
-              item={item}
-              expanded={expanded}
-              onExpand={stableOnExpand}
-              onNavClick={stableOnNavClick}
-            />
-          )
-        )}
+        {menu.sections.map((section, si) => (
+          <div key={si}>
+            <SectionLabel label={section.label} expanded={expanded} />
+            <div className="space-y-0.5">
+              {section.items.map((item) =>
+                item.children ? (
+                  <NavGroup
+                    key={item.name}
+                    group={item}
+                    expanded={expanded}
+                    onExpand={stableOnExpand}
+                    onNavClick={stableOnNavClick}
+                  />
+                ) : (
+                  <NavItem
+                    key={item.path}
+                    item={item}
+                    expanded={expanded}
+                    onExpand={stableOnExpand}
+                    onNavClick={stableOnNavClick}
+                  />
+                )
+              )}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      {/* Footer — opacity transition only, no layout change */}
-      <div
-        style={{
-          opacity: expanded ? 1 : 0,
-          transition: "opacity 150ms ease",
-          pointerEvents: expanded ? "auto" : "none",
-        }}
-        className="mt-auto px-4 py-3 text-center text-xs text-gray-500"
-      >
-        © 2026 CRM System
+      {/* ── Footer / User card ── */}
+      <div className={`mt-auto border-t border-white/6 ${expanded ? "px-3 pt-3" : "px-2 pt-3 flex justify-center"}`}>
+        {expanded ? (
+          <div
+            style={{ opacity: 1, transition: "opacity 150ms ease" }}
+            className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2.5 hover:bg-white/8 transition-colors duration-150 cursor-pointer group"
+          >
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white shadow-sm">
+              {menu.initials}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-semibold text-slate-200 truncate">{menu.title}</p>
+              <p className="text-[11px] text-slate-500 truncate">Active session</p>
+            </div>
+            <LogOut size={14} className="text-slate-600 group-hover:text-slate-400 transition-colors flex-shrink-0" />
+          </div>
+        ) : (
+          <Tooltip label={menu.title}>
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white shadow-sm cursor-pointer">
+              {menu.initials}
+            </div>
+          </Tooltip>
+        )}
       </div>
     </div>
   );
