@@ -352,9 +352,23 @@ export const Button = ({
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. SELECT
-// Props: id, size, value, onChange, children (Option components), disabled, placeholder
-// Note: The dropdown list renders via createPortal into document.body so it is
-//       never clipped by ancestor overflow or CSS transform contexts.
+// A fully custom dropdown that replaces the native <select> element.
+//
+// Props:
+//   id          — html id attribute on the trigger button
+//   size        — 1–12 grid columns (default: 12)
+//   value       — controlled selected value
+//   onChange    — change handler called as (e) => void  where e.target.value is the chosen value
+//   children    — one or more <Option> components
+//   disabled    — disables the trigger button (default: false)
+//   placeholder — text shown when no value is selected (default: "Select an option")
+//   searchable  — shows a search input inside the dropdown to filter options (default: true)
+//
+// Notes:
+//   • The dropdown list renders in-place (relative positioning). Wrap in a
+//     container with overflow-visible if clipping is a concern.
+//   • Keyboard: clicking outside or pressing Escape closes the dropdown.
+//   • Search is case-insensitive and matches anywhere in the option label.
 // ─────────────────────────────────────────────────────────────────────────────
 export const Select = ({
   id,
@@ -364,82 +378,150 @@ export const Select = ({
   children,
   disabled = false,
   placeholder = "Select an option",
+  searchable = true,
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const selectRef = useRef(null);
+  const [isOpen, setIsOpen]       = useState(false);
+  const [query,  setQuery]        = useState("");
+  const selectRef                 = useRef(null);
+  const searchRef                 = useRef(null);
 
+  // Collect all valid <Option> children
   const options = React.Children.toArray(children).filter(React.isValidElement);
+
+  // Derive the display label for the currently selected value
   const selectedOption = options.find(
-    (option) => String(option.props.value) === String(value),
+    (opt) => String(opt.props.value) === String(value),
   );
   const selectedLabel = selectedOption
     ? (selectedOption.props.label ?? selectedOption.props.children)
     : "";
 
+  // Filter options by the search query (only when searchable=true and query is non-empty)
+  const visibleOptions = useMemo(() => {
+    if (!searchable || !query.trim()) return options;
+    const q = query.toLowerCase();
+    return options.filter((opt) => {
+      const label = String(opt.props.label ?? opt.props.children ?? "");
+      return label.toLowerCase().includes(q);
+    });
+  }, [options, query, searchable]);
+
+  // Close on outside click
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (selectRef.current && !selectRef.current.contains(event.target)) {
+    const handleClickOutside = (e) => {
+      if (selectRef.current && !selectRef.current.contains(e.target)) {
         setIsOpen(false);
+        setQuery("");
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Auto-focus the search input when the dropdown opens
+  useEffect(() => {
+    if (isOpen && searchable && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [isOpen, searchable]);
+
+  const handleToggle = () => {
+    if (disabled) return;
+    setIsOpen((prev) => {
+      if (prev) setQuery(""); // clear search on close
+      return !prev;
+    });
+  };
+
   const handleSelect = (optionValue) => {
     setIsOpen(false);
-    if (onChange) {
-      onChange({ target: { value: optionValue } });
-    }
+    setQuery("");
+    if (onChange) onChange({ target: { value: optionValue } });
   };
 
   return (
     <div className={`${colSpan(size)} relative`} ref={selectRef}>
+
+      {/* ── Trigger button ── */}
       <button
+        id={id}
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setIsOpen((open) => !open)}
+        onClick={handleToggle}
         className={`
-          w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-4 pr-8 text-sm font-medium text-[#0f172a] text-left
-          focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
-          disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 flex items-center justify-between gap-2
+          w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-4 pr-4 text-sm font-medium
+          text-left focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
+          disabled:opacity-50 disabled:cursor-not-allowed transition duration-200
+          flex items-center justify-between gap-2
         `}
       >
-        <span
-          className={`${selectedLabel ? "text-[#0f172a]" : "text-slate-400"}`}
-        >
+        <span className={selectedLabel ? "text-[#0f172a]" : "text-slate-400"}>
           {selectedLabel || placeholder}
         </span>
         <ChevronDown
           size={16}
-          className={`${isOpen ? "rotate-180" : ""} transition-transform duration-200`}
+          className={`flex-shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
+      {/* ── Dropdown panel ── */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-          <ul className="max-h-60 overflow-y-auto">
-            {options.map((option) => {
-              const optionValue = option.props.value;
-              const optionLabel = option.props.label ?? option.props.children;
-              const disabledOption = option.props.disabled;
-              const selected = String(optionValue) === String(value);
+        <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden">
 
-              return (
-                <li
-                  key={String(optionValue)}
-                  onClick={() => !disabledOption && handleSelect(optionValue)}
-                  className={`
-                    cursor-pointer px-4 py-3 text-sm text-[#0f172a] transition-colors duration-150
-                    ${disabledOption ? "cursor-not-allowed text-slate-400" : "hover:bg-slate-100"}
-                    ${selected ? "bg-slate-100 font-semibold" : ""}
-                  `}
+          {/* Search input — only rendered when searchable={true} */}
+          {searchable && (
+            <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+              <Search size={14} className="flex-shrink-0 text-slate-400" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search options…"
+                className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-slate-400 focus:outline-none"
+              />
+              {/* Clear search button — only visible when query is non-empty */}
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  {optionLabel}
-                </li>
-              );
-            })}
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Options list */}
+          <ul className="max-h-56 overflow-y-auto">
+            {visibleOptions.length > 0 ? (
+              visibleOptions.map((opt) => {
+                const optValue    = opt.props.value;
+                const optLabel    = opt.props.label ?? opt.props.children;
+                const optDisabled = opt.props.disabled;
+                const isSelected  = String(optValue) === String(value);
+
+                return (
+                  <li
+                    key={String(optValue)}
+                    onClick={() => !optDisabled && handleSelect(optValue)}
+                    className={`
+                      cursor-pointer px-4 py-2.5 text-sm text-[#0f172a] transition-colors duration-150
+                      ${optDisabled ? "cursor-not-allowed text-slate-400" : "hover:bg-slate-50"}
+                      ${isSelected  ? "bg-slate-100 font-semibold" : ""}
+                    `}
+                  >
+                    {optLabel}
+                  </li>
+                );
+              })
+            ) : (
+              /* Empty state when search yields no results */
+              <li className="px-4 py-4 text-center text-sm text-slate-400 select-none">
+                No options found
+              </li>
+            )}
           </ul>
         </div>
       )}
@@ -455,6 +537,7 @@ export const SelectField = ({
   onChange,
   disabled = false,
   placeholder = "Select an option",
+  searchable = true,
   children,
 }) => (
   <div className={`${colSpan(size)} flex flex-col gap-1.5`}>
@@ -473,6 +556,7 @@ export const SelectField = ({
       onChange={onChange}
       disabled={disabled}
       placeholder={placeholder}
+      searchable={searchable}
     >
       {children}
     </Select>
@@ -482,7 +566,9 @@ export const SelectField = ({
 /*
   ── HOW TO USE SelectField ──────────────────────────────────────────────────
 
-  // SelectField = Label + Select in a single slot (same as DataField but for dropdowns)
+  SelectField = Label + Select combined into a single grid slot.
+  Identical to wrapping a <Select> inside a <DataField> but with less boilerplate.
+
   <SelectField
     label="Department"
     id="dept"
@@ -501,19 +587,24 @@ export const SelectField = ({
   • id          — html id (links label + select)
   • size        — 1–12 grid columns  (default: 12)
   • value       — controlled value
-  • onChange    — change handler (e) => void
+  • onChange    — (e) => void
   • disabled    — true | false  (default: false)
-  • placeholder — placeholder text when no value selected  (default: "Select an option")
+  • placeholder — placeholder text when nothing is selected  (default: "Select an option")
+  • searchable  — passed through to the inner <Select>  (default: true)
   • children    — <Option> components
 */
 
 /*
   ── HOW TO USE Select ───────────────────────────────────────────────────────
 
+  A fully custom styled dropdown. Renders an inline dropdown panel (not a
+  native <select>) with an optional live-search input at the top.
+
+  Basic usage:
   <Select
-    id="country_select"
-    placeholder="Choose a country"
+    id="country"
     size={6}
+    placeholder="Choose a country"
     value={country}
     onChange={(e) => setCountry(e.target.value)}
   >
@@ -522,17 +613,21 @@ export const SelectField = ({
     <Option value="uk" label="United Kingdom" />
   </Select>
 
-  Props:
-  • id          — html id
-  • size        — 1–12 grid columns  (default: 12)
-  • value       — controlled value
-  • onChange    — change handler (e) => void
-  • children    — <Option> components
-  • disabled    — true | false  (default: false)
-  • placeholder — placeholder text shown when no value selected  (default: "Select an option")
+  Disable search (e.g. for short lists):
+  <Select searchable={false} value={val} onChange={...}>
+    <Option value="yes" label="Yes" />
+    <Option value="no"  label="No"  />
+  </Select>
 
-  Note: The dropdown list renders via createPortal into document.body so it is
-        never clipped by ancestor overflow or CSS transform contexts.
+  Props:
+  • id          — html id on the trigger button
+  • size        — 1–12 grid columns  (default: 12)
+  • value       — controlled selected value
+  • onChange    — (e) => void  — e.target.value holds the chosen value
+  • children    — <Option> components
+  • disabled    — disables the entire control  (default: false)
+  • placeholder — shown when nothing is selected  (default: "Select an option")
+  • searchable  — shows a search input to filter options  (default: true)
 */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1120,18 +1215,19 @@ export const DataTable = ({
 
                   {/* ── SELECT: dropdown ── */}
                   {f.type === "select" && (
-                    <select
+                    <Select
+                      size={12}
                       value={filterValues[f.title] ?? ""}
                       onChange={(e) =>
                         setFilterValues((prev) => ({ ...prev, [f.title]: e.target.value }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/90 py-2.5 px-3 text-sm text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 transition"
+                      placeholder="All"
                     >
-                      <option value="">All</option>
+                      <Option value="" label="All" />
                       {f.options.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
+                        <Option key={opt} value={opt} label={opt} />
                       ))}
-                    </select>
+                    </Select>
                   )}
 
                   {/* ── TEXT: plain input (default) ── */}

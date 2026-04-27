@@ -121,6 +121,7 @@ const MENUS = {
         label: "Sales",
         items: [
           { name: "My Leads", path: "/sales-manager/leads", icon: Target },
+          { name: "Teams", path: "/sales-manager/team-leader", icon: Users },
           { name: "Pipeline", path: "/sales-manager/pipeline", icon: GitBranch },
           { name: "Call Panel", path: "/sales-manager/calls", icon: PhoneCall },
           { name: "Tickets", path: "/sales-manager/tickets", icon: Ticket },
