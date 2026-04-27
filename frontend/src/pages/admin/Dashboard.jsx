@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Users,
   Target,
@@ -25,6 +25,7 @@ import {
   Heading,
   GAreaChart,
 } from "../../components/shared/Common_Components";
+import { dashboardService } from "../../services/dashboardService";
 
 // ── Palette ──
 const C = {
@@ -37,11 +38,11 @@ const C = {
 };
 
 // ── Stat cards ──
-const stats = [
-  { title: "Total Users", value: "1,245", icon: <Users size={22} />, accent: C.navy },
-  { title: "Leads", value: "320", icon: <Target size={22} />, accent: C.blue },
-  { title: "Projects", value: "85", icon: <FolderKanban size={22} />, accent: C.navy },
-  { title: "Revenue", value: "₹2.5L", icon: <IndianRupee size={22} />, accent: C.blue },
+const initialStats = [
+  { title: "Total Users", value: "0", icon: <Users size={22} />, accent: C.navy },
+  { title: "Leads", value: "0", icon: <Target size={22} />, accent: C.blue },
+  { title: "Projects", value: "0", icon: <FolderKanban size={22} />, accent: C.navy },
+  { title: "Revenue", value: "₹0", icon: <IndianRupee size={22} />, accent: C.blue },
 ];
 
 // ── Project progress ──
@@ -181,6 +182,22 @@ const underperformers = [
 function Dashboard() {
   const [financePeriod, setFinancePeriod] = useState("month");
   const [financeMonth, setFinanceMonth] = useState("");
+  const [stats, setStats] = useState(initialStats);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await dashboardService.getStats();
+        setStats(prev => prev.map(s => 
+          s.title === "Total Users" ? { ...s, value: String(data.data.users.length) } : s
+        ));
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+      }
+    };
+    fetchStats();
+  }, []);
+
   const activeFinance = financeMonth ? financeMonthData[financeMonth] : (financeDataMap[financePeriod] || financeDataMap.month);
 
   const [salesPeriod, setSalesPeriod] = useState("month");

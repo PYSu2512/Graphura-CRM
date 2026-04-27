@@ -3,9 +3,6 @@ import {
   BarChart3,
   CalendarRange,
   ChevronDown,
-  Download,
-  Eye,
-  FileSpreadsheet,
   Layers3,
   Plus,
   Users,
@@ -24,7 +21,7 @@ const initialReports = [
     owner: "Aarav Mehta",
     generatedOn: "23 Apr 2026, 08:30 AM",
     summary:
-      "Captures today's fresh leads, follow-ups completed, and conversion movement across the sales desk.",
+      "Captures fresh leads, follow-ups completed, and conversion movement across the sales desk.",
     metrics: [
       { label: "New Leads", value: "26" },
       { label: "Calls Closed", value: "49" },
@@ -155,11 +152,17 @@ function Report() {
     });
   }, [filters, reports]);
 
+  const tableReports = useMemo(() => {
+    return filteredReports.filter(
+      (report) => report.cadence !== "Daily" && report.cadence !== "Monthly"
+    );
+  }, [filteredReports]);
+
   const stats = useMemo(() => {
     const total = reports.length;
-    const published = reports.filter((report) => report.status === "Published").length;
     const daily = reports.filter((report) => report.cadence === "Daily").length;
     const monthly = reports.filter((report) => report.cadence === "Monthly").length;
+    const published = reports.filter((report) => report.status === "Published").length;
 
     return [
       {
@@ -198,11 +201,6 @@ function Report() {
 
   function handleFilterChange(key, value) {
     setFilters((current) => ({ ...current, [key]: value }));
-  }
-
-  function openCreateModal() {
-    setForm(defaultReportForm);
-    setIsCreateOpen(true);
   }
 
   function handleFormChange(key, value) {
@@ -272,7 +270,7 @@ function Report() {
             {
               key: "daily",
               title: "Daily Report",
-              subtitle: "Quick view of today’s operational movement",
+              subtitle: "Quick view of today's operational movement",
               accent: "text-[#c77727]",
               report: spotlightReports.daily,
             },
@@ -297,7 +295,9 @@ function Report() {
                 </div>
                 {item.report && (
                   <button
-                    onClick={() => setFilters((current) => ({ ...current, cadence: item.report.cadence }))}
+                    onClick={() =>
+                      setFilters((current) => ({ ...current, cadence: item.report.cadence }))
+                    }
                     className="rounded-xl border border-[#d5e3eb] px-3 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f5f9fb]"
                   >
                     Show {item.report.cadence}
@@ -309,13 +309,17 @@ function Report() {
                 <>
                   <div className="mt-4 rounded-2xl bg-[#f7fafc] p-4">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base font-semibold text-slate-800">{item.report.title}</span>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(item.report.status)}`}>
+                      <span className="text-base font-semibold text-slate-800">
+                        {item.report.title}
+                      </span>
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(item.report.status)}`}
+                      >
                         {item.report.status}
                       </span>
                     </div>
                     <p className="mt-2 text-sm text-slate-500">
-                      {item.report.owner} • {item.report.department} • {item.report.period}
+                      {item.report.owner} - {item.report.department} - {item.report.period}
                     </p>
                   </div>
 
@@ -352,7 +356,10 @@ function Report() {
               </h2>
             </div>
             <button
-              onClick={openCreateModal}
+              onClick={() => {
+                setForm(defaultReportForm);
+                setIsCreateOpen(true);
+              }}
               className="inline-flex items-center gap-2 rounded-xl bg-[#355872] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d4a60]"
             >
               <Plus size={16} />
@@ -386,68 +393,74 @@ function Report() {
             ))}
           </div>
 
-          <div className="mt-5 space-y-4">
-            {filteredReports.length === 0 ? (
-              <div className="rounded-[24px] border border-dashed border-[#d6e2ea] bg-[#fafcfd] p-8 text-center text-sm text-slate-500">
-                No reports match the selected filters.
-              </div>
-            ) : (
-              filteredReports.map((report) => (
-                <article
-                  key={report.id}
-                  className="rounded-[24px] border border-[#e2ebf1] bg-[linear-gradient(180deg,_#ffffff_0%,_#f9fbfd_100%)] p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-[#355872]">{report.id}</span>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(report.status)}`}>
-                          {report.status}
-                        </span>
-                        <span className="rounded-full bg-[#f2f7fa] px-3 py-1 text-xs font-semibold text-[#355872]">
-                          {report.type}
-                        </span>
-                        <span className="rounded-full bg-[#fff5e8] px-3 py-1 text-xs font-semibold text-[#9a6a06]">
-                          {report.cadence}
-                        </span>
-                      </div>
-
-                      <div>
-                        <h3 className="text-lg font-semibold text-slate-800">{report.title}</h3>
-                        <p className="mt-1 text-sm text-slate-500">
-                          {report.owner} • {report.department} • {report.period}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-wrap gap-3 text-sm text-slate-500">
-                        <span className="inline-flex items-center gap-2 rounded-full bg-[#f2f7fa] px-3 py-1">
-                          <CalendarRange size={14} />
-                          {report.generatedOn}
-                        </span>
-                        <span className="inline-flex items-center gap-2 rounded-full bg-[#f2f7fa] px-3 py-1">
-                          <FileSpreadsheet size={14} />
-                          {report.period}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => setActiveReport(report)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-[#cedee8] bg-white px-4 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f3f8fb]"
+          <div className="mt-5 overflow-hidden rounded-2xl border border-[#d9e6ef]">
+            <div className="overflow-x-auto bg-white">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead className="bg-[#355872] text-white">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Report</th>
+                    <th className="px-4 py-3 font-semibold">Type</th>
+                    <th className="px-4 py-3 font-semibold">Department</th>
+                    <th className="px-4 py-3 font-semibold">View</th>
+                    <th className="px-4 py-3 font-semibold">Period</th>
+                    <th className="px-4 py-3 font-semibold">Generated</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableReports.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                        No reports found.
+                      </td>
+                    </tr>
+                  ) : (
+                    tableReports.map((report, index) => (
+                      <tr
+                        key={report.id}
+                        className={index % 2 === 0 ? "bg-white" : "bg-[#f8fbfd]"}
                       >
-                        <Eye size={15} />
-                        View Report
-                      </button>
-                      <button className="inline-flex items-center gap-2 rounded-xl bg-[#355872] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d4a60]">
-                        <Download size={15} />
-                        Export
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              ))
-            )}
+                        <td className="px-4 py-3">
+                          <p className="font-semibold text-[#1e3445]">{report.title}</p>
+                          <p className="text-xs text-slate-500">{report.id} | {report.owner}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">
+                            {report.type}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
+                            {report.department}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+                            {report.cadence}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">{report.period}</td>
+                        <td className="px-4 py-3 text-slate-600">{report.generatedOn}</td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(report.status)}`}>
+                            {report.status}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <button
+                            onClick={() => setActiveReport(report)}
+                            className="rounded-lg border border-[#cedee8] px-3 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f3f8fb]"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       </div>
@@ -603,7 +616,9 @@ function Report() {
 
             <div className="mt-6 space-y-5">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(activeReport.status)}`}>
+                <span
+                  className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(activeReport.status)}`}
+                >
                   {activeReport.status}
                 </span>
                 <span className="rounded-full bg-[#f2f7fa] px-3 py-1 text-xs font-semibold text-[#355872]">

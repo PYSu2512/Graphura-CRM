@@ -3,7 +3,7 @@ import MainLayout from "../layouts/MainLayout";
 import Dashboard from "../pages/admin/Dashboard";
 import Projects from "../pages/admin/Projects";
 import FinanceDashboard from "../pages/admin/FinanceDashboard";
-import HRMDashboard from "../pages/admin/HRMDashboard";
+import HRM from "../pages/admin/HRM";
 import Support from "../pages/admin/Support";
 import Report from "../pages/admin/Report";
 
@@ -30,6 +30,8 @@ import Pipeline from "../pages/admin/sales/Pipeline";
 import Targets from "../pages/admin/sales/Targets";
 import CallPanel from "../pages/admin/sales/CallPanel";
 import Tickets from "../pages/admin/sales/Tickets";
+
+import CompanySettings from "../pages/super-admin/company-settings/CompanySetting";
 
 const pageContent = {
   "Leads & Sales": {
@@ -185,10 +187,10 @@ function AdminRoutes() {
 
         <Route path="projects" element={<Projects />} />
         <Route path="finance" element={<FinanceDashboard />} />
-        <Route path="hrm" element={<HRMDashboard />} />
+        <Route path="hrm" element={<HRM />} />
         <Route path="support" element={<Support />} />
         <Route path="reports" element={<Report />} />
-        <Route path="system" element={<Page name="System" />} />
+        <Route path="system" element={<CompanySettings />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
     </Routes>

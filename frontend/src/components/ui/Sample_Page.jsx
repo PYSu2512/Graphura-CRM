@@ -15,7 +15,11 @@ import {
   GPieChart,
   GRadarChart,
   GAreaChart,
+<<<<<<< Updated upstream
 } from "./Common_Components";
+=======
+} from "../shared/Common_Components";
+>>>>>>> Stashed changes
 import { TrendingDown, Users } from "lucide-react";
 
 const Page = () => {
@@ -26,7 +30,7 @@ const Page = () => {
   const [address, setAddress] = useState("");
 
   // Sample employee data
-  const [employees, setEmployees] = useState([
+  const employees = [
     { name: "John Doe", dept: "Engineering" },
     { name: "Jane Smith", dept: "Sales" },
     { name: "Bob Johnson", dept: "HR" },
@@ -39,7 +43,7 @@ const Page = () => {
     { name: "John Doe", dept: "Engineering" },
     { name: "Jane Smith", dept: "Sales" },
     { name: "Bob Johnson", dept: "HR" },
-  ]);
+  ];
 
   const data = [
     { name: "Sales", target: 120, achieved: 95 },

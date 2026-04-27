@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Users,
   DollarSign,
@@ -20,6 +20,7 @@ import {
   GDoughnutChart,
   DataTable,
   Button,
+<<<<<<< Updated upstream
   Modal,
   openModal,
   closeModal,
@@ -42,6 +43,11 @@ export default function Dashboard() {
     openModal("edit-modal");
   };
 
+=======
+} from "../shared/Common_Components";
+
+export default function Dashboard() {
+>>>>>>> Stashed changes
   // ─── Mock Data ─────────────────────────────────────────────────────────────
 
   const revenueData = [

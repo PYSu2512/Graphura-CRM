@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Clock,
   CheckCircle2,
@@ -16,25 +16,47 @@ import {
   openModal,
   closeModal,
 } from "../../../components/shared/Common_Components";
+import { userService } from "../../../services/userService";
 
-// ── Mock approval requests ──
-const mockApprovals = [
-  { id: 1, name: "Rajesh Khanna", email: "rajesh@gmail.com", avatar: "RK", requestedRole: "Sales Executive", requestedOn: "Apr 18, 2026", source: "Self-signup", status: "Pending" },
-  { id: 2, name: "Meera Iyer", email: "meera@graphura.com", avatar: "MI", requestedRole: "Management Employee", requestedOn: "Apr 17, 2026", source: "Invite", status: "Pending" },
-  { id: 3, name: "Karan Malhotra", email: "karan@yahoo.com", avatar: "KM", requestedRole: "Finance Executive", requestedOn: "Apr 16, 2026", source: "Self-signup", status: "Pending" },
-  { id: 4, name: "Divya Nair", email: "divya@graphura.com", avatar: "DN", requestedRole: "Sales Team Lead", requestedOn: "Apr 15, 2026", source: "Invite", status: "Approved" },
-  { id: 5, name: "Anil Gupta", email: "anil@outlook.com", avatar: "AG", requestedRole: "Sales Executive", requestedOn: "Apr 14, 2026", source: "Self-signup", status: "Rejected" },
-  { id: 6, name: "Pooja Singh", email: "pooja@graphura.com", avatar: "PS", requestedRole: "Admin", requestedOn: "Apr 13, 2026", source: "Invite", status: "Approved" },
-  { id: 7, name: "Sanjay Verma", email: "sanjay@gmail.com", avatar: "SV", requestedRole: "Management TL", requestedOn: "Apr 12, 2026", source: "Self-signup", status: "Pending" },
-];
+
 
 const filterOptions = ["All", "Pending", "Approved", "Rejected"];
 
 export default function UserApprovals() {
-  const [approvals, setApprovals] = useState(mockApprovals);
+  const [approvals, setApprovals] = useState([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [selectedApproval, setSelectedApproval] = useState(null);
   const [toast, setToast] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchApprovals = async () => {
+      try {
+        setIsLoading(true);
+        const response = await userService.getUsers();
+        // Filter or map users to approval format if needed
+        // For now, let's assume we want users with PENDING status
+        const mapped = response.data.users
+          .filter(u => u.approvalStatus === "PENDING")
+          .map(u => ({
+            id: u._id,
+            name: u.name,
+            email: u.email,
+            avatar: u.name.split(" ").map(n => n[0]).join("").toUpperCase(),
+            requestedRole: u.role,
+            requestedOn: new Date(u.createdAt).toLocaleDateString(),
+            source: "Invite", // Placeholder
+            status: "Pending"
+          }));
+        setApprovals(mapped);
+      } catch (error) {
+        console.error("Failed to fetch approvals:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchApprovals();
+  }, []);
 
   // ── Stats ──
   const pending = approvals.filter((a) => a.status === "Pending").length;

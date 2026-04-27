@@ -108,6 +108,8 @@ export const InputField = ({
   value,
   onChange,
   disabled = false,
+  readOnly = false,
+  className = "",
 }) => (
   <div className={`${colSpan(size)}`}>
     <input
@@ -118,12 +120,14 @@ export const InputField = ({
       value={value}
       onChange={onChange}
       disabled={disabled}
+      readOnly={readOnly}
       className={`
         w-full rounded-2xl border border-slate-200 bg-slate-50/90
         py-3.5 px-4 text-[#2a465a] placeholder:text-slate-400 text-sm font-medium
         focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
         disabled:opacity-50 disabled:cursor-not-allowed
         transition duration-200
+        ${className}
       `}
     />
   </div>
@@ -151,6 +155,8 @@ export const InputField = ({
   • value       — controlled value
   • onChange    — change handler (e) => void
   • disabled    — true | false  (default: false)
+  • readOnly    — true | false  (default: false)
+  • className   — custom classes
 */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -197,6 +203,8 @@ export const DataField = ({
   value,
   onChange,
   disabled = false,
+  readOnly = false,
+  className = "",
 }) => (
   <div className={`${colSpan(size)} flex flex-col gap-1.5`}>
     {label && (
@@ -215,12 +223,14 @@ export const DataField = ({
       value={value}
       onChange={onChange}
       disabled={disabled}
+      readOnly={readOnly}
       className={`
         w-full rounded-2xl border border-slate-200 bg-slate-50/90
         py-3.5 px-4 text-[#2a465a] placeholder:text-slate-400 text-sm font-medium
         focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
         disabled:opacity-50 disabled:cursor-not-allowed
         transition duration-200
+        ${className}
       `}
     />
   </div>
@@ -342,9 +352,23 @@ export const Button = ({
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. SELECT
-// Props: id, size, value, onChange, children (Option components), disabled, placeholder
-// Note: The dropdown list renders via createPortal into document.body so it is
-//       never clipped by ancestor overflow or CSS transform contexts.
+// A fully custom dropdown that replaces the native <select> element.
+//
+// Props:
+//   id          — html id attribute on the trigger button
+//   size        — 1–12 grid columns (default: 12)
+//   value       — controlled selected value
+//   onChange    — change handler called as (e) => void  where e.target.value is the chosen value
+//   children    — one or more <Option> components
+//   disabled    — disables the trigger button (default: false)
+//   placeholder — text shown when no value is selected (default: "Select an option")
+//   searchable  — shows a search input inside the dropdown to filter options (default: true)
+//
+// Notes:
+//   • The dropdown list renders in-place (relative positioning). Wrap in a
+//     container with overflow-visible if clipping is a concern.
+//   • Keyboard: clicking outside or pressing Escape closes the dropdown.
+//   • Search is case-insensitive and matches anywhere in the option label.
 // ─────────────────────────────────────────────────────────────────────────────
 export const Select = ({
   id,
@@ -354,82 +378,150 @@ export const Select = ({
   children,
   disabled = false,
   placeholder = "Select an option",
+  searchable = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const selectRef = useRef(null);
+  const searchRef = useRef(null);
 
+  // Collect all valid <Option> children
   const options = React.Children.toArray(children).filter(React.isValidElement);
+
+  // Derive the display label for the currently selected value
   const selectedOption = options.find(
-    (option) => String(option.props.value) === String(value),
+    (opt) => String(opt.props.value) === String(value),
   );
   const selectedLabel = selectedOption
     ? (selectedOption.props.label ?? selectedOption.props.children)
     : "";
 
+  // Filter options by the search query (only when searchable=true and query is non-empty)
+  const visibleOptions = useMemo(() => {
+    if (!searchable || !query.trim()) return options;
+    const q = query.toLowerCase();
+    return options.filter((opt) => {
+      const label = String(opt.props.label ?? opt.props.children ?? "");
+      return label.toLowerCase().includes(q);
+    });
+  }, [options, query, searchable]);
+
+  // Close on outside click
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (selectRef.current && !selectRef.current.contains(event.target)) {
+    const handleClickOutside = (e) => {
+      if (selectRef.current && !selectRef.current.contains(e.target)) {
         setIsOpen(false);
+        setQuery("");
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Auto-focus the search input when the dropdown opens
+  useEffect(() => {
+    if (isOpen && searchable && searchRef.current) {
+      searchRef.current.focus();
+    }
+  }, [isOpen, searchable]);
+
+  const handleToggle = () => {
+    if (disabled) return;
+    setIsOpen((prev) => {
+      if (prev) setQuery(""); // clear search on close
+      return !prev;
+    });
+  };
+
   const handleSelect = (optionValue) => {
     setIsOpen(false);
-    if (onChange) {
-      onChange({ target: { value: optionValue } });
-    }
+    setQuery("");
+    if (onChange) onChange({ target: { value: optionValue } });
   };
 
   return (
     <div className={`${colSpan(size)} relative`} ref={selectRef}>
+
+      {/* ── Trigger button ── */}
       <button
+        id={id}
         type="button"
         disabled={disabled}
-        onClick={() => !disabled && setIsOpen((open) => !open)}
+        onClick={handleToggle}
         className={`
-          w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-4 pr-8 text-sm font-medium text-[#0f172a] text-left
-          focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
-          disabled:opacity-50 disabled:cursor-not-allowed transition duration-200 flex items-center justify-between gap-2
+          w-full rounded-2xl border border-slate-200 bg-white py-3.5 pl-4 pr-4 text-sm font-medium
+          text-left focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
+          disabled:opacity-50 disabled:cursor-not-allowed transition duration-200
+          flex items-center justify-between gap-2
         `}
       >
-        <span
-          className={`${selectedLabel ? "text-[#0f172a]" : "text-slate-400"}`}
-        >
+        <span className={selectedLabel ? "text-[#0f172a]" : "text-slate-400"}>
           {selectedLabel || placeholder}
         </span>
         <ChevronDown
           size={16}
-          className={`${isOpen ? "rotate-180" : ""} transition-transform duration-200`}
+          className={`flex-shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
 
+      {/* ── Dropdown panel ── */}
       {isOpen && (
-        <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-          <ul className="max-h-60 overflow-y-auto">
-            {options.map((option) => {
-              const optionValue = option.props.value;
-              const optionLabel = option.props.label ?? option.props.children;
-              const disabledOption = option.props.disabled;
-              const selected = String(optionValue) === String(value);
+        <div className="absolute z-50 mt-2 w-full rounded-2xl border border-slate-200 bg-white shadow-xl overflow-hidden">
 
-              return (
-                <li
-                  key={String(optionValue)}
-                  onClick={() => !disabledOption && handleSelect(optionValue)}
-                  className={`
-                    cursor-pointer px-4 py-3 text-sm text-[#0f172a] transition-colors duration-150
-                    ${disabledOption ? "cursor-not-allowed text-slate-400" : "hover:bg-slate-100"}
-                    ${selected ? "bg-slate-100 font-semibold" : ""}
-                  `}
+          {/* Search input — only rendered when searchable={true} */}
+          {searchable && (
+            <div className="flex items-center gap-2 border-b border-slate-100 px-3 py-2.5">
+              <Search size={14} className="flex-shrink-0 text-slate-400" />
+              <input
+                ref={searchRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search options…"
+                className="flex-1 bg-transparent text-sm text-[#0f172a] placeholder:text-slate-400 focus:outline-none"
+              />
+              {/* Clear search button — only visible when query is non-empty */}
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="flex-shrink-0 text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  {optionLabel}
-                </li>
-              );
-            })}
+                  <X size={13} />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Options list */}
+          <ul className="max-h-56 overflow-y-auto">
+            {visibleOptions.length > 0 ? (
+              visibleOptions.map((opt) => {
+                const optValue = opt.props.value;
+                const optLabel = opt.props.label ?? opt.props.children;
+                const optDisabled = opt.props.disabled;
+                const isSelected = String(optValue) === String(value);
+
+                return (
+                  <li
+                    key={String(optValue)}
+                    onClick={() => !optDisabled && handleSelect(optValue)}
+                    className={`
+                      cursor-pointer px-4 py-2.5 text-sm text-[#0f172a] transition-colors duration-150
+                      ${optDisabled ? "cursor-not-allowed text-slate-400" : "hover:bg-slate-50"}
+                      ${isSelected ? "bg-slate-100 font-semibold" : ""}
+                    `}
+                  >
+                    {optLabel}
+                  </li>
+                );
+              })
+            ) : (
+              /* Empty state when search yields no results */
+              <li className="px-4 py-4 text-center text-sm text-slate-400 select-none">
+                No options found
+              </li>
+            )}
           </ul>
         </div>
       )}
@@ -445,6 +537,7 @@ export const SelectField = ({
   onChange,
   disabled = false,
   placeholder = "Select an option",
+  searchable = true,
   children,
 }) => (
   <div className={`${colSpan(size)} flex flex-col gap-1.5`}>
@@ -463,6 +556,7 @@ export const SelectField = ({
       onChange={onChange}
       disabled={disabled}
       placeholder={placeholder}
+      searchable={searchable}
     >
       {children}
     </Select>
@@ -472,7 +566,9 @@ export const SelectField = ({
 /*
   ── HOW TO USE SelectField ──────────────────────────────────────────────────
 
-  // SelectField = Label + Select in a single slot (same as DataField but for dropdowns)
+  SelectField = Label + Select combined into a single grid slot.
+  Identical to wrapping a <Select> inside a <DataField> but with less boilerplate.
+
   <SelectField
     label="Department"
     id="dept"
@@ -491,19 +587,24 @@ export const SelectField = ({
   • id          — html id (links label + select)
   • size        — 1–12 grid columns  (default: 12)
   • value       — controlled value
-  • onChange    — change handler (e) => void
+  • onChange    — (e) => void
   • disabled    — true | false  (default: false)
-  • placeholder — placeholder text when no value selected  (default: "Select an option")
+  • placeholder — placeholder text when nothing is selected  (default: "Select an option")
+  • searchable  — passed through to the inner <Select>  (default: true)
   • children    — <Option> components
 */
 
 /*
   ── HOW TO USE Select ───────────────────────────────────────────────────────
 
+  A fully custom styled dropdown. Renders an inline dropdown panel (not a
+  native <select>) with an optional live-search input at the top.
+
+  Basic usage:
   <Select
-    id="country_select"
-    placeholder="Choose a country"
+    id="country"
     size={6}
+    placeholder="Choose a country"
     value={country}
     onChange={(e) => setCountry(e.target.value)}
   >
@@ -512,17 +613,21 @@ export const SelectField = ({
     <Option value="uk" label="United Kingdom" />
   </Select>
 
-  Props:
-  • id          — html id
-  • size        — 1–12 grid columns  (default: 12)
-  • value       — controlled value
-  • onChange    — change handler (e) => void
-  • children    — <Option> components
-  • disabled    — true | false  (default: false)
-  • placeholder — placeholder text shown when no value selected  (default: "Select an option")
+  Disable search (e.g. for short lists):
+  <Select searchable={false} value={val} onChange={...}>
+    <Option value="yes" label="Yes" />
+    <Option value="no"  label="No"  />
+  </Select>
 
-  Note: The dropdown list renders via createPortal into document.body so it is
-        never clipped by ancestor overflow or CSS transform contexts.
+  Props:
+  • id          — html id on the trigger button
+  • size        — 1–12 grid columns  (default: 12)
+  • value       — controlled selected value
+  • onChange    — (e) => void  — e.target.value holds the chosen value
+  • children    — <Option> components
+  • disabled    — disables the entire control  (default: false)
+  • placeholder — shown when nothing is selected  (default: "Select an option")
+  • searchable  — shows a search input to filter options  (default: true)
 */
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -635,6 +740,8 @@ export const DataTable = ({
   pageSize = 5,
   pageSizeOptions = [5, 10, 20, 50],
   searchable = true,
+  hideRecordSummary = false,
+  hidePagination = false,
   // filters — pass an array of filter definitions; each filter shows as a
   // labeled text input inside the Filter modal. Example:
   //   filters={[
@@ -671,8 +778,8 @@ export const DataTable = ({
   });
 
   // ── Filter modal state ──────────────────────────────────────────────────────
-  const [filterModalOpen, setFilterModalOpen]   = useState(false);
-  const [filterModalShow, setFilterModalShow]   = useState(false);
+  const [filterModalOpen, setFilterModalOpen] = useState(false);
+  const [filterModalShow, setFilterModalShow] = useState(false);
   const [filterModalRender, setFilterModalRender] = useState(false);
   const filterCloseTimerRef = useRef(null);
 
@@ -705,13 +812,13 @@ export const DataTable = ({
       // text (default)
       return { ...f, fn: (row, value) => String(row[key] ?? "").toLowerCase().includes(value.toLowerCase()) };
     }),
-  [filters]);
+    [filters]);
 
   // Date range state (only used when date !== "off")
   const [dateFrom, setDateFrom] = useState("");
-  const [dateTo,   setDateTo]   = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [appliedDateFrom, setAppliedDateFrom] = useState("");
-  const [appliedDateTo,   setAppliedDateTo]   = useState("");
+  const [appliedDateTo, setAppliedDateTo] = useState("");
 
   // Single date filter (toolbar date picker — onDateFilter={true})
   const [singleDate, setSingleDate] = useState("");
@@ -795,11 +902,10 @@ export const DataTable = ({
     if (search.trim()) {
       const q = search.toLowerCase();
       result = result.filter((row) =>
-        columns.some((col) =>
-          String(row[col.key] ?? "")
-            .toLowerCase()
-            .includes(q),
-        ),
+        columns.some((col) => {
+          const val = col.searchValue ? col.searchValue(row) : (row[col.key] ?? "");
+          return String(val).toLowerCase().includes(q);
+        }),
       );
     }
 
@@ -842,9 +948,10 @@ export const DataTable = ({
     }
 
     if (sortConfig.key) {
+      const sortCol = columns.find((c) => c.key === sortConfig.key);
       result = [...result].sort((a, b) => {
-        const aVal = a[sortConfig.key] ?? "";
-        const bVal = b[sortConfig.key] ?? "";
+        const aVal = sortCol?.sortValue ? sortCol.sortValue(a) : (a[sortConfig.key] ?? "");
+        const bVal = sortCol?.sortValue ? sortCol.sortValue(b) : (b[sortConfig.key] ?? "");
 
         if (typeof aVal === "string" && typeof bVal === "string") {
           return sortConfig.direction === "asc"
@@ -878,8 +985,8 @@ export const DataTable = ({
   // ── Bulk selection helpers ────────────────────────────────────────────────
   // We key rows by their index in `filtered` so selection survives pagination.
   const paginatedIndices = paginated.map((_, i) => (page - 1) * currentPageSize + i);
-  const allPageSelected  = paginatedIndices.length > 0 && paginatedIndices.every((idx) => selectedRows.has(idx));
-  const someSelected     = selectedRows.size > 0;
+  const allPageSelected = paginatedIndices.length > 0 && paginatedIndices.every((idx) => selectedRows.has(idx));
+  const someSelected = selectedRows.size > 0;
 
   const toggleRow = (idx) => {
     setSelectedRows((prev) => {
@@ -952,7 +1059,7 @@ export const DataTable = ({
               className="relative flex items-center gap-1.5 px-4 py-3 rounded-2xl border border-slate-200 bg-white text-sm font-semibold text-[#2a465a] hover:bg-slate-50 transition"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+                <line x1="4" y1="6" x2="20" y2="6" /><line x1="8" y1="12" x2="16" y2="12" /><line x1="11" y1="18" x2="13" y2="18" />
               </svg>
               Filters
               {/* Badge showing count of active filters */}
@@ -964,22 +1071,27 @@ export const DataTable = ({
             </button>
           )}
 
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            Show
-          </span>
-          <Select
-            value={currentPageSize}
-            onChange={(e) => {
-              setCurrentPageSize(Number(e.target.value));
-              setPage(1);
-            }}
-            size={3}
-          >
-            {pageSizeOptions.map((option) => (
-              <Option key={option} value={option} label={String(option)} />
-            ))}
-          </Select>
-          <span className="text-xs text-slate-400">rows</span>
+          {!hidePagination && (
+            <>
+              <span className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Show
+              </span>
+              <Select
+                value={currentPageSize}
+                searchable={false}
+                onChange={(e) => {
+                  setCurrentPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+                size={3}
+              >
+                {pageSizeOptions.map((option) => (
+                  <Option key={option} value={option} label={String(option)} />
+                ))}
+              </Select>
+              <span className="text-xs text-slate-400">rows</span>
+            </>
+          )}
         </div>
       </div>
 
@@ -990,18 +1102,16 @@ export const DataTable = ({
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           {/* Backdrop */}
           <div
-            className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-260 ease-in-out ${
-              filterModalShow ? "opacity-100" : "opacity-0"
-            }`}
+            className={`fixed inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity duration-260 ease-in-out ${filterModalShow ? "opacity-100" : "opacity-0"
+              }`}
             onClick={closeFilterModal}
           />
           {/* Dialog */}
           <div
-            className={`relative w-full ${{ sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg", xl: "max-w-xl", "2xl": "max-w-2xl" }[filterSize] ?? "max-w-md"} bg-white rounded-2xl shadow-2xl flex flex-col transition-all duration-260 ease-out transform ${
-              filterModalShow
-                ? "opacity-100 translate-y-0 scale-100"
-                : "opacity-0 translate-y-4 scale-95"
-            }`}
+            className={`relative w-full ${{ sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg", xl: "max-w-xl", "2xl": "max-w-2xl" }[filterSize] ?? "max-w-md"} bg-white rounded-2xl shadow-2xl flex flex-col transition-all duration-260 ease-out transform ${filterModalShow
+              ? "opacity-100 translate-y-0 scale-100"
+              : "opacity-0 translate-y-4 scale-95"
+              }`}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -1077,21 +1187,19 @@ export const DataTable = ({
                                 };
                               })
                             }
-                            className={`flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-150 select-none ${
-                              selected
-                                ? "border-[#2a465a] text-[#2a465a] bg-white"
-                                : "border-slate-200 text-slate-500 bg-white hover:border-slate-300"
-                            }`}
+                            className={`flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full border text-xs font-semibold transition-all duration-150 select-none ${selected
+                              ? "border-[#2a465a] text-[#2a465a] bg-white"
+                              : "border-slate-200 text-slate-500 bg-white hover:border-slate-300"
+                              }`}
                           >
                             {/* Circle indicator */}
-                            <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
-                              selected
-                                ? "bg-[#2a465a] border-[#2a465a]"
-                                : "bg-white border-slate-300"
-                            }`}>
+                            <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${selected
+                              ? "bg-[#2a465a] border-[#2a465a]"
+                              : "bg-white border-slate-300"
+                              }`}>
                               {selected && (
                                 <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
-                                  <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                                 </svg>
                               )}
                             </span>
@@ -1104,18 +1212,19 @@ export const DataTable = ({
 
                   {/* ── SELECT: dropdown ── */}
                   {f.type === "select" && (
-                    <select
+                    <Select
+                      size={12}
                       value={filterValues[f.title] ?? ""}
                       onChange={(e) =>
                         setFilterValues((prev) => ({ ...prev, [f.title]: e.target.value }))
                       }
-                      className="w-full rounded-xl border border-slate-200 bg-slate-50/90 py-2.5 px-3 text-sm text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 transition"
+                      placeholder="All"
                     >
-                      <option value="">All</option>
+                      <Option value="" label="All" />
                       {f.options.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
+                        <Option key={opt} value={opt} label={opt} />
                       ))}
-                    </select>
+                    </Select>
                   )}
 
                   {/* ── TEXT: plain input (default) ── */}
@@ -1176,21 +1285,20 @@ export const DataTable = ({
                   <button
                     type="button"
                     onClick={toggleAllPage}
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
-                      allPageSelected
-                        ? "bg-white border-white"
-                        : "bg-transparent border-white/40 hover:border-white/80"
-                    }`}
+                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${allPageSelected
+                      ? "bg-white border-white"
+                      : "bg-transparent border-white/40 hover:border-white/80"
+                      }`}
                   >
                     {allPageSelected && (
                       <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                        <path d="M2 6l3 3 5-5" stroke="#2a465a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M2 6l3 3 5-5" stroke="#2a465a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
                     {/* Indeterminate dash — some but not all on this page selected */}
                     {!allPageSelected && selectedRows.size > 0 && paginatedIndices.some(idx => selectedRows.has(idx)) && (
                       <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
-                        <path d="M2.5 6h7" stroke="white" strokeWidth="2.2" strokeLinecap="round"/>
+                        <path d="M2.5 6h7" stroke="white" strokeWidth="2.2" strokeLinecap="round" />
                       </svg>
                     )}
                   </button>
@@ -1216,7 +1324,7 @@ export const DataTable = ({
                 </th>
               ))}
               {actions.length > 0 && (
-                <th className="py-4 px-5 text-left text-xs font-black text-white uppercase tracking-[0.2em]">
+                <th style={{ width: "auto", minWidth: "200px" }} className="py-4 px-4 text-left text-xs font-black text-white uppercase tracking-[0.1em]">
                   Actions
                 </th>
               )}
@@ -1235,149 +1343,147 @@ export const DataTable = ({
             ) : (
               paginated.map((row, i) => {
                 const filteredIdx = (page - 1) * currentPageSize + i;
-                const isSelected  = selectedRows.has(filteredIdx);
+                const isSelected = selectedRows.has(filteredIdx);
                 return (
-                <tr
-                  key={i}
-                  className={`border-b border-slate-100 transition ${
-                    isSelected
+                  <tr
+                    key={i}
+                    className={`border-b border-slate-100 transition ${isSelected
                       ? "bg-blue-50/70"
                       : i % 2 === 0 ? "bg-white" : "bg-slate-50/60"
-                  } hover:bg-blue-50/40`}
-                >
-                  {/* Row checkbox */}
-                  {bulkAction && (
-                    <td className="py-3.5 pl-5 pr-2 w-10">
-                      <button
-                        type="button"
-                        onClick={() => toggleRow(filteredIdx)}
-                        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${
-                          isSelected
+                      } hover:bg-blue-50/40`}
+                  >
+                    {/* Row checkbox */}
+                    {bulkAction && (
+                      <td className="py-3.5 pl-5 pr-2 w-10">
+                        <button
+                          type="button"
+                          onClick={() => toggleRow(filteredIdx)}
+                          className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-all duration-150 ${isSelected
                             ? "bg-[#2a465a] border-[#2a465a]"
                             : "bg-white border-slate-300 hover:border-[#2a465a]/60"
-                        }`}
-                      >
-                        {isSelected && (
-                          <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-                            <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </button>
-                    </td>
-                  )}
-                  {columns.map((col) => {
-                    if (col.key === "status") {
-                      const val = row[col.key];
-                      // ── Status → colour map ──────────────────────────────
-                      // Green  — positive / done
-                      // Amber  — in-progress / warm / pending
-                      // Blue   — new / cold / info
-                      // Purple — prospect / interested
-                      // Rose   — failed / dump / hot (urgent)
-                      // Slate  — default / unknown
-                      const STATUS_MAP = {
-                        // ── Green ──
-                        Completed:  ["bg-emerald-100", "text-emerald-700"],
-                        Converted:  ["bg-emerald-100", "text-emerald-700"],
-                        Done:       ["bg-emerald-100", "text-emerald-700"],
-                        Active:     ["bg-emerald-100", "text-emerald-700"],
-                        Approved:   ["bg-emerald-100", "text-emerald-700"],
-                        Won:        ["bg-emerald-100", "text-emerald-700"],
-                        Valid:      ["bg-emerald-100", "text-emerald-700"],
-                        // ── Amber ──
-                        "In Progress": ["bg-amber-100", "text-amber-700"],
-                        Pending:       ["bg-amber-100", "text-amber-700"],
-                        "Follow-up":   ["bg-amber-100", "text-amber-700"],
-                        Warm:          ["bg-amber-100", "text-amber-700"],
-                        Proposal:      ["bg-amber-100", "text-amber-700"],
-                        Interested:    ["bg-amber-100", "text-amber-700"],
-                        // ── Blue ──
-                        New:  ["bg-blue-100", "text-blue-700"],
-                        Cold: ["bg-blue-100", "text-blue-700"],
-                        // ── Purple ──
-                        Prospect:   ["bg-purple-100", "text-purple-700"],
-                        Qualified:  ["bg-purple-100", "text-purple-700"],
-                        // ── Rose ──
-                        Failed:    ["bg-rose-100", "text-rose-700"],
-                        Cancelled: ["bg-rose-100", "text-rose-700"],
-                        Dump:      ["bg-rose-100", "text-rose-700"],
-                        Hot:       ["bg-rose-100", "text-rose-700"],
-                        Lost:      ["bg-rose-100", "text-rose-700"],
-                        Rejected:  ["bg-rose-100", "text-rose-700"],
-                        Inactive:  ["bg-rose-100", "text-rose-700"],
-                        Invalid:   ["bg-rose-100", "text-rose-700"],
-                      };
-                      const [statusBg, statusText] = STATUS_MAP[val] ?? ["bg-slate-100", "text-slate-600"];
+                            }`}
+                        >
+                          {isSelected && (
+                            <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                              <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </button>
+                      </td>
+                    )}
+                    {columns.map((col) => {
+                      if (col.key === "status") {
+                        const val = row[col.key];
+                        // ── Status → colour map ──────────────────────────────
+                        // Green  — positive / done
+                        // Amber  — in-progress / warm / pending
+                        // Blue   — new / cold / info
+                        // Purple — prospect / interested
+                        // Rose   — failed / dump / hot (urgent)
+                        // Slate  — default / unknown
+                        const STATUS_MAP = {
+                          // ── Green ──
+                          Completed: ["bg-emerald-100", "text-emerald-700"],
+                          Converted: ["bg-emerald-100", "text-emerald-700"],
+                          Done: ["bg-emerald-100", "text-emerald-700"],
+                          Active: ["bg-emerald-100", "text-emerald-700"],
+                          Approved: ["bg-emerald-100", "text-emerald-700"],
+                          Won: ["bg-emerald-100", "text-emerald-700"],
+                          Valid: ["bg-emerald-100", "text-emerald-700"],
+                          // ── Amber ──
+                          "In Progress": ["bg-amber-100", "text-amber-700"],
+                          Pending: ["bg-amber-100", "text-amber-700"],
+                          "Follow-up": ["bg-amber-100", "text-amber-700"],
+                          Warm: ["bg-amber-100", "text-amber-700"],
+                          Proposal: ["bg-amber-100", "text-amber-700"],
+                          Interested: ["bg-amber-100", "text-amber-700"],
+                          // ── Blue ──
+                          New: ["bg-blue-100", "text-blue-700"],
+                          Cold: ["bg-blue-100", "text-blue-700"],
+                          // ── Purple ──
+                          Prospect: ["bg-purple-100", "text-purple-700"],
+                          Qualified: ["bg-purple-100", "text-purple-700"],
+                          // ── Rose ──
+                          Failed: ["bg-rose-100", "text-rose-700"],
+                          Cancelled: ["bg-rose-100", "text-rose-700"],
+                          Dump: ["bg-rose-100", "text-rose-700"],
+                          Hot: ["bg-rose-100", "text-rose-700"],
+                          Lost: ["bg-rose-100", "text-rose-700"],
+                          Rejected: ["bg-rose-100", "text-rose-700"],
+                          Inactive: ["bg-rose-100", "text-rose-700"],
+                          Invalid: ["bg-rose-100", "text-rose-700"],
+                        };
+                        const [statusBg, statusText] = STATUS_MAP[val] ?? ["bg-slate-100", "text-slate-600"];
+                        return (
+                          <td key={col.key} className="py-3.5 px-5 whitespace-nowrap">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg} ${statusText}`}>
+                              {val ?? "—"}
+                            </span>
+                          </td>
+                        );
+                      }
                       return (
-                        <td key={col.key} className="py-3.5 px-5 whitespace-nowrap">
-                          <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg} ${statusText}`}>
-                            {val ?? "—"}
-                          </span>
+                        <td
+                          key={col.key}
+                          className="py-3.5 px-5 text-[#2a465a] font-medium whitespace-nowrap"
+                        >
+                          {row[col.key] ?? "—"}
                         </td>
                       );
-                    }
-                    return (
-                      <td
-                        key={col.key}
-                        className="py-3.5 px-5 text-[#2a465a] font-medium whitespace-nowrap"
-                      >
-                        {row[col.key] ?? "—"}
-                      </td>
-                    );
-                  })}
-                  {actions.length > 0 && (
-                    <td className="py-3 px-5">
-                      <div className="flex items-center gap-1.5">
-                        {actions.map((action, ai) => {
-                          const isIconOnly = action.icon && !action.label;
-                          return (
-                            <div key={ai} className="relative group/tip">
-                              <button
-                                type="button"
-                                onClick={() => action.onClick(row)}
-                                className={`
-                                  flex items-center justify-center gap-1.5
+                    })}
+                    {actions.length > 0 && (
+                      <td style={{ width: "auto", minWidth: "200px" }} className="py-3 px-4 align-middle">
+                        <div className="flex flex-nowrap items-center gap-2">
+                          {actions.map((action, ai) => {
+                            const isIconOnly = action.icon && !action.label;
+                            return (
+                              <div key={ai} className="relative group/tip">
+                                <button
+                                  type="button"
+                                  onClick={() => action.onClick(row)}
+                                  className={`
+                                  flex flex-nowrap items-center justify-center gap-1.5
                                   transition duration-150 active:scale-95
                                   ${isIconOnly
-                                    ? `w-8 h-8 rounded-xl ${actionVariantCls[action.variant ?? "ghost"]}`
-                                    : `px-3 py-1.5 rounded-xl text-xs font-bold ${actionVariantCls[action.variant ?? "ghost"]}`
-                                  }
+                                      ? `w-8 h-8 rounded-xl ${actionVariantCls[action.variant ?? "ghost"]}`
+                                      : `px-3 py-1.5 rounded-xl text-xs font-bold ${actionVariantCls[action.variant ?? "ghost"]}`
+                                    }
                                 `}
-                              >
-                                {action.icon && (
-                                  <span className={isIconOnly ? "w-4 h-4" : "w-3.5 h-3.5"}>
-                                    {action.icon}
-                                  </span>
-                                )}
-                                {action.label && (
-                                  <span className="text-xs font-bold">{action.label}</span>
-                                )}
-                              </button>
+                                >
+                                  {action.icon && (
+                                    <span className={isIconOnly ? "w-4 h-4" : "w-3.5 h-3.5"}>
+                                      {action.icon}
+                                    </span>
+                                  )}
+                                  {action.label && (
+                                    <span className="text-xs font-bold">{action.label}</span>
+                                  )}
+                                </button>
 
-                              {/* Tooltip — only shown when icon-only */}
-                              {isIconOnly && action.tooltip && (
-                                <div className="
+                                {/* Tooltip — only shown when icon-only */}
+                                {isIconOnly && action.tooltip && (
+                                  <div className="
                                   pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2
                                   opacity-0 group-hover/tip:opacity-100
                                   translate-y-1 group-hover/tip:translate-y-0
                                   transition-all duration-150 ease-out
                                   z-50 whitespace-nowrap
                                 ">
-                                  <div className="bg-[#1e293b] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg shadow-lg">
-                                    {action.tooltip}
+                                    <div className="bg-[#1e293b] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg shadow-lg">
+                                      {action.tooltip}
+                                    </div>
+                                    {/* Arrow */}
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e293b]" />
                                   </div>
-                                  {/* Arrow */}
-                                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e293b]" />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                  )}
-                </tr>
-              );
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </td>
+                    )}
+                  </tr>
+                );
               })
             )}
           </tbody>
@@ -1415,8 +1521,8 @@ export const DataTable = ({
       )}
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-1">
-        <p className="text-xs text-slate-400 font-medium">
+      {!(hideRecordSummary && hidePagination) && <div className="flex items-center justify-between px-1">
+        {hideRecordSummary ? <div /> : <p className="text-xs text-slate-400 font-medium">
           Showing{" "}
           <span className="text-[#2a465a] font-bold">
             {filtered.length === 0 ? 0 : (page - 1) * currentPageSize + 1}–
@@ -1424,8 +1530,8 @@ export const DataTable = ({
           </span>{" "}
           of <span className="text-[#2a465a] font-bold">{filtered.length}</span>{" "}
           records
-        </p>
-        <div className="flex items-center gap-1">
+        </p>}
+        {!hidePagination && <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -1457,8 +1563,8 @@ export const DataTable = ({
                   type="button"
                   onClick={() => setPage(p)}
                   className={`w-8 h-8 rounded-xl text-xs font-bold transition ${p === page
-                      ? "bg-[#2a465a] text-white shadow"
-                      : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                    ? "bg-[#2a465a] text-white shadow"
+                    : "border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
                     }`}
                 >
                   {p}
@@ -1473,8 +1579,8 @@ export const DataTable = ({
           >
             <ChevronRight size={14} />
           </button>
-        </div>
-      </div>
+        </div>}
+      </div>}
     </div>
   );
 };
@@ -1587,10 +1693,10 @@ export const Heading = ({
   showAnimations = true, // Added to toggle floating squares and wave drops
 }) => {
   const fontSizeMap = {
-    sm:  "text-sm",
-    md:  "text-base",
-    lg:  "text-lg",
-    xl:  "text-xl",
+    sm: "text-sm",
+    md: "text-base",
+    lg: "text-lg",
+    xl: "text-xl",
     "2xl": "text-2xl",
     "3xl": "text-3xl",
     "4xl": "text-4xl",
@@ -1603,7 +1709,7 @@ export const Heading = ({
         <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
           {/* Half Square / Polygon movement */}
           <div className="absolute top-[20%] left-[20%] w-64 h-64 bg-gradient-to-br from-white to-transparent opacity-10" style={{ clipPath: 'polygon(0 0, 100% 0, 0 100%)', animation: "halfSquareMove 12s ease-in-out infinite" }} />
-          
+
           <div className="absolute top-[10%] left-[5%] w-40 h-40 bg-gradient-to-br from-[#3e8ca7] to-transparent blur-[40px] opacity-40" style={{ animation: "dropRipple1 8s ease-in-out infinite" }} />
           <div className="absolute top-[40%] left-[50%] w-56 h-56 bg-gradient-to-tr from-[#2a455a] to-[#3e8ca7] blur-[50px] opacity-30" style={{ animation: "dropRipple2 10s ease-in-out infinite" }} />
           <div className="absolute -top-[20%] right-[10%] w-32 h-32 bg-gradient-to-bl from-[#38bdf8] to-transparent blur-[30px] opacity-20" style={{ animation: "dropRipple3 7s ease-in-out infinite" }} />
@@ -1626,7 +1732,7 @@ export const Heading = ({
           </div>
         )}
       </h2>
-      {!showAnimations && <hr className="mt-3 border-slate-200/60 relative z-10"/>}
+      {!showAnimations && <hr className="mt-3 border-slate-200/60 relative z-10" />}
     </div>
   );
 };
@@ -1792,7 +1898,7 @@ const T = {
 };
 
 // 8 chart colours cycling
-export const CHART_COLORS = [
+const CHART_COLORS = [
   T.navy,
   T.blue,
   T.teal,
@@ -1865,11 +1971,10 @@ const ChartFilter = ({ filters }) => {
             setActive(f.label);
             if (f.onClick) f.onClick(f.label);
           }}
-          className={`shrink-0 px-3 py-1 text-[10px] sm:text-xs whitespace-nowrap font-bold rounded-lg transition-all duration-200 ${
-            active === f.label
-              ? "bg-[#2a465a] text-white shadow-sm"
-              : "bg-[#dde8ee] text-[#475569] hover:bg-[#c8d8e2]"
-          }`}
+          className={`shrink-0 px-3 py-1 text-[10px] sm:text-xs whitespace-nowrap font-bold rounded-lg transition-all duration-200 ${active === f.label
+            ? "bg-[#2a465a] text-white shadow-sm"
+            : "bg-[#dde8ee] text-[#475569] hover:bg-[#c8d8e2]"
+            }`}
         >
           {f.label}
         </button>
@@ -1895,7 +2000,7 @@ const ChartCard = ({
   const [visible, setVisible] = useState(true);
   const [displayed, setDisplayed] = useState(children);
   const pendingRef = useRef(null);
-  const timerRef  = useRef(null);
+  const timerRef = useRef(null);
   // Track the previously rendered dataKey so we only animate on real changes.
   const prevDataKeyRef = useRef(dataKey);
 
@@ -1923,7 +2028,7 @@ const ChartCard = ({
     }, 180);
 
     return () => clearTimeout(timerRef.current);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataKey]); // Only animate when dataKey changes, NOT on every children re-render
 
   return (
@@ -1978,10 +2083,10 @@ export const DashCard = ({
   size = 4,
   accentColor = "#1e293b",
 }) => {
-  const titleRef     = useRef(null);
-  const valueRef     = useRef(null);
+  const titleRef = useRef(null);
+  const valueRef = useRef(null);
   const containerRef = useRef(null);
-  const iconBoxRef   = useRef(null);
+  const iconBoxRef = useRef(null);
   // Guard against ResizeObserver re-entrancy: our own DOM writes (padding, gap,
   // icon size) change the observed element's layout, which would re-fire the
   // observer and create an infinite loop. The flag breaks the cycle.
@@ -2019,13 +2124,13 @@ export const DashCard = ({
       // ── Responsive icon box: 32px at 80px → 48px at 240px+ ──
       if (iconBoxRef.current) {
         const iconSz = Math.round(Math.min(48, Math.max(28, (w / 240) * 48)));
-        iconBoxRef.current.style.width  = `${iconSz}px`;
+        iconBoxRef.current.style.width = `${iconSz}px`;
         iconBoxRef.current.style.height = `${iconSz}px`;
         const svgSz = Math.round(Math.min(20, Math.max(12, (w / 240) * 20)));
         iconBoxRef.current.style.fontSize = `${svgSz}px`;
         const svgEl = iconBoxRef.current.querySelector("svg");
         if (svgEl) {
-          svgEl.setAttribute("width",  svgSz);
+          svgEl.setAttribute("width", svgSz);
           svgEl.setAttribute("height", svgSz);
         }
       }
@@ -2882,10 +2987,10 @@ export const Modal = ({ id, title, children, size = "xl" }) => {
   // Size → max-width mapping
   // sm: 384px  md: 512px  lg: 672px  xl: 896px  2xl: 1152px (max)
   const sizeMap = {
-    sm:  "max-w-sm",
-    md:  "max-w-lg",
-    lg:  "max-w-2xl",
-    xl:  "max-w-4xl",
+    sm: "max-w-sm",
+    md: "max-w-lg",
+    lg: "max-w-2xl",
+    xl: "max-w-4xl",
     "2xl": "max-w-5xl",
   };
   const maxW = sizeMap[size] ?? sizeMap.md;
@@ -2951,10 +3056,9 @@ export const Modal = ({ id, title, children, size = "xl" }) => {
 
       {/* Modal Dialog */}
       <div
-        className={`relative w-full ${maxW} bg-white rounded-2xl shadow-2xl flex flex-col transition-all duration-300 ease-out transform ${
-          show
-            ? "opacity-100 translate-y-0 scale-100"
-            : "opacity-0 translate-y-4 scale-95"
+        className={`relative w-full ${maxW} bg-white rounded-2xl shadow-2xl flex flex-col transition-all duration-300 ease-out transform ${show
+          ? "opacity-100 translate-y-0 scale-100"
+          : "opacity-0 translate-y-4 scale-95"
           }`}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
@@ -3230,9 +3334,9 @@ export const ToggleButton = ({
   disabled = false,
 }) => {
   const sizeMap = {
-    sm: { track: "w-8 h-4",  thumb: "w-3 h-3",  translate: "translate-x-4",  text: "text-xs" },
-    md: { track: "w-11 h-6", thumb: "w-4 h-4",  translate: "translate-x-5",  text: "text-sm" },
-    lg: { track: "w-14 h-7", thumb: "w-5 h-5",  translate: "translate-x-7",  text: "text-base" },
+    sm: { track: "w-8 h-4", thumb: "w-3 h-3", translate: "translate-x-4", text: "text-xs" },
+    md: { track: "w-11 h-6", thumb: "w-4 h-4", translate: "translate-x-5", text: "text-sm" },
+    lg: { track: "w-14 h-7", thumb: "w-5 h-5", translate: "translate-x-7", text: "text-base" },
   };
   const s = sizeMap[size] ?? sizeMap.md;
   const currentLabel = checked ? label : (labelOff ?? label);
@@ -3335,6 +3439,7 @@ export const EnhancedDashCard = ({
   icon,
   size = 4,
   accentColor = "#ffffff",
+  onClick,
 }) => {
   const valueStr = String(value);
   let fontSize = "28px";
@@ -3377,6 +3482,7 @@ export const EnhancedDashCard = ({
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
+      onClick={onClick}
       className={`${dashSpan} wave-card silver-shiny-border rounded-3xl p-5 flex items-center gap-4 transition-all duration-300 hover:scale-[1.02] shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:shadow-[0_8px_30px_rgba(56,189,248,0.25)] group cursor-pointer bg-gradient-to-br from-[#243f55] to-[#32526b] text-white overflow-hidden relative`}
     >
       {/* 3 visible wave layers */}
@@ -3442,7 +3548,7 @@ export const EnhancedModal = ({ id, title, children, isVisible, onClose }) => {
   const closeTimerRef = useRef(null);
 
   useEffect(() => {
-    const handleOpen  = (e) => { if (e.detail.id === id) { setRender(true); } };
+    const handleOpen = (e) => { if (e.detail.id === id) { setRender(true); } };
     const handleClose = (e) => {
       if (!e.detail.id || e.detail.id === id) {
         setShow(false);
@@ -3668,15 +3774,19 @@ export const EnhancedDataTable = ({
 
   return (
     <div className={`${colSpanClass(size)} flex bg-[#efefefb1] rounded-2xl p-4 flex-col gap-4 shadow-sm border border-slate-200/50 relative overflow-hidden`}>
-      
+
       {/* Blue/Green Rotating Polygons Background */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden opacity-60">
         {/* Top Right (near Show More) */}
         <div className="absolute -top-[50px] right-[5%] w-80 h-80 bg-gradient-to-br from-[#0ea5e9]/40 to-[#10b981]/20 blur-2xl" style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)', animation: 'trapezoidFloat1 20s linear infinite' }} />
-        
+
         {/* Bottom Middle */}
         <div className="absolute -bottom-[80px] left-[35%] w-96 h-96 bg-gradient-to-bl from-[#34d399]/30 to-[#3b82f6]/20 blur-3xl" style={{ clipPath: 'polygon(0% 20%, 100% 0%, 80% 100%, 20% 100%)', animation: 'trapezoidFloat2 25s linear infinite reverse' }} />
       </div>
+
+      {title && (
+        <h3 className="text-lg font-black text-[#2a465a] tracking-tight relative z-10 px-1">{title}</h3>
+      )}
 
       {searchable && (
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
@@ -3818,8 +3928,8 @@ export const PanelModal = ({ id, title, children, isVisible, onClose }) => {
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center pointer-events-auto px-4 py-6 sm:px-6">
       <div className={`absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"}`} onClick={close} />
-      <div 
-        onTransitionEnd={handleAnimEnd} 
+      <div
+        onTransitionEnd={handleAnimEnd}
         className={`relative w-full max-w-lg bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-400 cubic-bezier(0.34, 1.56, 0.64, 1) ${show ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
       >
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">

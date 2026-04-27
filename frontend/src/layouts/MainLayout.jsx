@@ -47,7 +47,7 @@ function MainLayout() {
       <div
         className="hidden lg:block flex-shrink-0 h-full overflow-hidden"
         style={{
-          width: expanded ? "256px" : "56px",
+          width: expanded ? "240px" : "58px",
           transition: "width 220ms cubic-bezier(0.4, 0, 0.2, 1)",
           willChange: "width",
         }}

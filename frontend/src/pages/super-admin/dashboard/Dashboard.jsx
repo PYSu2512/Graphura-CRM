@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Grid,
   Heading,
-  DashCard,
+  EnhancedDashCard,
   GAreaChart,
   GLineChart,
   GColumnChart,
@@ -10,7 +10,7 @@ import {
   GDoughnutChart,
   GPieChart,
   GRadarChart,
-  DataTable,
+  EnhancedDataTable,
   Modal,
   ModalData,
   Button,
@@ -19,6 +19,7 @@ import {
   Option,
   openModal,
   closeModal,
+  DashGrid,
 } from "../../../components/shared/Common_Components";
 import {
   Building2,
@@ -438,17 +439,18 @@ export default function Dashboard() {
           fontSize="3xl"
           showAnimations={true}
         />
-
+        </Grid>
         {/* ── 2. Top KPI Cards ── */}
-        <DashCard title="Total Companies"        value="100"       icon={<Building2 size={22} />}       accentColor="#3b82f6" size={3} />
-        <DashCard title="Active Companies"       value="68"        icon={<CheckCircle2 size={22} />}    accentColor="#22c55e" size={3} />
-        <DashCard title="Inactive / Suspended"   value="15"        icon={<XCircle size={22} />}         accentColor="#f43f5e" size={3} />
-        <DashCard title="Total Platform Users"   value="4,820"     icon={<Users size={22} />}           accentColor="#8b5cf6" size={3} />
-        <DashCard title="Total Leads (All Cos.)" value="1,28,400"  icon={<TrendingUp size={22} />}      accentColor="#f59e0b" size={3} />
-        <DashCard title="Platform Revenue"       value="₹8,65,000" icon={<DollarSign size={22} />}     accentColor="#14b8a6" size={3} />
-        <DashCard title="Net Profit"             value="₹5,14,000" icon={<Wallet size={22} />}         accentColor="#38bdf8" size={3} />
-        <DashCard title="Open Support Tickets"   value="32"        icon={<HeadphonesIcon size={22} />} accentColor="#64748b" size={3} />
-      </Grid>
+        <DashGrid cols={12} gap={4}>
+        <EnhancedDashCard title="Total Companies"        value="100"       icon={<Building2 size={22} />}       accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Active Companies"       value="68"        icon={<CheckCircle2 size={22} />}    accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Inactive / Suspended"   value="15"        icon={<XCircle size={22} />}         accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="Total Platform Users"   value="4,820"     icon={<Users size={22} />}           accentColor="#8b5cf6" size={3} />
+        <EnhancedDashCard title="Total Leads (All Cos.)" value="1,28,400"  icon={<TrendingUp size={22} />}      accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Platform Revenue"       value="₹8,65,000" icon={<DollarSign size={22} />}     accentColor="#14b8a6" size={3} />
+        <EnhancedDashCard title="Net Profit"             value="₹5,14,000" icon={<Wallet size={22} />}         accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="Open Support Tickets"   value="32"        icon={<HeadphonesIcon size={22} />} accentColor="#64748b" size={3} />
+      </DashGrid>
 
       {/* ── 3 & 4. Growth + Revenue Charts ── */}
       <Grid cols={12} gap={4}>
@@ -562,7 +564,7 @@ export default function Dashboard() {
 
       {/* ── Top Companies Table ── */}
       <Grid cols={12} gap={4}>
-        <DataTable
+        <EnhancedDataTable
           title="Top Companies"
           columns={companyCols}
           rows={companyRows}
@@ -594,7 +596,7 @@ export default function Dashboard() {
 
       {/* ── Support Tickets Table ── */}
       <Grid cols={12} gap={4}>
-        <DataTable
+        <EnhancedDataTable
           title="Recent Support Tickets"
           columns={ticketCols}
           rows={ticketRows}
@@ -624,7 +626,7 @@ export default function Dashboard() {
 
       {/* ── Renewal Alerts Table ── */}
       <Grid cols={12} gap={4}>
-        <DataTable
+        <EnhancedDataTable
           title="Renewal Alerts"
           columns={renewalCols}
           rows={renewalRows}
@@ -655,7 +657,7 @@ export default function Dashboard() {
 
       {/* ── Recent Platform Activities ── */}
       <Grid cols={12} gap={4}>
-        <DataTable
+        <EnhancedDataTable
           title="Recent Platform Activities"
           columns={activityCols}
           rows={activityRows}
@@ -685,7 +687,7 @@ export default function Dashboard() {
       {/* ══ MODALS ══════════════════════════════════════════════════════════ */}
 
       {/* Company: View */}
-      <Modal id="company-view" title="Company Details" size="md">
+      <Modal id="company-view" title="Company Details">
         {selectedCompany && (
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3">
