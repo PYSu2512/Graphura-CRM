@@ -10,7 +10,7 @@ import {
   GDoughnutChart,
   GPieChart,
   GRadarChart,
-  EnhancedDataTable,
+  DataTable,
   Modal,
   ModalData,
   Button,
@@ -564,7 +564,7 @@ export default function Dashboard() {
 
       {/* ── Top Companies Table ── */}
       <Grid cols={12} gap={4}>
-        <EnhancedDataTable
+        <DataTable
           title="Top Companies"
           columns={companyCols}
           rows={companyRows}
@@ -596,7 +596,7 @@ export default function Dashboard() {
 
       {/* ── Support Tickets Table ── */}
       <Grid cols={12} gap={4}>
-        <EnhancedDataTable
+        <DataTable
           title="Recent Support Tickets"
           columns={ticketCols}
           rows={ticketRows}
@@ -626,7 +626,7 @@ export default function Dashboard() {
 
       {/* ── Renewal Alerts Table ── */}
       <Grid cols={12} gap={4}>
-        <EnhancedDataTable
+        <DataTable
           title="Renewal Alerts"
           columns={renewalCols}
           rows={renewalRows}
@@ -657,7 +657,7 @@ export default function Dashboard() {
 
       {/* ── Recent Platform Activities ── */}
       <Grid cols={12} gap={4}>
-        <EnhancedDataTable
+        <DataTable
           title="Recent Platform Activities"
           columns={activityCols}
           rows={activityRows}
