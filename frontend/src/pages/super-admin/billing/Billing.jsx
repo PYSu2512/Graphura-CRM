@@ -62,18 +62,18 @@ export default function Billing() {
   ];
 
   const transactions = [
-    { id: 'INV-1001', client: 'Acme Corp', amount: '$1,200', status: 'Completed', date: '2023-10-01' },
-    { id: 'INV-1002', client: 'Globex', amount: '$3,400', status: 'Pending', date: '2023-10-02' },
-    { id: 'INV-1003', client: 'Soylent', amount: '$500', status: 'Failed', date: '2023-10-03' },
-    { id: 'INV-1004', client: 'Initech', amount: '$2,100', status: 'Completed', date: '2023-10-05' },
-    { id: 'INV-1005', client: 'Umbrella Corp', amount: '$10,000', status: 'Pending', date: '2023-10-08' },
+    { id: 'INV-1001', client: 'Acme Corp', amount: '$1,200', status_val: 'Completed', date: '2023-10-01' },
+    { id: 'INV-1002', client: 'Globex', amount: '$3,400', status_val: 'Pending', date: '2023-10-02' },
+    { id: 'INV-1003', client: 'Soylent', amount: '$500', status_val: 'Failed', date: '2023-10-03' },
+    { id: 'INV-1004', client: 'Initech', amount: '$2,100', status_val: 'Completed', date: '2023-10-05' },
+    { id: 'INV-1005', client: 'Umbrella Corp', amount: '$10,000', status_val: 'Pending', date: '2023-10-08' },
   ];
 
   const transactionColumns = [
     { key: 'id', label: 'Invoice ID' },
     { key: 'client', label: 'Client Name' },
     { key: 'amount', label: 'Amount' },
-    { key: 'status', label: 'Status' },
+    { key: 'status_val', label: 'Status' },
     { key: 'date', label: 'Date' },
   ];
 
@@ -129,6 +129,13 @@ export default function Billing() {
           accentColor="#8b5cf6"
           size={4}
         />
+        <DashCard
+          title="Failed Transactions"
+          value="$408"
+          icon={<Clock size={24} />}
+          accentColor="#f59e0b"
+          size={4}
+        />
       </Grid>
 
       {/* ── 2. Charts Section ── */}
@@ -166,7 +173,20 @@ export default function Billing() {
           </div>
           <DataTable
             columns={transactionColumns}
-            rows={transactions}
+            rows={transactions.map(t => ({
+              ...t,
+              status_val: (
+                <div className="flex items-center">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-black/5 ${
+                    t.status_val === 'Completed' ? 'bg-emerald-500/15 text-emerald-600' : 
+                    t.status_val === 'Pending' ? 'bg-amber-500/15 text-amber-600' : 
+                    'bg-rose-500/15 text-rose-600'
+                  }`}>
+                    {t.status_val}
+                  </span>
+                </div>
+              )
+            }))}
             size={12}
             pageSize={5}
             searchable={true}
@@ -175,81 +195,9 @@ export default function Billing() {
         </div>
       </Grid>
 
-      {/* ── 4. Invoice Creation & 5. Subscriptions ── */}
+      {/* 4. Subscriptions */}
       <Grid cols={12} gap={6}>
-        {/* Invoice Form */}
-        <div className="col-span-12 lg:col-span-7 rounded-2xl bg-white p-6 shadow-sm border border-[#e2e8f0]">
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
-              <FileText size={20} className="text-blue-500" /> Create New Invoice
-            </h3>
-            <p className="text-sm text-slate-500">Quickly generate and send invoices to clients.</p>
-          </div>
-
-          <form onSubmit={handleCreateInvoice}>
-            <Grid cols={12} gap={4}>
-              <DataField
-                label="Client Name"
-                id="clientName"
-                size={6}
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="e.g. Acme Corp"
-              />
-              <DataField
-                label="Amount ($)"
-                id="amount"
-                type="number"
-                size={6}
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-              />
-
-              <SelectField
-                label="Billing Type"
-                id="billingType"
-                size={6}
-                value={billingType}
-                onChange={(e) => setBillingType(e.target.value)}
-                options={[
-                  { value: 'one-time', label: 'One-time Payment' },
-                  { value: 'subscription', label: 'Subscription' }
-                ]}
-              />
-
-              <SelectField
-                label="Payment Method"
-                id="paymentMethod"
-                size={6}
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                options={[
-                  { value: 'credit-card', label: 'Credit Card' },
-                  { value: 'bank-transfer', label: 'Bank Transfer' },
-                  { value: 'paypal', label: 'PayPal' },
-                  { value: 'crypto', label: 'Crypto' }
-                ]}
-              />
-
-              <DataField
-                label="Due Date"
-                id="dueDate"
-                type="date"
-                size={6}
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-              />
-
-              <div className="col-span-12 mt-4 flex justify-end">
-                <Button text="Generate Invoice" type="submit" variant="primary" />
-              </div>
-            </Grid>
-          </form>
-        </div>
-
-        {/* Subscription Management */}
-        <div className="col-span-12 lg:col-span-5 rounded-2xl bg-white p-6 shadow-sm border border-[#e2e8f0] flex flex-col">
+        <div className="col-span-12 rounded-2xl bg-white p-6 shadow-sm border border-[#e2e8f0] flex flex-col">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-[#0f172a] flex items-center gap-2">
               <Calendar size={20} className="text-purple-500" /> Active Subscriptions
@@ -257,29 +205,36 @@ export default function Billing() {
             <p className="text-sm text-slate-500">Manage ongoing recurring plans.</p>
           </div>
 
-          <div className="flex flex-col gap-4 flex-1">
-            {subscriptions.map((sub, i) => (
-              <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-colors">
+          <DataTable
+            columns={[
+              { key: 'plan_node', label: 'Plan Details' },
+              { key: 'price', label: 'Price' },
+              { key: 'duration', label: 'Duration' },
+              { key: 'status_val', label: 'Status' }
+            ]}
+            rows={subscriptions.map(sub => ({
+              ...sub,
+              plan_node: (
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-slate-50 flex items-center justify-center text-[#2a465a] border border-slate-100">
                     {sub.icon}
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-slate-800">{sub.plan}</h4>
-                    <p className="text-xs text-slate-500">{sub.duration} • {sub.price}</p>
-                  </div>
+                  <span className="font-bold text-[#2a465a]">{sub.plan}</span>
                 </div>
-                <div className={`px-3 py-1 rounded-full text-xs font-bold ${sub.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'
+              ),
+              status_val: (
+                <div className="flex items-center">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-black/5 ${
+                    sub.status === 'Active' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-slate-500/15 text-slate-600'
                   }`}>
-                  {sub.status}
+                    {sub.status}
+                  </span>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-100">
-            <Button text="View All Plans" variant="secondary" className="w-full justify-center" />
-          </div>
+              )
+            }))}
+            size={12}
+            pageSize={5}
+          />
         </div>
       </Grid>
     </div>
