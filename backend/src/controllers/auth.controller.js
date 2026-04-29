@@ -13,12 +13,14 @@ const {
   comparePassword,
   generateAccessToken,
   generateRefreshToken,
+  verifyAccessToken,
 } = require('../services/auth.service');
 const {
   Admin,
   AdminLoginLog,
   EmailVerification,
   RefreshToken,
+  TokenBlacklist,
   Department,
   InvoiceCounter,
   LoginAttempt,
@@ -515,6 +517,62 @@ exports.adminLogin = catchAsync(async (req, res, next) => {
       'Login successful'
     )
   );
+});
+
+// ────────────────────────────────────────────────────────────
+// LOGOUT
+// ────────────────────────────────────────────────────────────
+/**
+ * Logout endpoint
+ * - Blacklists the provided access token
+ * - Revokes refresh tokens for the holder
+ * Accepts access token in `Authorization: Bearer <token>` header
+ * Optionally accepts `refreshToken` via query param or header `x-refresh-token`
+ */
+exports.logout = catchAsync(async (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const accessToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  const refreshToken = req.headers['x-refresh-token'] || req.query.refreshToken || req.body?.refreshToken;
+
+  if (!accessToken && !refreshToken) {
+    return res.status(200).json(new ApiResponse(200, null, 'Logged out'));
+  }
+
+  let decoded = null;
+  try {
+    if (accessToken) decoded = verifyAccessToken(accessToken);
+  } catch (err) {
+    decoded = null;
+  }
+
+  if (accessToken && decoded && decoded.exp) {
+    const expiresAt = new Date(decoded.exp * 1000);
+    try {
+      await TokenBlacklist.create({
+        token: accessToken,
+        holderType: decoded.type || 'ADMIN',
+        holderId: decoded.id,
+        reason: 'LOGOUT',
+        expiresAt,
+      });
+    } catch (e) {
+      // ignore duplicate/index errors
+    }
+  }
+
+  if (refreshToken) {
+    await RefreshToken.updateOne(
+      { token: refreshToken },
+      { $set: { isRevoked: true, revokedAt: new Date(), revokedReason: 'LOGOUT' } }
+    );
+  } else if (decoded && decoded.id) {
+    await RefreshToken.updateMany(
+      { holderId: decoded.id },
+      { $set: { isRevoked: true, revokedAt: new Date(), revokedReason: 'LOGOUT' } }
+    );
+  }
+
+  res.status(200).json(new ApiResponse(200, null, 'Logged out successfully'));
 });
 
 module.exports = exports;

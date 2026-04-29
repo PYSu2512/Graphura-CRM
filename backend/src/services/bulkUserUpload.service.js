@@ -429,13 +429,8 @@ exports.commitUpload = async (uploadId, importMode) => {
       // ── Build user document ───────────────────────────────
       const deptId  = deptMap.get(deptName);
       const teamId  = row.team ? (teamMap.get(row.team.toUpperCase()) ?? null) : null;
-      const last5   = phone.slice(-5);
-
-      // Default password: Test@<last5 digits of phone>  (per BULK_USER_UPLOAD_PLAN.md §3)
-      const rawPassword    = `Test@${last5}`;
-      const hashedPassword = await hashPassword(rawPassword);
       const defaultPassword = buildDefaultUserPassword(email, row.phone);
-      const hashedPassword = await bcrypt.hash(defaultPassword, 10);
+      const hashedPassword = await hashPassword(defaultPassword);
 
       usersToInsert.push({
         admin:             upload.admin,
@@ -451,21 +446,25 @@ exports.commitUpload = async (uploadId, importMode) => {
         isFirstLogin:       true,
         isActive:           true,
         isProfileComplete:  false,
+        approvalStatus:     'APPROVED',
+        tempPassword:       defaultPassword,
       });
 
       importedCount++;
     }
 
     // ── Chunked bulk insert ───────────────────────────────────
+    let actualImportedCount = 0;
+
     if (usersToInsert.length > 0) {
       const insertErrors = await insertInChunks(usersToInsert);
+      actualImportedCount = Math.max(0, importedCount - insertErrors.length);
 
       // If ordered:false produced per-document errors, record them
       if (insertErrors.length > 0) {
         for (const ie of insertErrors) {
           const originalRow = usersToInsert[ie.index];
           upload.invalidRows++;
-          upload.imported    = Math.max(0, importedCount - insertErrors.length);
           upload.failedRows.push({
             rowNumber: ie.index + 2,
             rawData:   originalRow,
@@ -483,15 +482,15 @@ exports.commitUpload = async (uploadId, importMode) => {
         action:        'BULK_USER_UPLOAD',
         targetModel:   'BulkUserUpload',
         targetId:      upload._id,
-        after:         { importedCount, failedCount: upload.failedRows.length },
-        note:          `Bulk imported ${importedCount} users (${upload.failedRows.length} failed).`,
+        after:         { importedCount: actualImportedCount, failedCount: upload.failedRows.length },
+        note:          `Bulk imported ${actualImportedCount} users (${upload.failedRows.length} failed).`,
       });
     }
 
-    upload.imported = importedCount;
+    upload.imported = actualImportedCount;
 
     // ── Final status ──────────────────────────────────────────
-    if (importedCount === 0) {
+    if (actualImportedCount === 0) {
       upload.status = 'FAILED';
     } else if (upload.invalidRows > 0 || upload.failedRows.length > 0) {
       upload.status = 'PARTIAL';

@@ -15,6 +15,7 @@ const connectDB = require('./config/db');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const authController = require('./controllers/auth.controller');
 const bulkUserUploadRoutes = require('./routes/bulkUserUpload');
 const userRoutes = require('./routes/users');
 const superAdminRoutes = require('./routes/superadmin');
@@ -47,6 +48,9 @@ app.get('/', (_req, res) => {
 		status: 'Server is running',
 	});
 });
+
+// Logout shortcut for browsers: GET /logout
+app.get('/logout', authController.logout);
 
 // ────────────────────────────────────────────────────────────
 // API ROUTES

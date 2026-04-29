@@ -1,7 +1,0 @@
-name,email,phone,department,role,team
-Valid User,valid1@example.com,9876543210,SALES,SALES_EXECUTIVE,Alpha
-Valid User 2,valid2@example.com,9876543211,FINANCE,FINANCE_MANAGER,
-Missing Dept,nodept@example.com,9876543212,,SALES_EXECUTIVE,
-Invalid Phone,badphone@example.com,123,SALES,SALES_EXECUTIVE,
-Duplicate File,dup@example.com,9876543213,SALES,SALES_EXECUTIVE,
-Duplicate File,dup@example.com,9876543214,SALES,SALES_EXECUTIVE,
