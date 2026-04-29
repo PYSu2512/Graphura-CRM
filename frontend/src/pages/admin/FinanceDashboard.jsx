@@ -123,7 +123,7 @@ export default function FinanceDashboard() {
             title="Weekly Revenue"
             subtitle="Revenue across the week"
             data={weeklyRevenue}
-            bars={[{ key: "revenue", label: "Revenue", color: "#7AAACE" }]}
+            bars={[{ key: "revenue", label: "Revenue", color: "#3b82f6" }]}
             size={6}
             height={320}
           />
@@ -131,7 +131,7 @@ export default function FinanceDashboard() {
              title="Revenue Streams"
              subtitle="Distribution by product type"
              data={revenueStreams}
-             colors={["#355872", "#7AAACE", "#9CD5FF"]}
+             colors={["#8b5cf6", "#14b8a6", "#22c55e"]}
              size={6}
              height={320}
              innerRadius={70}
