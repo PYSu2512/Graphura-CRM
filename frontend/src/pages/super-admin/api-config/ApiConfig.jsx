@@ -56,34 +56,52 @@ export default function ApiConfig() {
   };
 
   const apiKeyColumns = [
-    { key: 'name', label: 'Key Name' },
-    { key: 'publicKey', label: 'Public Key' },
-    { key: 'secretDisplay', label: 'Secret Key' },
-    { key: 'status', label: 'Status' },
-    { key: 'created', label: 'Created Date' }
+    { key: 'name', label: 'Key Name', width: '20%' },
+    { key: 'publicKey', label: 'Public Key', width: '25%' },
+    { key: 'secretDisplay', label: 'Secret Key', width: '20%' },
+    { key: 'status_val', label: 'Status', width: '12%' },
+    { key: 'created', label: 'Created Date', width: '15%' },
+    { key: 'actions', label: 'Actions', width: '8%' }
   ];
 
   const apiKeyRows = apiKeys.map(k => ({
     ...k,
     secretDisplay: (
       <div className="flex items-center gap-2">
-        <span>{visibleKeys[k.id] ? k.secretKey : '••••••••••••••••'}</span>
+        <span>{visibleKeys[k.id] ? k.secretKey : '••••••••'}</span>
         <button onClick={() => toggleKeyVisibility(k.id)} className="text-slate-400 hover:text-slate-600 transition-colors">
           {visibleKeys[k.id] ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
       </div>
     ),
-    status: (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${k.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-        {k.status}
-      </span>
+    status_val: (
+      <div className="flex items-center">
+        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-black/5 ${
+          k.status === 'Active' ? 'bg-emerald-500/15 text-emerald-600' : 'bg-rose-500/15 text-rose-600'
+        }`}>
+          {k.status}
+        </span>
+      </div>
+    ),
+    actions: (
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => copyToClipboard(k.publicKey)}
+          className="text-slate-400 hover:text-blue-500 transition-colors p-1"
+          title="Copy"
+        >
+          <Copy size={16} />
+        </button>
+        <button
+          onClick={() => handleRevokeKey(k)}
+          className="text-slate-400 hover:text-rose-500 transition-colors p-1"
+          title="Revoke"
+        >
+          <Trash2 size={16} />
+        </button>
+      </div>
     )
   }));
-
-  const apiKeyActions = [
-    { label: 'Copy', icon: <Copy size={14} />, onClick: (row) => copyToClipboard(row.publicKey), variant: 'secondary' },
-    { label: 'Revoke', icon: <Trash2 size={14} />, onClick: handleRevokeKey, variant: 'danger' }
-  ];
 
   // Webhooks Data
   const [webhooks, setWebhooks] = useState([
@@ -106,21 +124,24 @@ export default function ApiConfig() {
   };
 
   const webhookColumns = [
-    { key: 'url', label: 'Webhook URL' },
-    { key: 'event', label: 'Event Type' },
-    { key: 'status', label: 'Status' },
-    { key: 'lastTriggered', label: 'Last Triggered' }
+    { key: 'url', label: 'Webhook URL', width: '40%' },
+    { key: 'event', label: 'Event Type', width: '20%' },
+    { key: 'status_val', label: 'Status', width: '15%' },
+    { key: 'lastTriggered', label: 'Last Triggered', width: '25%' }
   ];
 
   const webhookRows = webhooks.map(w => ({
     ...w,
-    status: (
-      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${w.status === 'Active' ? 'bg-green-100 text-green-700' :
-          w.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-            'bg-red-100 text-red-700'
+    status_val: (
+      <div className="flex items-center">
+        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-black/5 ${
+          w.status === 'Active' ? 'bg-emerald-500/15 text-emerald-600' : 
+          w.status === 'Pending' ? 'bg-amber-500/15 text-amber-600' : 
+          'bg-rose-500/15 text-rose-600'
         }`}>
-        {w.status}
-      </span>
+          {w.status}
+        </span>
+      </div>
     )
   }));
 
@@ -201,7 +222,6 @@ export default function ApiConfig() {
           <DataTable
             columns={apiKeyColumns}
             rows={apiKeyRows}
-            actions={apiKeyActions}
             size={12}
             pageSize={5}
             searchable={true}
