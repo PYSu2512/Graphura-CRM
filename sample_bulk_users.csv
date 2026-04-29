@@ -1,0 +1,21 @@
+name,email,phone,department,role,team,leaddatalimit
+John Doe,john.doe@company.com,9876543210,SALES,SALES_EXECUTIVE,Team A,500
+Jane Smith,jane.smith@company.com,9876543211,SALES,SALES_MANAGER,Team A,1000
+Bob Johnson,bob.johnson@company.com,9876543212,SALES,SALES_TL,Team A,750
+Alice Brown,alice.brown@company.com,9876543213,SALES,SALES_EXECUTIVE,Team B,500
+Charlie Wilson,charlie.wilson@company.com,9876543214,FINANCE,FINANCE_MANAGER,,1000
+Diana Martinez,diana.martinez@company.com,9876543215,SALES,SALES_EXECUTIVE,Team B,500
+Eve Davis,eve.davis@company.com,9876543216,MANAGEMENT,MANAGEMENT_MANAGER,,1000
+Frank Garcia,frank.garcia@company.com,9876543217,MANAGEMENT,MANAGEMENT_TL,,750
+Grace Lee,grace.lee@company.com,9876543218,MANAGEMENT,MANAGEMENT_EMPLOYEE,,500
+Henry Chen,henry.chen@company.com,9876543219,SALES,SALES_EXECUTIVE,Team A,500
+Iris Kim,iris.kim@company.com,9876543220,FINANCE,FINANCE_MANAGER,,1000
+Jack Miller,jack.miller@company.com,9876543221,MANAGEMENT,MANAGEMENT_EMPLOYEE,,500
+Kate Taylor,kate.taylor@company.com,9876543222,SALES,SALES_TL,Team B,750
+Liam Anderson,liam.anderson@company.com,9876543223,SALES,SALES_EXECUTIVE,Team A,500
+Maya Patel,maya.patel@company.com,9876543224,FINANCE,FINANCE_MANAGER,,1000
+Nathan Singh,nathan.singh@company.com,9876543225,MANAGEMENT,MANAGEMENT_TL,,750
+Olivia White,olivia.white@company.com,9876543226,SALES,SALES_EXECUTIVE,Team B,500
+Paul Green,paul.green@company.com,9876543227,SALES,SALES_MANAGER,Team A,1000
+Quinn Roberts,quinn.roberts@company.com,9876543228,MANAGEMENT,MANAGEMENT_EMPLOYEE,,500
+Rachel Clark,rachel.clark@company.com,9876543229,SALES,SALES_EXECUTIVE,Team B,500

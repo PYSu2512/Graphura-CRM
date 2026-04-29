@@ -41,6 +41,7 @@ export default function AllUsers() {
   const [usersList, setUsersList] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isBulkUploading, setIsBulkUploading] = useState(false);
 
   // Form states for quick create
   const [quickName, setQuickName] = useState("");
@@ -136,12 +137,57 @@ export default function AllUsers() {
   };
 
   const handleBulkUpload = () => {
+    if (isBulkUploading) return;
+
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".csv, .xlsx";
-    input.onchange = (e) => {
-      if (e.target.files.length > 0) {
-        alert(`Successfully uploaded and processed ${e.target.files[0].name}`);
+    input.onchange = async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        setIsBulkUploading(true);
+
+        const previewResponse = await userService.uploadBulkUsers(file, {
+          skipDuplicates: true,
+          strictMode: false,
+        });
+        const preview = previewResponse.data;
+        const summary = preview.summary;
+
+        if (!summary || summary.validRows === 0) {
+          const firstError = preview.previewErrors?.[0]?.reason;
+          alert(
+            `No valid users found in ${file.name}.` +
+              (firstError ? `\nFirst issue: ${firstError}` : "")
+          );
+          return;
+        }
+
+        const commitResponse = await userService.commitBulkUsers(
+          preview.uploadId,
+          "VALID_ONLY"
+        );
+        const result = commitResponse.data;
+
+        await fetchUsers();
+
+        if (result.importedCount > 0 && result.failedCount > 0) {
+          alert(
+            `Bulk upload partially completed.\nImported: ${result.importedCount}\nSkipped/failed: ${result.failedCount}`
+          );
+        } else if (result.importedCount > 0) {
+          alert(`Successfully imported ${result.importedCount} users from ${file.name}`);
+        } else {
+          alert(
+            `Upload processed, but no users were inserted.\nStatus: ${result.status}\nFailed rows: ${result.failedCount}`
+          );
+        }
+      } catch (error) {
+        alert(error.message || "Bulk upload failed");
+      } finally {
+        setIsBulkUploading(false);
       }
     };
     input.click();
@@ -241,10 +287,11 @@ export default function AllUsers() {
           </button>
           <button
             onClick={handleBulkUpload}
-            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:-translate-y-0.5 active:scale-95"
+            disabled={isBulkUploading}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:-translate-y-0.5 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Upload size={14} />
-            Bulk Upload
+            {isBulkUploading ? "Uploading..." : "Bulk Upload"}
           </button>
           <button
             onClick={() => openModal("create-user-quick-modal")}
