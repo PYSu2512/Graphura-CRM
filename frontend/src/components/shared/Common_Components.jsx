@@ -190,13 +190,16 @@ export const Label = ({ text, htmlFor, size = 12 }) => (
 */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 3. DATA FIELD  (Label + Input wrapped in a single slot)
+// 3. DATA FIELD  (Label + Input / Textarea wrapped in a single slot)
 // Combines a label and input into one grid slot. Optionally displays a left icon.
+// When type="textarea", renders a <textarea> instead of <input>.
 //
 // Props:
 //   label       — label text shown above the input
 //   id          — html id (links label + input)
-//   type        — input type  (default: "text")
+//   type        — input type OR "textarea"  (default: "text")
+//                 Any valid HTML input type works: "text" | "email" | "password" |
+//                 "number" | "date" | "tel" | "url" | "textarea"
 //   placeholder — placeholder string
 //   autoFocus   — true | false  (default: false)
 //   size        — 1–12 grid columns  (default: 12)
@@ -204,8 +207,10 @@ export const Label = ({ text, htmlFor, size = 12 }) => (
 //   onChange    — change handler (e) => void
 //   disabled    — true | false  (default: false)
 //   readOnly    — true | false  (default: false)
-//   className   — additional CSS classes for the input
-//   icon        — optional Lucide icon component (e.g., Mail, Lock) to show on the left
+//   className   — additional CSS classes for the input/textarea element
+//   icon        — optional Lucide icon component (e.g., Mail, Lock) shown on the left
+//                 Note: icon is not shown when type="textarea"
+//   rows        — number of visible text rows for textarea  (default: 3)
 // ─────────────────────────────────────────────────────────────────────────────
 export const DataField = ({
   label,
@@ -220,53 +225,72 @@ export const DataField = ({
   readOnly = false,
   className = "",
   icon: Icon,
-}) => (
-  <div className={`${colSpan(size)} flex flex-col gap-1.5`}>
-    {label && (
-      <label
-        htmlFor={id}
-        className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] select-none"
-      >
-        {label}
-      </label>
-    )}
-    <div className="relative">
-      {Icon && (
-        <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
-          <Icon size={18} />
-        </div>
+  rows = 3,
+}) => {
+  const sharedCls = `
+    w-full rounded-2xl border border-slate-200 bg-slate-50/90
+    text-[#2a465a] placeholder:text-slate-400 text-sm font-medium
+    focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
+    disabled:opacity-50 disabled:cursor-not-allowed
+    transition duration-200
+    ${className}
+  `;
+
+  return (
+    <div className={`${colSpan(size)} flex flex-col gap-1.5`}>
+      {label && (
+        <label
+          htmlFor={id}
+          className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] select-none"
+        >
+          {label}
+        </label>
       )}
-      <input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        autoFocus={autoFocus}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        readOnly={readOnly}
-        className={`
-          w-full rounded-2xl border border-slate-200 bg-slate-50/90
-          ${Icon ? "pl-12 pr-4" : "px-4"} py-3.5
-          text-[#2a465a] placeholder:text-slate-400 text-sm font-medium
-          focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40
-          disabled:opacity-50 disabled:cursor-not-allowed
-          transition duration-200
-          ${className}
-        `}
-      />
+      <div className="relative">
+        {/* Icon — only shown for non-textarea types */}
+        {Icon && type !== "textarea" && (
+          <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
+            <Icon size={18} />
+          </div>
+        )}
+
+        {type === "textarea" ? (
+          <textarea
+            id={id}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            readOnly={readOnly}
+            rows={rows}
+            className={`${sharedCls} px-4 py-3.5 resize-y`}
+          />
+        ) : (
+          <input
+            id={id}
+            type={type}
+            placeholder={placeholder}
+            autoFocus={autoFocus}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            readOnly={readOnly}
+            className={`${sharedCls} ${Icon ? "pl-12 pr-4" : "px-4"} py-3.5`}
+          />
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /*
   ── HOW TO USE DataField ────────────────────────────────────────────────────
 
-  Basic usage:
+  Basic text input:
   <DataField
     label="Company Name"
     id="company_name"
-    type="text"
     placeholder="Acme Corp"
     size={6}
     value={companyName}
@@ -275,7 +299,6 @@ export const DataField = ({
 
   With icon:
   import { Mail } from "lucide-react";
-  
   <DataField
     label="Work Email"
     id="email"
@@ -287,19 +310,55 @@ export const DataField = ({
     size={12}
   />
 
+  Textarea (multi-line):
+  <DataField
+    label="Notes"
+    id="notes"
+    type="textarea"
+    placeholder="Enter any additional notes..."
+    rows={4}
+    value={notes}
+    onChange={(e) => setNotes(e.target.value)}
+    size={12}
+  />
+
+  Number input:
+  <DataField
+    label="Amount"
+    id="amount"
+    type="number"
+    placeholder="0"
+    value={amount}
+    onChange={(e) => setAmount(e.target.value)}
+    size={6}
+  />
+
+  Read-only display field:
+  <DataField
+    label="Employee ID"
+    id="emp_id"
+    value="EMP-00123"
+    readOnly
+    size={6}
+  />
+
   Props:
   • label       — label text shown above the input
   • id          — html id (links label + input)
-  • type        — input type  (default: "text")
+  • type        — input type OR "textarea"  (default: "text")
+                  Supports all HTML input types: "text" | "email" | "password" |
+                  "number" | "date" | "tel" | "url" | "textarea"
   • placeholder — placeholder string
   • autoFocus   — true | false  (default: false)
   • size        — 1–12 grid columns  (default: 12)
   • value       — controlled value
-  • onChange    — change handler (e) => void
+  • onChange    — (e) => void
   • disabled    — true | false  (default: false)
   • readOnly    — true | false  (default: false)
-  • className   — additional CSS classes for the input
+  • className   — additional CSS classes for the input/textarea element
   • icon        — optional Lucide icon component (e.g., Mail, Lock, User)
+                  Not shown when type="textarea"
+  • rows        — visible row count for textarea  (default: 3)
 */
 
 // ─────────────────────────────────────────────────────────────────────────────

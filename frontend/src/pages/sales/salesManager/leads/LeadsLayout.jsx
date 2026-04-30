@@ -19,7 +19,7 @@ function LeadsLayoutInner() {
   const { pathname } = useLocation();
 
   return (
-    <div className="p-6 min-h-screen bg-slate-50">
+    <div>
       <Grid cols={12} gap={6}>
         {/* Heading */}
         <Heading primaryText="Leads" secondaryText="Management" size={12} fontSize="2xl" />

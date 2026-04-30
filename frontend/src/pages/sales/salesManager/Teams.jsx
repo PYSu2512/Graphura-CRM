@@ -123,10 +123,6 @@ export default function SalesTeamLeaders() {
     const [tls, setTls] = useState(INITIAL_TLS);
     const [viewTL, setViewTL] = useState(null);
     const [editTL, setEditTL] = useState(null);
-    const [assignTLId, setAssignTLId] = useState(null);
-    const [assignCount, setAssignCount] = useState("");
-    const [assignTarget, setAssignTarget] = useState("");
-    const [assignWarning, setAssignWarning] = useState("");
 
     // ── Teams state ───────────────────────────────────────────────────────────
     // Each team: { id, name, leaderId, memberIds: Set<string> }
@@ -140,35 +136,6 @@ export default function SalesTeamLeaders() {
     const totalExecs = tls.reduce((s, t) => s + (t.employees?.length ?? 0), 0);
     const totalAssigned = tls.reduce((s, t) => s + t.currentLeads, 0);
     const totalCapacity = tls.reduce((s, t) => s + (MAX_LEADS - t.currentLeads), 0);
-
-    // ── Assign Leads ──────────────────────────────────────────────────────────
-    const openAssignModal = (tlId) => {
-        setAssignTLId(tlId);
-        setAssignCount("");
-        setAssignTarget("");
-        setAssignWarning("");
-        openModal("assign-leads-tl-modal");
-    };
-
-    const confirmAssignLeads = () => {
-        const tl = tls.find((t) => t.id === assignTLId);
-        const cnt = Number(assignCount);
-        const tgt = Number(assignTarget);
-        const cap = MAX_LEADS - tl.currentLeads;
-
-        if (!cnt || cnt <= 0) { setAssignWarning("Enter a valid number of leads."); return; }
-        if (cnt > cap) { setAssignWarning(`Only ${cap} capacity available.`); return; }
-        if (tgt > cnt) { setAssignWarning("Target cannot exceed assigned leads."); return; }
-
-        setTls((prev) =>
-            prev.map((t) =>
-                t.id === assignTLId
-                    ? { ...t, currentLeads: t.currentLeads + cnt, target: t.target + tgt }
-                    : t
-            )
-        );
-        closeModal("assign-leads-tl-modal");
-    };
 
     // ── Edit TL ────────────────────────────────────────────────────────────────
     const saveEditTL = () => {
@@ -235,7 +202,7 @@ export default function SalesTeamLeaders() {
 
     // ═══ RENDER ═══════════════════════════════════════════════════════════════
     return (
-        <div className="p-6 min-h-screen bg-slate-50">
+        <div>
             <Grid cols={12} gap={6}>
                     
                 {/* Heading + Create Team button */}
@@ -334,12 +301,6 @@ export default function SalesTeamLeaders() {
                                 variant: "ghost",
                                 onClick: (row) => { setEditTL({ ...tls.find((t) => t.id === row.id) }); openModal("edit-tl-modal"); },
                             },
-                            {
-                                icon: <UserCheck size={15} />,
-                                tooltip: "Assign Leads",
-                                variant: "primary",
-                                onClick: (row) => openAssignModal(row.id),
-                            },
                         ]}
                         size={12}
                         pageSize={10}
@@ -431,61 +392,6 @@ export default function SalesTeamLeaders() {
                         </div>
                     </div>
                 )}
-            </Modal>
-
-            {/* ── Assign Leads to TL Modal ──────────────────────────────────────── */}
-            <Modal id="assign-leads-tl-modal" title="Assign Leads to Team Leader" size="md">
-                {assignTLId && (() => {
-                    const tl = tls.find((t) => t.id === assignTLId);
-                    const cap = MAX_LEADS - (tl?.currentLeads ?? 0);
-                    return (
-                        <div className="space-y-4">
-                            <ModalProfile name={tl?.name ?? ""} subtitle={tl?.email} meta={`Current Leads: ${tl?.currentLeads} / ${MAX_LEADS}`} />
-                            <ModalGrid title="Capacity Info" cols={2}>
-                                <ModalData label="Current Leads" value={tl?.currentLeads} />
-                                <ModalData label="Available Capacity" value={cap} />
-                            </ModalGrid>
-
-                            <Grid cols={12} gap={4}>
-                                <DataField
-                                    label={`Leads to Assign (max ${cap})`}
-                                    id="al-count"
-                                    type="number"
-                                    placeholder={`0 – ${cap}`}
-                                    value={assignCount}
-                                    size={6}
-                                    onChange={(e) => { setAssignCount(e.target.value); setAssignWarning(""); }}
-                                />
-                                <DataField
-                                    label="Target"
-                                    id="al-target"
-                                    type="number"
-                                    placeholder="Set a target"
-                                    value={assignTarget}
-                                    size={6}
-                                    onChange={(e) => { setAssignTarget(e.target.value); setAssignWarning(""); }}
-                                />
-                            </Grid>
-
-                            {assignWarning && (
-                                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-xl">
-                                    <AlertTriangle size={15} /> {assignWarning}
-                                </div>
-                            )}
-
-                            {cap === 0 && (
-                                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
-                                    <AlertTriangle size={15} /> This TL has reached maximum capacity (1500 leads).
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 pt-2">
-                                <Button text="Assign Leads" variant="primary" size={6} onClick={confirmAssignLeads} disabled={cap === 0} />
-                                <Button text="Cancel" variant="ghost" size={6} onClick={() => closeModal("assign-leads-tl-modal")} />
-                            </div>
-                        </div>
-                    );
-                })()}
             </Modal>
 
             {/* ── View Team Modal (read-only) ───────────────────────────────────── */}

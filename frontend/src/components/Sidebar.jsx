@@ -120,18 +120,25 @@ const MENUS = {
       {
         label: "Sales",
         items: [
-          { name: "My Leads", path: "/sales-manager/leads", icon: Target },
-          { name: "Teams", path: "/sales-manager/team-leader", icon: Users },
-          { name: "Pipeline", path: "/sales-manager/pipeline", icon: GitBranch },
-          { name: "Call Panel", path: "/sales-manager/calls", icon: PhoneCall },
-          { name: "Tickets", path: "/sales-manager/tickets", icon: Ticket },
+          { name: "Leads",        path: "/sales-manager/leads",       icon: Target },
+          { name: "Team Leaders", path: "/sales-manager/team-leader", icon: UserCheck },
+          { name: "Teams",        path: "/sales-manager/teams",       icon: Users },
         ],
       },
       {
         label: "Performance",
         items: [
-          { name: "Targets", path: "/sales-manager/targets", icon: TrendingUp },
-          { name: "Reports", path: "/sales-manager/reports", icon: BarChart2 },
+          { name: "Performance", path: "/sales-manager/performance", icon: TrendingUp },
+        ],
+      },
+      {
+        label: "Management",
+        items: [
+          { name: "HRM",           path: "/sales-manager/hrm",           icon: ClipboardList },
+          { name: "Support",       path: "/sales-manager/support",       icon: LifeBuoy },
+          { name: "Communication", path: "/sales-manager/communication", icon: MessageSquare },
+          { name: "Logs",          path: "/sales-manager/logs",          icon: History },
+          { name: "Reports",       path: "/sales-manager/reports",       icon: BarChart2 },
         ],
       },
     ],
