@@ -7,7 +7,10 @@ import {
   Button,
   DataField,
   SelectField,
-  Option
+  Option,
+  Modal,
+  openModal,
+  closeModal
 } from '../../../components/shared/Common_Components';
 import {
   Activity,
@@ -18,7 +21,8 @@ import {
   Eye,
   EyeOff,
   Trash2,
-  Plus
+  Plus,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function ApiConfig() {
@@ -41,17 +45,46 @@ export default function ApiConfig() {
     { id: 3, name: 'Staging Key', publicKey: 'pk_test_11223', secretKey: 'sk_test_klmno11223', status: 'Revoked', created: '2023-08-05' },
   ]);
 
+  const [newKeyName, setNewKeyName] = useState('');
+
+  const handleConfirmGenerateKey = () => {
+    if (!newKeyName.trim()) return;
+    const newKey = {
+      id: Date.now(),
+      name: newKeyName,
+      publicKey: `pk_live_${Math.random().toString(36).substring(2, 10)}`,
+      secretKey: `sk_live_${Math.random().toString(36).substring(2, 15)}`,
+      status: 'Active',
+      created: new Date().toISOString().split('T')[0]
+    };
+    setApiKeys([newKey, ...apiKeys]);
+    setNewKeyName('');
+    closeModal('generate-api-modal');
+  };
+
   const toggleKeyVisibility = (id) => {
     setVisibleKeys(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const copyToClipboard = (text) => {
+  const [copiedId, setCopiedId] = useState(null);
+  const [keyToDelete, setKeyToDelete] = useState(null);
+
+  const copyToClipboard = (text, id) => {
     navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleRevokeKey = (row) => {
-    if (window.confirm(`Are you sure you want to revoke ${row.name}?`)) {
-      setApiKeys(apiKeys.map(k => k.id === row.id ? { ...k, status: 'Revoked' } : k));
+  const handleDeleteKey = (row) => {
+    setKeyToDelete(row);
+    openModal('delete-key-modal');
+  };
+
+  const confirmDeleteKey = () => {
+    if (keyToDelete) {
+      setApiKeys(apiKeys.filter(k => k.id !== keyToDelete.id));
+      closeModal('delete-key-modal');
+      setKeyToDelete(null);
     }
   };
 
@@ -69,8 +102,15 @@ export default function ApiConfig() {
     secretDisplay: (
       <div className="flex items-center gap-2">
         <span>{visibleKeys[k.id] ? k.secretKey : '••••••••'}</span>
-        <button onClick={() => toggleKeyVisibility(k.id)} className="text-slate-400 hover:text-slate-600 transition-colors">
-          {visibleKeys[k.id] ? <EyeOff size={16} /> : <Eye size={16} />}
+        <button onClick={() => toggleKeyVisibility(k.id)} className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition duration-150 active:scale-95" title={visibleKeys[k.id] ? "Hide Secret Key" : "Show Secret Key"}>
+          {visibleKeys[k.id] ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+        <button 
+          onClick={() => copyToClipboard(k.secretKey, `sec-${k.id}`)}
+          className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition duration-150 active:scale-95"
+          title="Copy Secret Key"
+        >
+          {copiedId === `sec-${k.id}` ? <CheckCircle2 size={15} className="text-emerald-500" /> : <Copy size={15} />}
         </button>
       </div>
     ),
@@ -84,20 +124,20 @@ export default function ApiConfig() {
       </div>
     ),
     actions: (
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <button
-          onClick={() => copyToClipboard(k.publicKey)}
-          className="text-slate-400 hover:text-blue-500 transition-colors p-1"
-          title="Copy"
+          onClick={() => copyToClipboard(k.publicKey, `pub-${k.id}`)}
+          className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition duration-150 active:scale-95"
+          title="Copy Public Key"
         >
-          <Copy size={16} />
+          {copiedId === `pub-${k.id}` ? <CheckCircle2 size={15} className="text-emerald-500" /> : <Copy size={15} />}
         </button>
         <button
-          onClick={() => handleRevokeKey(k)}
-          className="text-slate-400 hover:text-rose-500 transition-colors p-1"
-          title="Revoke"
+          onClick={() => handleDeleteKey(k)}
+          className="flex items-center justify-center w-8 h-8 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition duration-150 active:scale-95"
+          title="Delete"
         >
-          <Trash2 size={16} />
+          <Trash2 size={15} />
         </button>
       </div>
     )
@@ -132,6 +172,18 @@ export default function ApiConfig() {
 
   const webhookRows = webhooks.map(w => ({
     ...w,
+    url: (
+      <div className="flex items-center gap-2">
+        <span className="truncate">{w.url}</span>
+        <button 
+          onClick={() => copyToClipboard(w.url, `web-${w.id}`)}
+          className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition duration-150 active:scale-95 flex-shrink-0"
+          title="Copy Webhook URL"
+        >
+          {copiedId === `web-${w.id}` ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Copy size={14} />}
+        </button>
+      </div>
+    ),
     status_val: (
       <div className="flex items-center">
         <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-black/5 ${
@@ -216,7 +268,7 @@ export default function ApiConfig() {
               </h3>
               <p className="text-sm text-slate-500">Manage your active API keys and their permissions.</p>
             </div>
-            <Button text="Generate New API Key" variant="primary" />
+            <Button text="Generate New API Key" variant="primary" onClick={() => openModal('generate-api-modal')} />
           </div>
 
           <DataTable
@@ -239,7 +291,6 @@ export default function ApiConfig() {
             </h3>
             <p className="text-sm text-slate-500">Add and manage webhook endpoints for real-time events.</p>
           </div>
-
           <div className="bg-[#f8fafc] p-5 rounded-xl border border-slate-200 mb-8">
             <Grid cols={12} gap={4}>
               <DataField
@@ -300,6 +351,38 @@ export default function ApiConfig() {
           />
         </div>
       </Grid>
+
+      {/* 6. Modals */}
+      <Modal id="generate-api-modal" title="Generate New API Key">
+        <div className="space-y-4">
+          <DataField
+            label="Key Name"
+            id="newKeyName"
+            value={newKeyName}
+            onChange={(e) => setNewKeyName(e.target.value)}
+            placeholder="e.g. Production Key 2"
+          />
+          <div className="flex justify-end gap-3 mt-6">
+            <Button text="Cancel" variant="ghost" onClick={() => closeModal('generate-api-modal')} />
+            <Button text="Generate" variant="primary" onClick={handleConfirmGenerateKey} />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal id="delete-key-modal" title="Revoke API Key">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Are you sure you want to revoke <strong>{keyToDelete?.name}</strong>? This action cannot be undone and any applications using this key will immediately lose access.
+          </p>
+          <div className="flex justify-end gap-3 mt-6">
+            <Button text="Cancel" variant="ghost" onClick={() => {
+              closeModal('delete-key-modal');
+              setKeyToDelete(null);
+            }} />
+            <Button text="Revoke Key" variant="danger" onClick={confirmDeleteKey} />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
