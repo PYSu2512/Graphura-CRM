@@ -1434,6 +1434,7 @@ export const DataTable = ({
                           Approved: ["bg-emerald-100", "text-emerald-700"],
                           Won: ["bg-emerald-100", "text-emerald-700"],
                           Valid: ["bg-emerald-100", "text-emerald-700"],
+                          Paid: ["bg-emerald-100", "text-emerald-700"],
                           // ── Amber ──
                           "In Progress": ["bg-amber-100", "text-amber-700"],
                           Pending: ["bg-amber-100", "text-amber-700"],
@@ -1456,6 +1457,7 @@ export const DataTable = ({
                           Rejected: ["bg-rose-100", "text-rose-700"],
                           Inactive: ["bg-rose-100", "text-rose-700"],
                           Invalid: ["bg-rose-100", "text-rose-700"],
+                          Unpaid: ["bg-rose-100", "text-rose-700"],
                         };
                         const [statusBg, statusText] = STATUS_MAP[val] ?? ["bg-slate-100", "text-slate-600"];
                         return (
