@@ -785,7 +785,7 @@ const AdminRegister = () => {
             <p className="mt-6 text-center text-slate-500 text-sm">
               Already have an account?{" "}
               <Link
-                to="/login"
+                to="/admin-login"
                 className="text-[#2a465a] font-bold hover:underline"
               >
                 Sign in
