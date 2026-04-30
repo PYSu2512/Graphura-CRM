@@ -5,7 +5,7 @@ import {
 } from "../../../../components/shared/Common_Components";
 import {
   Pencil, ArchiveX, Trash2,
-  AlertTriangle, CheckCircle, GitBranch, UserCheck,
+  AlertTriangle, CheckCircle, GitBranch, UserCheck, Plus,
 } from "lucide-react";
 import { useLeads } from "./LeadsContext";
 import { TEAM_LEADERS, MAX_LEADS } from "./leadsStore";
@@ -36,7 +36,7 @@ function buildDistRows(totalLeads) {
 }
 
 export default function AllLeads() {
-  const { leads, updateLead, moveToDump, assignLead } = useLeads();
+  const { leads, updateLead, moveToDump, assignLead, addLeads } = useLeads();
 
   // Split leads into two lists
   const unassignedLeads = useMemo(() => leads.filter((l) => l.assignedTo === "Unassigned"), [leads]);
@@ -44,6 +44,38 @@ export default function AllLeads() {
 
   // ── Edit modal ────────────────────────────────────────────────────────────
   const [editLead, setEditLead] = useState(null);
+
+  // ── Add Lead modal ────────────────────────────────────────────────────────
+  const [newLead, setNewLead]     = useState({ name: "", mobile: "", email: "" });
+  const [addError, setAddError]   = useState("");
+
+  const openAddModal = () => {
+    setNewLead({ name: "", mobile: "", email: "" });
+    setAddError("");
+    openModal("al-add-modal");
+  };
+
+  const confirmAddLead = () => {
+    const { name, mobile, email } = newLead;
+    if (!name.trim())                              { setAddError("Name is required."); return; }
+    if (!/^\d{10}$/.test(mobile.trim()))           { setAddError("Mobile must be exactly 10 digits."); return; }
+    if (!/^\S+@\S+\.\S+$/.test(email.trim()))      { setAddError("Enter a valid email address."); return; }
+    if (leads.some((l) => l.mobile === mobile.trim())) { setAddError("This mobile number already exists."); return; }
+    if (leads.some((l) => l.email  === email.trim()))  { setAddError("This email already exists."); return; }
+
+    const today = new Date().toISOString().split("T")[0];
+    addLeads([{
+      id:         `L${String(leads.length + 1).padStart(3, "0")}`,
+      name:       name.trim(),
+      mobile:     mobile.trim(),
+      email:      email.trim(),
+      status:     "New",
+      assignedTo: "Unassigned",
+      createdAt:  today,
+      assignedAt: "",
+    }]);
+    closeModal("al-add-modal");
+  };
 
   // ── Distribution modal ────────────────────────────────────────────────────
   const [distSelectedLeads, setDistSelectedLeads] = useState([]);
@@ -146,6 +178,17 @@ export default function AllLeads() {
 
   return (
     <>
+      {/* ── Add Lead button ───────────────────────────────────────────────── */}
+      <div className="flex justify-end mb-3">
+        <button
+          type="button"
+          onClick={openAddModal}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#2a465a] text-white text-sm font-bold hover:bg-[#1e3a52] transition active:scale-95"
+        >
+          <Plus size={16} /> Add Lead
+        </button>
+      </div>
+
       {/* ══ UNASSIGNED LEADS ══════════════════════════════════════════════════ */}
       <DataTable
         title="Unassigned Leads"
@@ -398,6 +441,38 @@ export default function AllLeads() {
             </Grid>
           </div>
         )}
+      </Modal>
+
+      {/* ── Add Lead Modal ──────────────────────────────────────────────────── */}
+      <Modal id="al-add-modal" title="Add New Lead" size="sm">
+        <div className="space-y-4">
+          <Grid cols={12} gap={4}>
+            <DataField
+              label="Full Name" id="add-name" placeholder="e.g. Rahul Sharma"
+              value={newLead.name} size={12}
+              onChange={(e) => { setNewLead((p) => ({ ...p, name: e.target.value })); setAddError(""); }}
+            />
+            <DataField
+              label="Mobile Number" id="add-mobile" placeholder="10-digit mobile"
+              value={newLead.mobile} size={12}
+              onChange={(e) => { setNewLead((p) => ({ ...p, mobile: e.target.value })); setAddError(""); }}
+            />
+            <DataField
+              label="Email Address" id="add-email" type="email" placeholder="name@example.com"
+              value={newLead.email} size={12}
+              onChange={(e) => { setNewLead((p) => ({ ...p, email: e.target.value })); setAddError(""); }}
+            />
+          </Grid>
+          {addError && (
+            <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-xl">
+              <AlertTriangle size={14} className="flex-shrink-0" /> {addError}
+            </div>
+          )}
+          <div className="flex gap-3 pt-1">
+            <Button text="Add Lead" variant="primary"   size={6} onClick={confirmAddLead} />
+            <Button text="Cancel"   variant="secondary" size={6} onClick={() => closeModal("al-add-modal")} />
+          </div>
+        </div>
       </Modal>
     </>
   );
