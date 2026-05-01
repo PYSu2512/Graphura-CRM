@@ -187,19 +187,25 @@ const MENUS = {
         ],
       },
       {
-        label: "Sales",
+        label: "Leads",
         items: [
-          { name: "My Leads", path: "/sales-executive/leads", icon: Target },
-          { name: "Pipeline", path: "/sales-executive/pipeline", icon: GitBranch },
-          { name: "Call Panel", path: "/sales-executive/calls", icon: PhoneCall },
-          { name: "Tickets", path: "/sales-executive/tickets", icon: Ticket },
+          { name: "Leads",         path: "/sales-executive/leads",         icon: Target },
+          { name: "Prospect Form", path: "/sales-executive/prospect-form", icon: ClipboardList },
+          { name: "Dump Data",     path: "/sales-executive/dump",          icon: Database },
         ],
       },
       {
-        label: "Performance",
+        label: "Personal",
         items: [
-          { name: "Targets", path: "/sales-executive/targets", icon: TrendingUp },
-          { name: "Reports", path: "/sales-executive/reports", icon: BarChart2 },
+          { name: "My Login Logs", path: "/sales-executive/login-logs", icon: History },
+          { name: "Payments",      path: "/sales-executive/payments",   icon: CreditCard },
+        ],
+      },
+      {
+        label: "Management",
+        items: [
+          { name: "HRM",     path: "/sales-executive/hrm",     icon: UserCheck },
+          { name: "Support", path: "/sales-executive/support", icon: LifeBuoy },
         ],
       },
     ],
