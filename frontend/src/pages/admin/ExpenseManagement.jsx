@@ -15,6 +15,8 @@ export default function ExpenseManagement({ isEmbedded }) {
   ]);
 
   const [newExpense, setNewExpense] = useState({ title: '', category: '', amount: '' });
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   const handleApprove = (id) => {
     setExpenses(prev => prev.map(exp => exp.id === id ? { ...exp, status: 'Approved' } : exp));
@@ -80,6 +82,14 @@ export default function ExpenseManagement({ isEmbedded }) {
     status: exp.status === 'Approved' ? 'Completed' : exp.status.includes('Pending') ? 'Pending' : 'Failed'
   }));
 
+  const filteredExpenses = formattedExpenses.filter(exp => {
+    let matchesCategory = true;
+    let matchesStatus = true;
+    if (filterCategory) matchesCategory = exp.category === filterCategory;
+    if (filterStatus) matchesStatus = exp.status === filterStatus;
+    return matchesCategory && matchesStatus;
+  });
+
   return (
     <div className={`w-full ${isEmbedded ? '' : 'min-h-screen bg-white p-4 md:p-8'}`}>
       <style>{`
@@ -110,12 +120,51 @@ export default function ExpenseManagement({ isEmbedded }) {
         }
       `}</style>
 
-      <div className="flex flex-col gap-4 mb-8 w-full">
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="ghost" text="Limits & Rules" onClick={() => openModal('settings-modal')} />
-          <Button variant="secondary" text="Export Report" onClick={handleExportReport} />
-          <Button variant="primary" text="Add Expense" onClick={() => openModal('add-expense-modal')} />
+      <div className="flex flex-col gap-4 mb-6 w-full">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-4 bg-white border border-slate-200 p-3 rounded-xl shadow-sm">
+            <div className="flex flex-col">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Filter by Category</label>
+              <select
+                value={filterCategory}
+                onChange={e => setFilterCategory(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 w-full sm:w-auto min-w-[150px]"
+              >
+                <option value="">All Categories</option>
+                <option value="Operations">Operations</option>
+                <option value="IT">IT</option>
+                <option value="HR">HR</option>
+                <option value="Hardware">Hardware</option>
+                <option value="Marketing">Marketing</option>
+              </select>
+            </div>
+            <div className="flex flex-col">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1 ml-1">Filter by Status</label>
+              <select
+                value={filterStatus}
+                onChange={e => setFilterStatus(e.target.value)}
+                className="rounded-xl border border-slate-200 bg-white py-2 px-3 text-sm text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 w-full sm:w-auto min-w-[150px]"
+              >
+                <option value="">All Statuses</option>
+                <option value="Completed">Completed</option>
+                <option value="Pending">Pending</option>
+                <option value="Failed">Failed</option>
+              </select>
+            </div>
+            {(filterCategory || filterStatus) && (
+              <button
+                onClick={() => { setFilterCategory(''); setFilterStatus(''); }}
+                className="mt-4 text-xs text-rose-500 hover:text-rose-600 transition-colors font-semibold px-2"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <Button variant="ghost" text="Limits & Rules" onClick={() => openModal('settings-modal')} />
+            <Button variant="secondary" text="Export Report" onClick={handleExportReport} />
+            <Button variant="primary" text="Add Expense" onClick={() => openModal('add-expense-modal')} />
+          </div>
         </div>
       </div>
 
@@ -124,29 +173,32 @@ export default function ExpenseManagement({ isEmbedded }) {
           <DataTable
             title="Recent Expenses"
             columns={columns}
-            rows={formattedExpenses}
+            rows={filteredExpenses}
             actions={[
               { icon: <Check size={16} />, tooltip: "Approve", variant: "primary", onClick: (row) => handleApprove(row.id) },
               { icon: <X size={16} />, tooltip: "Reject", variant: "danger", onClick: (row) => handleReject(row.id) }
             ]}
             size={12}
             pageSize={10}
-            hideTopBar={true}
+            hideTopBar={false}
             hidePagination={true}
+            searchable={true}
           />
         </div>
       </DashGrid>
 
       <Modal id="settings-modal" title="Limits & Rules" size="sm">
-        <div className="space-y-4">
-          <P text="Set the maximum expense amount that can be auto-approved." size="sm" />
-          <InputField 
-            type="number" 
-            placeholder="Expense Limit" 
-            value={tempLimit} 
-            onChange={e => setTempLimit(e.target.value)} 
-          />
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl p-5 border border-slate-200 space-y-4">
+            <P text="Set the maximum expense amount that can be auto-approved." size="sm" className="text-slate-500" />
+            <InputField 
+              type="number" 
+              placeholder="Expense Limit" 
+              value={tempLimit} 
+              onChange={e => setTempLimit(e.target.value)} 
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
              <div onClick={() => closeModal('settings-modal')}>
                <Button variant="ghost" text="Cancel" />
              </div>
@@ -157,28 +209,30 @@ export default function ExpenseManagement({ isEmbedded }) {
         </div>
       </Modal>
 
-      <Modal id="add-expense-modal" title="Add Expense" size="md">
-        <div className="space-y-4">
-           <P text="Submit a new expense record." size="sm" />
-           <InputField 
-             type="text" 
-             placeholder="Title e.g. Travel"
-             value={newExpense.title}
-             onChange={e => setNewExpense({...newExpense, title: e.target.value})}
-           />
-           <InputField 
-             type="text" 
-             placeholder="Category e.g. Sales"
-             value={newExpense.category}
-             onChange={e => setNewExpense({...newExpense, category: e.target.value})}
-           />
-           <InputField 
-             type="number" 
-             placeholder="Amount ($)"
-             value={newExpense.amount}
-             onChange={e => setNewExpense({...newExpense, amount: e.target.value})}
-           />
-           <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-slate-100">
+      <Modal id="add-expense-modal" title="Add Expense" size="sm">
+        <div className="space-y-6">
+           <div className="bg-white rounded-xl p-5 border border-slate-200 space-y-4">
+             <P text="Submit a new expense record." size="sm" className="text-slate-500 mb-2" />
+             <InputField 
+               type="text" 
+               placeholder="Title e.g. Travel"
+               value={newExpense.title}
+               onChange={e => setNewExpense({...newExpense, title: e.target.value})}
+             />
+             <InputField 
+               type="text" 
+               placeholder="Category e.g. Sales"
+               value={newExpense.category}
+               onChange={e => setNewExpense({...newExpense, category: e.target.value})}
+             />
+             <InputField 
+               type="number" 
+               placeholder="Amount ($)"
+               value={newExpense.amount}
+               onChange={e => setNewExpense({...newExpense, amount: e.target.value})}
+             />
+           </div>
+           <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
              <div onClick={() => closeModal('add-expense-modal')}>
                <Button variant="ghost" text="Cancel" />
              </div>

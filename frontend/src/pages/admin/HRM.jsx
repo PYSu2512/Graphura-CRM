@@ -29,6 +29,14 @@ const departmentData = [
   { name: 'Support', attendance: 88 },
 ];
 
+const employeeCompositionData = [
+  { name: 'Sales', value: 45 },
+  { name: 'Finance', value: 20 },
+  { name: 'Management', value: 10 },
+  { name: 'Engineering', value: 35 },
+  { name: 'Support', value: 25 },
+];
+
 const leaveStatusData = [
   { name: 'Approved', value: 45 },
   { name: 'Pending', value: 15 },
@@ -353,9 +361,9 @@ export default function HRM() {
               subtitle="Weekly breakdown"
               data={attendanceTrendData}
               lines={[
-                { key: "present", label: "Present", color: "#355872" },
-                { key: "absent", label: "Absent", color: "#7AAACE" },
-                { key: "leave", label: "Leave", color: "#9CD5FF" },
+                { key: "present", label: "Present", color: "#3b82f6" },
+                { key: "absent", label: "Absent", color: "#f59e0b" },
+                { key: "leave", label: "Leave", color: "#f43f5e" },
               ]}
               size={7}
               height={320}
@@ -364,7 +372,7 @@ export default function HRM() {
               title="Leave Status"
               subtitle="Distribution of leave requests"
               data={leaveStatusData}
-              colors={["#355872", "#9CD5FF", "#7AAACE"]}
+              colors={["#8b5cf6", "#14b8a6", "#f43f5e"]}
               size={5}
               height={320}
               innerRadius={80}
@@ -373,9 +381,18 @@ export default function HRM() {
               title="Department Attendance"
               subtitle="Attendance % by department"
               data={departmentData}
-              bars={[{ key: "attendance", label: "Attendance %", color: "#7AAACE" }]}
-              size={12}
+              bars={[{ key: "attendance", label: "Attendance %", color: "#3b82f6" }]}
+              size={6}
               height={320}
+            />
+            <GDoughnutChart
+              title="Employee Composition"
+              subtitle="Distribution by department"
+              data={employeeCompositionData}
+              colors={["#8b5cf6", "#14b8a6", "#f43f5e", "#22c55e", "#f59e0b"]}
+              size={6}
+              height={320}
+              innerRadius={70}
             />
           </DashGrid>
         </div>
