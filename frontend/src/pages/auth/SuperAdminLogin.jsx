@@ -163,13 +163,27 @@ const SuperAdminLogin = () => {
               <Shield size={11} />
               SUPER ADMIN PORTAL
             </div>
-            <h2 className="text-3xl font-extrabold text-crm-navy leading-tight mb-4" style={{ fontFamily: "'Gugi', cursive" }}>
+            <h2 className="text-3xl font-extrabold text-[#2a465a] leading-tight mb-4" style={{ fontFamily: "'Gugi', cursive" }}>
               Platform Control. <br /> Global Oversight. <br />Full Authority.
             </h2>
             <p className="text-slate-500 text-sm leading-relaxed">
               Manage all companies, admins, and platform-wide settings from one
               centralized control panel. Access is restricted and fully audited.
             </p>
+            <div className="mt-8 space-y-3">
+              {[
+                { icon: Shield,   text: "Full platform authority" },
+                { icon: Database, text: "Global data oversight" },
+                { icon: Lock,     text: "Restricted & fully audited access" },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3 text-[#2a465a] text-sm">
+                  <div className="w-7 h-7 rounded-full bg-[#2a465a]/10 flex items-center justify-center">
+                    <Icon size={14} className="text-[#2a465a]" />
+                  </div>
+                  {text}
+                </div>
+              ))}
+            </div>
           </div>
           <div className="flex gap-2">
             <button className="text-[11px] font-bold px-4 py-2 bg-white rounded-full border border-slate-200 text-slate-600 hover:bg-slate-100">
@@ -191,7 +205,7 @@ const SuperAdminLogin = () => {
                 className="w-40 h-15 mx-auto"
               />
             </div>
-            <h1 className="text-3xl font-black text-crm-navy mb-8 text-center tracking-tight" style={{ fontFamily: "'Courgette', cursive" }}>
+            <h1 className="text-3xl font-black text-crm-navy mb-8 text-center tracking-tight" style={{ fontFamily: "'Gugi', cursive" }}>
               Super Admin Access 🛡️
             </h1>
 

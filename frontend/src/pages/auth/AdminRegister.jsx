@@ -12,7 +12,6 @@ import {
   Eye,
   EyeOff,
   Building2,
-  MapPin,
   KeyRound,
   BadgeCheck,
 } from "lucide-react";
@@ -22,7 +21,9 @@ import {
   verifyOTP,
   registerAdmin,
 } from "../../services/authService";
-// import GraphuraLogo from "../assets/Graphura_Logo.webp";
+import {
+  DataField,
+} from "../../components/shared/Common_Components";
 
 // ─── Floating Background (identical to Login) ────────────────────────────────
 const FloatingBackground = () => (
@@ -114,29 +115,9 @@ const StepIndicator = ({ current }) => (
   </div>
 );
 
-// ─── Reusable Input ───────────────────────────────────────────────────────────
-const Field = ({ label, error, children }) => (
-  <div className="space-y-1.5">
-    <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">
-      {label}
-    </label>
-    {children}
-    {error && <p className="text-xs text-rose-600">{error}</p>}
-  </div>
-);
-
-const InputWrap = ({ icon: Icon, children, className = "" }) => (
-  <div
-    className={`relative rounded-2xl border border-slate-200 bg-slate-50/90 focus-within:ring-2 focus-within:ring-[#2a465a]/20 transition ${className}`}
-  >
-    {Icon && (
-      <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
-        <Icon size={18} />
-      </div>
-    )}
-    {children}
-  </div>
-);
+// ─── Error helper ─────────────────────────────────────────────────────────────
+const FieldError = ({ error }) =>
+  error ? <p className="text-xs text-rose-600 mt-1 px-1">{error}</p> : null;
 
 // ─── Register Component ───────────────────────────────────────────────────────
 const AdminRegister = () => {
@@ -282,14 +263,10 @@ const AdminRegister = () => {
 
   // ── Final submit ──
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
 
-    // Guard against accidental form submits (e.g. Enter key)
-    // before reaching the final security step.
-    if (step < 2) {
-      nextStep();
-      return;
-    }
+    // Only process final submission on step 2
+    if (step !== 2) return;
 
     const errs = {};
     if (!password.trim()) errs.password = "Password is required.";
@@ -417,7 +394,7 @@ const AdminRegister = () => {
         {/* ── Right Panel ── */}
         <div className="w-full lg:w-7/12 p-8 md:p-14 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
-            <h1 className="text-3xl font-black text-[#2a465a] mb-2 text-center tracking-tight" style={{ fontFamily: "'Courgette', cursive" }}>
+            <h1 className="text-3xl font-black text-[#2a465a] mb-2 text-center tracking-tight" style={{ fontFamily: "'Gugi', cursive" }}>
               Register your Company 🏢
             </h1>
             <p className="text-center text-slate-400 text-sm mb-6">
@@ -440,30 +417,36 @@ const AdminRegister = () => {
               {step === 0 && (
                 <>
                   {/* Company Name */}
-                  <Field label="Company Name" error={errors.companyName}>
-                    <InputWrap icon={Building2}>
-                      <input
-                        type="text"
-                        placeholder="Acme Corp"
-                        value={companyName}
-                        onChange={(e) => {
-                          setCompanyName(e.target.value);
-                          if (errors.companyName)
-                            setErrors((er) => ({ ...er, companyName: "" }));
-                        }}
-                        className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-4 text-[#2a465a] placeholder:text-slate-400 focus:outline-none"
-                      />
-                    </InputWrap>
-                  </Field>
+                  <div>
+                    <DataField
+                      label="Company Name"
+                      id="companyName"
+                      type="text"
+                      placeholder="Acme Corp"
+                      value={companyName}
+                      icon={Building2}
+                      onChange={(e) => {
+                        setCompanyName(e.target.value);
+                        if (errors.companyName)
+                          setErrors((er) => ({ ...er, companyName: "" }));
+                      }}
+                    />
+                    <FieldError error={errors.companyName} />
+                  </div>
 
                   {/* Company Email + Send OTP */}
-                  <Field label="Company Email" error={errors.companyEmail}>
-                    <div className="flex gap-2">
-                      <InputWrap icon={Mail} className="flex-1">
-                        <input
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] select-none">
+                      Company Email
+                    </label>
+                    <div className="flex gap-2 mt-1.5">
+                      <div className="flex-1">
+                        <DataField
+                          id="companyEmail"
                           type="email"
                           placeholder="you@company.com"
                           value={companyEmail}
+                          icon={Mail}
                           onChange={(e) => {
                             setCompanyEmail(e.target.value);
                             setOtpVerified(false);
@@ -471,9 +454,8 @@ const AdminRegister = () => {
                             if (errors.companyEmail)
                               setErrors((er) => ({ ...er, companyEmail: "" }));
                           }}
-                          className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-4 text-[#2a465a] placeholder:text-slate-400 focus:outline-none"
                         />
-                      </InputWrap>
+                      </div>
                       <button
                         type="button"
                         onClick={handleSendOTP}
@@ -495,26 +477,31 @@ const AdminRegister = () => {
                               : "Send OTP"}
                       </button>
                     </div>
-                  </Field>
+                    <FieldError error={errors.companyEmail} />
+                  </div>
 
                   {/* OTP Input */}
                   {otpSent && !otpVerified && (
-                    <Field label="Enter OTP" error={errors.otpInput}>
-                      <div className="flex gap-2">
-                        <InputWrap icon={KeyRound} className="flex-1">
-                          <input
+                    <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] select-none">
+                        Enter OTP
+                      </label>
+                      <div className="flex gap-2 mt-1.5">
+                        <div className="flex-1">
+                          <DataField
+                            id="otpInput"
                             type="text"
                             placeholder="6-digit OTP"
                             value={otpInput}
+                            icon={KeyRound}
                             onChange={(e) => {
                               setOtpInput(e.target.value);
                               if (errors.otpInput)
                                 setErrors((er) => ({ ...er, otpInput: "" }));
                             }}
-                            maxLength={6}
-                            className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-4 text-[#2a465a] placeholder:text-slate-400 focus:outline-none tracking-[0.3em] font-semibold"
+                            className="tracking-[0.3em] font-semibold"
                           />
-                        </InputWrap>
+                        </div>
                         <button
                           type="button"
                           onClick={handleVerifyOTP}
@@ -524,7 +511,8 @@ const AdminRegister = () => {
                           Verify
                         </button>
                       </div>
-                    </Field>
+                      <FieldError error={errors.otpInput} />
+                    </div>
                   )}
 
                   {/* OTP pending but not yet sent */}
@@ -533,42 +521,44 @@ const AdminRegister = () => {
                   )}
 
                   {/* Company Address */}
-                  <Field label="Company Address" error={errors.companyAddress}>
-                    <InputWrap icon={MapPin}>
-                      <textarea
-                        rows={2}
-                        placeholder="123 Business Park, Ahmedabad, Gujarat"
-                        value={companyAddress}
-                        onChange={(e) => {
-                          setCompanyAddress(e.target.value);
-                          if (errors.companyAddress)
-                            setErrors((er) => ({ ...er, companyAddress: "" }));
-                        }}
-                        className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-4 text-[#2a465a] placeholder:text-slate-400 focus:outline-none resize-none"
-                      />
-                    </InputWrap>
-                  </Field>
+                  <div>
+                    <DataField
+                      label="Company Address"
+                      id="companyAddress"
+                      type="textarea"
+                      rows={2}
+                      placeholder="123 Business Park, Ahmedabad, Gujarat"
+                      value={companyAddress}
+                      onChange={(e) => {
+                        setCompanyAddress(e.target.value);
+                        if (errors.companyAddress)
+                          setErrors((er) => ({ ...er, companyAddress: "" }));
+                      }}
+                    />
+                    <FieldError error={errors.companyAddress} />
+                  </div>
                 </>
               )}
 
               {/* ════ STEP 1 – Owner Info ════ */}
               {step === 1 && (
                 <>
-                  <Field label="Owner / Admin Name" error={errors.ownerName}>
-                    <InputWrap icon={User}>
-                      <input
-                        type="text"
-                        placeholder="Full name"
-                        value={ownerName}
-                        onChange={(e) => {
-                          setOwnerName(e.target.value);
-                          if (errors.ownerName)
-                            setErrors((er) => ({ ...er, ownerName: "" }));
-                        }}
-                        className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-4 text-[#2a465a] placeholder:text-slate-400 focus:outline-none"
-                      />
-                    </InputWrap>
-                  </Field>
+                  <div>
+                    <DataField
+                      label="Owner / Admin Name"
+                      id="ownerName"
+                      type="text"
+                      placeholder="Full name"
+                      value={ownerName}
+                      icon={User}
+                      onChange={(e) => {
+                        setOwnerName(e.target.value);
+                        if (errors.ownerName)
+                          setErrors((er) => ({ ...er, ownerName: "" }));
+                      }}
+                    />
+                    <FieldError error={errors.ownerName} />
+                  </div>
 
                   {/* Summary card */}
                   <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5 space-y-2 text-sm">
@@ -606,34 +596,42 @@ const AdminRegister = () => {
               {step === 2 && (
                 <>
                   {/* Password */}
-                  <Field label="Password" error={errors.password}>
-                    <InputWrap icon={ShieldCheck}>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Min. 8 characters"
-                        value={password}
-                        onChange={(e) => {
-                          setPassword(e.target.value);
-                          if (errors.password)
-                            setErrors((er) => ({ ...er, password: "" }));
-                        }}
-                        className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-14 text-[#2a465a] placeholder:text-slate-400 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#2a465a] transition"
+                  <div>
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        htmlFor="password_register"
+                        className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] select-none"
                       >
-                        {showPassword ? (
-                          <EyeOff size={20} />
-                        ) : (
-                          <Eye size={20} />
-                        )}
-                      </button>
-                    </InputWrap>
+                        Password
+                      </label>
+                      <div className="relative rounded-2xl border border-slate-200 bg-slate-50/90 focus-within:ring-2 focus-within:ring-[#2a465a]/20 focus-within:border-[#2a465a]/40 transition duration-200">
+                        <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
+                          <ShieldCheck size={18} />
+                        </div>
+                        <input
+                          id="password_register"
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Min. 8 characters"
+                          value={password}
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            if (errors.password)
+                              setErrors((er) => ({ ...er, password: "" }));
+                          }}
+                          className="w-full rounded-2xl bg-transparent py-3.5 pl-12 pr-14 text-[#2a465a] placeholder:text-slate-400 text-sm font-medium focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#2a465a] transition"
+                        >
+                          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
+                    </div>
                     {/* Strength bar */}
                     {password && (
-                      <div className="flex gap-1 mt-1">
+                      <div className="flex gap-1 mt-2">
                         {[1, 2, 3, 4].map((n) => {
                           const strength =
                             (password.length >= 8 ? 1 : 0) +
@@ -659,34 +657,45 @@ const AdminRegister = () => {
                         })}
                       </div>
                     )}
-                  </Field>
+                    <FieldError error={errors.password} />
+                  </div>
 
                   {/* Confirm Password */}
-                  <Field
-                    label="Confirm Password"
-                    error={errors.confirmPassword}
-                  >
-                    <InputWrap icon={ShieldCheck}>
-                      <input
-                        type={showConfirm ? "text" : "password"}
-                        placeholder="Re-enter your password"
-                        value={confirmPassword}
-                        onChange={(e) => {
-                          setConfirmPassword(e.target.value);
-                          if (errors.confirmPassword)
-                            setErrors((er) => ({ ...er, confirmPassword: "" }));
-                        }}
-                        className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-14 text-[#2a465a] placeholder:text-slate-400 focus:outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirm(!showConfirm)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#2a465a] transition"
+                  <div>
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        htmlFor="confirm_password_register"
+                        className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] select-none"
                       >
-                        {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
-                      </button>
-                    </InputWrap>
-                  </Field>
+                        Confirm Password
+                      </label>
+                      <div className="relative rounded-2xl border border-slate-200 bg-slate-50/90 focus-within:ring-2 focus-within:ring-[#2a465a]/20 focus-within:border-[#2a465a]/40 transition duration-200">
+                        <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
+                          <ShieldCheck size={18} />
+                        </div>
+                        <input
+                          id="confirm_password_register"
+                          type={showConfirm ? "text" : "password"}
+                          placeholder="Re-enter your password"
+                          value={confirmPassword}
+                          onChange={(e) => {
+                            setConfirmPassword(e.target.value);
+                            if (errors.confirmPassword)
+                              setErrors((er) => ({ ...er, confirmPassword: "" }));
+                          }}
+                          className="w-full rounded-2xl bg-transparent py-3.5 pl-12 pr-14 text-[#2a465a] placeholder:text-slate-400 text-sm font-medium focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirm(!showConfirm)}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#2a465a] transition"
+                        >
+                          {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
+                      </div>
+                    </div>
+                    <FieldError error={errors.confirmPassword} />
+                  </div>
 
                   {/* CAPTCHA */}
                   <div className="space-y-3">
@@ -722,9 +731,9 @@ const AdminRegister = () => {
                         </button>
                       </div>
                     </div>
-                    <InputWrap>
-                      <input
-                        type="text"
+                    <div>
+                      <DataField
+                        id="captcha_register"
                         placeholder="Enter the 4-digit number above"
                         value={captchaInput}
                         onChange={(e) => {
@@ -732,55 +741,52 @@ const AdminRegister = () => {
                           if (errors.captchaInput)
                             setErrors((er) => ({ ...er, captchaInput: "" }));
                         }}
-                        maxLength={4}
-                        className="w-full rounded-2xl bg-transparent py-4 px-4 text-[#2a465a] placeholder:text-slate-400 focus:outline-none text-center tracking-[0.25em] text-md font-semibold"
+                        className="text-center tracking-[0.25em] font-semibold"
                       />
-                    </InputWrap>
-                    {errors.captchaInput && (
-                      <p className="text-xs text-rose-600">
-                        {errors.captchaInput}
+                      <FieldError error={errors.captchaInput} />
+                      <p className="text-xs text-slate-400 mt-1">
+                        Enter the 4-digit number shown above
                       </p>
-                    )}
-                    <p className="text-xs text-slate-400">
-                      Enter the 4-digit number shown above
-                    </p>
+                    </div>
                   </div>
                 </>
               )}
 
               {/* ── Navigation buttons ── */}
-              <div
-                className={`flex gap-3 pt-2 ${step > 0 ? "justify-between" : "justify-end"}`}
-              >
-                {step > 0 && (
-                  <button
-                    type="button"
-                    onClick={prevStep}
-                    className="px-6 py-4 rounded-2xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition"
-                  >
-                    ← Back
-                  </button>
-                )}
-                {step < 2 ? (
-                  <button
-                    type="button"
-                    onClick={nextStep}
-                    disabled={isSubmitting}
-                    className="flex-1 py-4 bg-[#2a465a] text-white font-bold rounded-2xl shadow-xl shadow-[#2a465a]/20 transition duration-300 ease-out hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-2xl hover:-translate-y-0.5 active:scale-95"
-                  >
-                    Continue →
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 py-4 bg-[#2a465a] text-white font-bold rounded-2xl shadow-xl shadow-[#2a465a]/20 transition duration-300 ease-out hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-2xl hover:-translate-y-0.5 active:scale-95"
-                  >
-                    {isSubmitting ? "Creating..." : "Create Account →"}
-                  </button>
-                )}
-              </div>
             </form>
+
+            <div
+              className={`flex gap-3 pt-2 mt-5 ${step > 0 ? "justify-between" : "justify-end"}`}
+            >
+              {step > 0 && (
+                <button
+                  type="button"
+                  onClick={prevStep}
+                  className="px-6 py-3.5 rounded-2xl border border-slate-200 text-[#2a465a] font-bold text-sm hover:bg-slate-50 transition"
+                >
+                  ← Back
+                </button>
+              )}
+              {step < 2 ? (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  disabled={isSubmitting}
+                  className="flex-1 py-3.5 bg-[#2a465a] text-white font-bold rounded-2xl shadow-lg shadow-[#2a465a]/20 transition duration-200 ease-out hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  Continue →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting}
+                  className="flex-1 py-3.5 bg-[#2a465a] text-white font-bold rounded-2xl shadow-lg shadow-[#2a465a]/20 transition duration-200 ease-out hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isSubmitting ? "Creating..." : "Create Account →"}
+                </button>
+              )}
+            </div>
 
             <p className="mt-6 text-center text-slate-500 text-sm">
               Already have an account?{" "}
