@@ -1,16 +1,21 @@
-import { createContext, useContext, useState } from "react";
-import { INITIAL_LEADS, INITIAL_DUMP, TEAM_LEADERS, MAX_LEADS } from "./leadsStore";
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import apiClient from "../../../../services/apiClient";
+import { TEAM_LEADERS, MAX_LEADS, INITIAL_DUMP } from "./leadsStore";
 
 const LeadsContext = createContext(null);
 
 export function LeadsProvider({ children }) {
-  const [leads,           setLeads]           = useState(INITIAL_LEADS);
+  const [leads,           setLeads]           = useState([]);
   const [dumpData,        setDumpData]        = useState(INITIAL_DUMP);
+  const [teamLeaders,     setTeamLeaders]     = useState(TEAM_LEADERS);
   const [selectedLeadIds, setSelectedLeadIds] = useState([]);
+  const [loading,         setLoading]         = useState(false);
+  const [error,           setError]           = useState(null);
 
   // ── Bulk upload state ─────────────────────────────────────────────────────
   const [csvRows,     setCsvRows]     = useState([]);
   const [csvFileName, setCsvFileName] = useState("");
+  const [uploadId,    setUploadId]    = useState(null);
 
   // ── Distribution state ────────────────────────────────────────────────────
   const [distLeads,     setDistLeads]     = useState([]);
@@ -21,7 +26,42 @@ export function LeadsProvider({ children }) {
   // ── Auto-distribute result ────────────────────────────────────────────────
   const [autoDistResult, setAutoDistResult] = useState([]);
 
+  // ── Fetch leads from backend ──────────────────────────────────────────────
+  const fetchLeads = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await apiClient.get("/sales-manager/leads");
+      setLeads(response.data.data);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to fetch leads:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLeads();
+  }, [fetchLeads]);
+
   // ── Actions ───────────────────────────────────────────────────────────────
+  const addLeads = (newLeads) => setLeads((prev) => [...prev, ...newLeads]);
+
+  const assignLead = async (leadId, userId) => {
+    try {
+      await apiClient.post(`/sales-manager/leads/${leadId}/assign`, { userId });
+      await fetchLeads();
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  };
+
+  const updateLead = (updated) => {
+    setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
+  };
+
   const moveToDump = (lead) => {
     setLeads((prev) => prev.filter((l) => l.id !== lead.id));
     setDumpData((prev) => [
@@ -39,9 +79,6 @@ export function LeadsProvider({ children }) {
   };
 
   const reassignFromDump = (dumpRow, tlName) => {
-    const tl  = TEAM_LEADERS.find((t) => t.name === tlName);
-    const cap = tl ? MAX_LEADS - tl.currentLeads : 0;
-    if (cap <= 0) return { error: `${tl?.name} has no capacity.` };
     setLeads((prev) => [
       ...prev,
       {
@@ -59,77 +96,29 @@ export function LeadsProvider({ children }) {
     return { error: null };
   };
 
-  const deleteDumpRow = (id) => setDumpData((prev) => prev.filter((d) => d.id !== id));
-
-  const assignLead = (leadId, tlName) => {
-    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, assignedTo: tlName } : l)));
-  };
-
-  const updateLead = (updated) => {
-    setLeads((prev) => prev.map((l) => (l.id === updated.id ? updated : l)));
-  };
-
-  const addLeads = (newLeads) => setLeads((prev) => [...prev, ...newLeads]);
-
-  const initDistribution = (ids) => {
-    const selected = leads.filter((l) => ids.includes(l.id));
-    setDistLeads(selected);
-    setDistTLs([]);
-    setDistTableRows([]);
-    setDistWarning("");
-  };
-
-  const addTLToDistribution = (tlId) => {
-    const tl = TEAM_LEADERS.find((t) => t.id === tlId);
-    if (!tl || distTLs.find((t) => t.id === tlId)) return;
-    const cap = MAX_LEADS - tl.currentLeads;
-    setDistTLs((prev) => [...prev, tl]);
-    setDistTableRows((prev) => [
-      ...prev,
-      { tlId, tlName: tl.name, currentLeads: tl.currentLeads, capacity: cap, assignLeads: 0, target: 0 },
-    ]);
-  };
-
-  const updateDistRow = (tlId, field, val) => {
-    setDistTableRows((prev) =>
-      prev.map((r) => (r.tlId === tlId ? { ...r, [field]: Number(val) } : r))
-    );
-  };
-
-  const distributeLeads = () => {
-    const totalAssigning = distTableRows.reduce((s, r) => s + r.assignLeads, 0);
-    if (totalAssigning > distLeads.length)
-      return { error: `Cannot assign ${totalAssigning} leads — only ${distLeads.length} selected.` };
-    for (const r of distTableRows) {
-      if (r.target > r.assignLeads)
-        return { error: `Target for ${r.tlName} (${r.target}) cannot exceed assigned leads (${r.assignLeads}).` };
-      if (r.assignLeads > r.capacity)
-        return { error: `${r.tlName} only has capacity for ${r.capacity} more leads.` };
+  const deleteDumpRow = async (id) => {
+    try {
+      await apiClient.delete(`/sales-manager/leads/${id}`);
+      setDumpData((prev) => prev.filter((d) => d.id !== id));
+      await fetchLeads(); // Refresh leads count
+      return { success: true };
+    } catch (err) {
+      console.error("Delete failed:", err);
+      return { success: false, error: err.message };
     }
-    const shuffled = [...distLeads].sort(() => Math.random() - 0.5);
-    let pointer = 0;
-    const updates = {};
-    for (const r of distTableRows) {
-      shuffled.slice(pointer, pointer + r.assignLeads).forEach((l) => { updates[l.id] = r.tlName; });
-      pointer += r.assignLeads;
-    }
-    setLeads((prev) => prev.map((l) => (updates[l.id] ? { ...l, assignedTo: updates[l.id] } : l)));
-    setSelectedLeadIds([]);
-    setDistLeads([]);
-    setDistTLs([]);
-    setDistTableRows([]);
-    return { error: null };
   };
 
   return (
     <LeadsContext.Provider value={{
-      leads, setLeads, addLeads, updateLead, moveToDump, assignLead,
-      dumpData, reassignFromDump, deleteDumpRow,
+      leads, setLeads, addLeads, updateLead, assignLead,
+      dumpData, moveToDump, reassignFromDump, deleteDumpRow,
+      teamLeaders, MAX_LEADS,
       selectedLeadIds, setSelectedLeadIds,
       csvRows, setCsvRows, csvFileName, setCsvFileName,
+      uploadId, setUploadId,
       distLeads, distTLs, distTableRows, distWarning, setDistWarning,
-      initDistribution, addTLToDistribution, updateDistRow, distributeLeads,
       autoDistResult, setAutoDistResult,
+      fetchLeads, loading, error,
     }}>
       {children}
     </LeadsContext.Provider>

@@ -7,25 +7,24 @@ import {
   Eye, Pencil, UserCheck, Trash2, AlertTriangle, GitBranch, CheckCircle,
 } from "lucide-react";
 import { useLeads } from "./LeadsContext";
-import { TEAM_LEADERS, MAX_LEADS } from "./leadsStore";
-
-// ─── Same distribution builder as AllLeads ────────────────────────────────────
-function buildDistRows(totalLeads) {
-  const eligible = TEAM_LEADERS
-    .map((tl) => ({ ...tl, capacity: MAX_LEADS - tl.currentLeads }))
-    .filter((tl) => tl.capacity > 0);
-  if (eligible.length === 0) return [];
-  const base      = Math.floor(totalLeads / eligible.length);
-  const remainder = totalLeads % eligible.length;
-  return eligible.map((tl, i) => {
-    const share  = base + (i < remainder ? 1 : 0);
-    const assign = Math.min(share, tl.capacity);
-    return { tlId: tl.id, tlName: tl.name, currentLeads: tl.currentLeads, capacity: tl.capacity, assignLeads: assign, target: Math.round(assign * 0.8) };
-  });
-}
 
 export default function DumpData() {
-  const { dumpData, reassignFromDump, deleteDumpRow, addLeads } = useLeads();
+  const { dumpData, reassignFromDump, deleteDumpRow, addLeads, teamLeaders, MAX_LEADS } = useLeads();
+
+  // ─── Same distribution builder as AllLeads ────────────────────────────────────
+  function buildDistRows(totalLeads) {
+    const eligible = teamLeaders
+      .map((tl) => ({ ...tl, id: tl._id, capacity: MAX_LEADS - tl.currentLeads }))
+      .filter((tl) => tl.capacity > 0);
+    if (eligible.length === 0) return [];
+    const base      = Math.floor(totalLeads / eligible.length);
+    const remainder = totalLeads % eligible.length;
+    return eligible.map((tl, i) => {
+      const share  = base + (i < remainder ? 1 : 0);
+      const assign = Math.min(share, tl.capacity);
+      return { tlId: tl.id || tl._id, tlName: tl.name, currentLeads: tl.currentLeads, capacity: tl.capacity, assignLeads: assign, target: Math.round(assign * 0.8) };
+    });
+  }
 
   // ── View modal ────────────────────────────────────────────────────────────
   const [viewRow, setViewRow] = useState(null);
@@ -212,9 +211,9 @@ export default function DumpData() {
             <SelectField label="Select Team Leader" value={reassignTL}
               onChange={(e) => { setReassignTL(e.target.value); setReassignWarning(""); }}
               placeholder="Choose a TL">
-              {TEAM_LEADERS.map((tl) => {
+              {teamLeaders.map((tl) => {
                 const cap = MAX_LEADS - tl.currentLeads;
-                return <Option key={tl.id} value={tl.name} label={`${tl.name} (${cap} capacity)`} disabled={cap === 0} />;
+                return <Option key={tl._id} value={tl.name} label={`${tl.name} (${cap} capacity)`} disabled={cap === 0} />;
               })}
             </SelectField>
             {reassignWarning && (

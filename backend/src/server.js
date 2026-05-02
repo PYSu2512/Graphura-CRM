@@ -20,6 +20,7 @@ const bulkUserUploadRoutes = require('./routes/bulkUserUpload');
 const userRoutes = require('./routes/users');
 const superAdminRoutes = require('./routes/superadmin');
 const teamRoutes = require('./routes/teams');
+const salesManagerLeadRoutes = require('./routes/salesManagerLeads');
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ app.use('/api/users/bulk', bulkUserUploadRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/superadmin', superAdminRoutes);
 app.use('/api/teams', teamRoutes);
+app.use('/api/sales-manager/leads', salesManagerLeadRoutes);
 
 // ────────────────────────────────────────────────────────────
 // 404 HANDLER (Express 5 safe)

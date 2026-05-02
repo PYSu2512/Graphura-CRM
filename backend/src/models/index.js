@@ -657,7 +657,7 @@ const LeadSchema = new Schema({
   client: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
 
   // ── Assignment (chain tracked for performance reporting) ──
-  assignedTo: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   assignedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   team: { type: Schema.Types.ObjectId, ref: 'Team', default: null },
 
@@ -760,7 +760,7 @@ const BulkLeadUploadSchema = new Schema({
     _id: false,
   }],
   errorMessages: [String],
-  status: { type: String, enum: ['PROCESSING', 'DONE', 'PARTIAL', 'FAILED'], default: 'PROCESSING' },
+  status: { type: String, enum: ['PROCESSING', 'PREVIEWED', 'DONE', 'PARTIAL', 'FAILED'], default: 'PROCESSING' },
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 
