@@ -22,13 +22,13 @@ function AppRoutes() {
         <Route path="/login" element={<DepartmentLogin />} />
         {/* Admin Routes */}
         <Route path="/admin/*" element={<AdminRoutes />} />
-        <Route path="*" element={<Navigate to="/admin" replace />} />
         {/* Super_Admin Routes */}
         <Route path="/super-admin/*" element={<SuperAdminRoutes />} />
         {/* Sales Routes */}
         <Route path="/sales-manager/*" element={<SalesManagerRoutes />} />
         <Route path="/sales-team-leader/*" element={<SalesTeamLeaderRoutes />} />
         <Route path="/sales-executive/*" element={<SalesExecutiveRoutes />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </BrowserRouter>
   );
