@@ -403,7 +403,7 @@ export default function Announcements({ announcements, setAnnouncements }) {
       />
 
       {/* ── View Modal ── */}
-      <Modal id="ann-view-modal" title="Announcement Details" size="md">
+      <Modal id="ann-view-modal" title="Announcement Details" size="xl">
         {viewRow && (
           <div className="flex flex-col gap-4">
             <ModalGrid title="Details" cols={2}>
@@ -427,12 +427,12 @@ export default function Announcements({ announcements, setAnnouncements }) {
       </Modal>
 
       {/* ── Edit Modal ── */}
-      <Modal id="ann-edit-modal" title="Edit Announcement" size="md">
+      <Modal id="ann-edit-modal" title="Edit Announcement" size="xl">
         {editRow && (
           <div className="flex flex-col gap-4">
             <Grid cols={12} gap={4}>
 
-              <div className="col-span-12">
+              <div className="col-span-9">
                 <DataField
                   label="Title *" id="edit-ann-title" size={12}
                   value={editRow.title}
@@ -442,7 +442,7 @@ export default function Announcements({ announcements, setAnnouncements }) {
                 {formErr.title && <p className="text-xs text-rose-600 mt-1 px-1">{formErr.title}</p>}
               </div>
 
-              <div className="col-span-12">
+              <div className="col-span-3">
                 <DatePicker
                   label="Expiry Date"
                   id="edit-ann-expiry"

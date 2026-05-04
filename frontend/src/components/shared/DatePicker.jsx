@@ -223,7 +223,7 @@ export default function DatePicker({
                   Clear
                 </button>
                 <button type="button"
-                  onClick={() => { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); }}
+                  onClick={() => selectDate(now.getFullYear(), now.getMonth(), now.getDate())}
                   className="text-xs font-bold text-[#2a465a] hover:underline transition">
                   Today
                 </button>
