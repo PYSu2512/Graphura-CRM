@@ -453,3 +453,13 @@ html {
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
   background: rgba(255,255,255,0.15);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PROSPECT LIST FIXES
+   ═══════════════════════════════════════════════════════════════ */
+.prospect-list-table .max-w-xl {
+    max-width: 100% !important;
+}
+.prospect-list-table .justify-center {
+    justify-content: space-between !important;
+}

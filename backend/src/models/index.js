@@ -98,6 +98,7 @@ const AUDIT_ACTIONS = [
   'LIMIT_CHANGED', 'PASSWORD_CHANGED', 'PROFILE_UPDATED',
   'ATTENDANCE_CLOCK_IN', 'ATTENDANCE_CLOCK_OUT',
   'PROSPECT_CREATED', 'PROSPECT_UPDATED',
+  'TEAM_CREATED', 'TEAM_UPDATED', 'TEAM_MEMBER_ADDED', 'TEAM_MEMBER_REMOVED', 'TEAM_DELETED',
 ];
 const RESET_PURPOSE = ['PASSWORD_RESET', 'EMAIL_VERIFY'];
 const WEBHOOK_SOURCE = ['RAZORPAY'];
@@ -657,7 +658,7 @@ const LeadSchema = new Schema({
   client: { type: Schema.Types.ObjectId, ref: 'Client', required: true },
 
   // ── Assignment (chain tracked for performance reporting) ──
-  assignedTo: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+  assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   assignedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
   team: { type: Schema.Types.ObjectId, ref: 'Team', default: null },
 
@@ -760,7 +761,7 @@ const BulkLeadUploadSchema = new Schema({
     _id: false,
   }],
   errorMessages: [String],
-  status: { type: String, enum: ['PROCESSING', 'DONE', 'PARTIAL', 'FAILED'], default: 'PROCESSING' },
+  status: { type: String, enum: ['PROCESSING', 'PREVIEWED', 'DONE', 'PARTIAL', 'FAILED'], default: 'PROCESSING' },
   assignedTo: { type: Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Heading,
     Grid,
@@ -16,6 +16,7 @@ import {
     ModalData,
     ModalGrid,
 } from "../../../components/shared/Common_Components";
+import { teamService } from '../../../services/teamService';
 import {
     Users,
     Briefcase,
@@ -28,108 +29,103 @@ import {
     Trash2,
 } from "lucide-react";
 
-// ─── Dummy Data ───────────────────────────────────────────────────────────────
+// ─── Constants ───────────────────────────────────────────────────────────────
 const MAX_LEADS = 1500;
-
-// Single source of truth — each TL carries their employees inline
-const INITIAL_TLS = [
-    {
-        id: "TL001", name: "Rahul Mehta", email: "rahul@crm.com", mobile: "9876543210",
-        currentLeads: 1200, target: 1000, targetAchieved: 820, status: "Active",
-        employees: [
-            { id: "E101", name: "Raj Patel", email: "raj@crm.com", mobile: "9801111001", currentLeads: 120, calls: 340, sales: 18, status: "Active" },
-            { id: "E102", name: "Asha Mehta", email: "asha@crm.com", mobile: "9801111002", currentLeads: 95, calls: 270, sales: 12, status: "Active" },
-            { id: "E103", name: "Nikhil Roy", email: "nikhil@crm.com", mobile: "9801111003", currentLeads: 140, calls: 400, sales: 22, status: "Active" },
-            { id: "E104", name: "Pooja Das", email: "pooja@crm.com", mobile: "9801111004", currentLeads: 80, calls: 210, sales: 9, status: "Inactive" },
-        ],
-    },
-    {
-        id: "TL002", name: "Sneha Patel", email: "sneha@crm.com", mobile: "9123456780",
-        currentLeads: 980, target: 850, targetAchieved: 710, status: "Active",
-        employees: [
-            { id: "E201", name: "Priti Shah", email: "priti@crm.com", mobile: "9802221001", currentLeads: 110, calls: 300, sales: 15, status: "Active" },
-            { id: "E202", name: "Mohan Lal", email: "mohan@crm.com", mobile: "9802221002", currentLeads: 130, calls: 380, sales: 20, status: "Active" },
-            { id: "E203", name: "Sunita Roy", email: "sunita@crm.com", mobile: "9802221003", currentLeads: 90, calls: 250, sales: 11, status: "Active" },
-        ],
-    },
-    {
-        id: "TL003", name: "Arjun Verma", email: "arjun@crm.com", mobile: "8765432109",
-        currentLeads: 450, target: 400, targetAchieved: 290, status: "Active",
-        employees: [
-            { id: "E301", name: "Arun Kumar", email: "arun@crm.com", mobile: "9803331001", currentLeads: 60, calls: 180, sales: 7, status: "Active" },
-            { id: "E302", name: "Ravi Sharma", email: "ravi@crm.com", mobile: "9803331002", currentLeads: 75, calls: 220, sales: 9, status: "Active" },
-        ],
-    },
-    {
-        id: "TL004", name: "Priya Sharma", email: "priya@crm.com", mobile: "7654321098",
-        currentLeads: 1490, target: 1400, targetAchieved: 1380, status: "Active",
-        employees: [
-            { id: "E401", name: "Geeta Singh", email: "geeta@crm.com", mobile: "9804441001", currentLeads: 200, calls: 580, sales: 35, status: "Active" },
-            { id: "E402", name: "Vivek Bose", email: "vivek@crm.com", mobile: "9804441002", currentLeads: 190, calls: 530, sales: 30, status: "Active" },
-            { id: "E403", name: "Divya Nair", email: "divya@crm.com", mobile: "9804441003", currentLeads: 185, calls: 510, sales: 28, status: "Inactive" },
-        ],
-    },
-    {
-        id: "TL005", name: "Kabir Singh", email: "kabir@crm.com", mobile: "6543210987",
-        currentLeads: 300, target: 250, targetAchieved: 180, status: "Inactive",
-        employees: [
-            { id: "E501", name: "Kiran Rao", email: "kiran@crm.com", mobile: "9805551001", currentLeads: 45, calls: 130, sales: 5, status: "Active" },
-            { id: "E502", name: "Hari Verma", email: "hari@crm.com", mobile: "9805551002", currentLeads: 55, calls: 160, sales: 6, status: "Active" },
-        ],
-    },
-];
-
-// Derived flat pool — used for the team member picker
-const ALL_EMPLOYEES = INITIAL_TLS.flatMap((tl) => tl.employees);
-
-// Sample teams — each memberIds is a Set of employee IDs
-const INITIAL_TEAMS = [
-    {
-        id: "TEAM001",
-        name: "Alpha Squad",
-        leaderId: "TL001",
-        memberIds: new Set(["E101", "E102", "E103"]),
-    },
-    {
-        id: "TEAM002",
-        name: "Beta Force",
-        leaderId: "TL002",
-        memberIds: new Set(["E201", "E202"]),
-    },
-    {
-        id: "TEAM003",
-        name: "Gamma Strike",
-        leaderId: "TL003",
-        memberIds: new Set(["E301", "E302"]),
-    },
-    {
-        id: "TEAM004",
-        name: "Delta Closers",
-        leaderId: "TL004",
-        memberIds: new Set(["E401", "E402", "E403"]),
-    },
-    {
-        id: "TEAM005",
-        name: "Epsilon Hunters",
-        leaderId: "TL005",
-        memberIds: new Set(["E501", "E502", "E104"]),
-    },
-];
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TEAM LEADERS PAGE
 // ═════════════════════════════════════════════════════════════════════════════
 export default function SalesTeamLeaders() {
-    const [tls, setTls] = useState(INITIAL_TLS);
+    const [tls, setTls] = useState([]);
     const [viewTL, setViewTL] = useState(null);
     const [editTL, setEditTL] = useState(null);
 
     // ── Teams state ───────────────────────────────────────────────────────────
     // Each team: { id, name, leaderId, memberIds: Set<string> }
-    const [teams, setTeams] = useState(INITIAL_TEAMS);
+    const [teams, setTeams] = useState([]);
     const [teamForm, setTeamForm] = useState({ id: null, name: "", leaderId: "", memberIds: new Set() });
     const [teamError, setTeamError] = useState("");
     const [viewTeam, setViewTeam] = useState(null);
+    const [employees, setEmployees] = useState([]);
+
+    // Load available leaders for the current user's department
+        const [loading, setLoading] = useState(false);
+        const [toast, setToast] = useState(null);
+
+        const showToast = (msg, type = 'success') => {
+            setToast({ msg, type });
+            setTimeout(() => setToast(null), 3000);
+        };
+    useEffect(() => {
+        const loadLeaders = async () => {
+            setLoading(true);
+            try {
+                const current = JSON.parse(localStorage.getItem('user') || localStorage.getItem('admin') || 'null');
+                const departmentId = current?.department?._id || current?.department || null;
+                if (!departmentId) return;
+                const res = await teamService.getAvailableLeaders(departmentId);
+                const leaders = res.data?.leaders || res.leaders || [];
+                const mapped = leaders.map((l) => ({
+                    id: l._id,
+                    name: l.name,
+                    email: l.email,
+                    mobile: l.phone || l.mobile || '',
+                    currentLeads: l.leadCount || 0,
+                    target: l.target || 0,
+                    status: l.isActive ? 'Active' : 'Inactive',
+                }));
+                setTls(mapped);
+
+                // Load persisted teams for this user
+                try {
+                    const teamsRes = await teamService.getUserTeams();
+                    const teamsData = teamsRes.data?.teams || teamsRes.teams || [];
+                    const mappedTeams = teamsData.map((t) => ({ id: t._id, name: t.name, leaderId: t.leader?._id || t.leader, memberIds: new Set((t.members || []).map(m => m.user?._id || m.user)) }));
+                    setTeams(mappedTeams);
+                } catch (err) {
+                    console.error('Failed to load user teams', err);
+                }
+            } catch (err) {
+                console.error('Failed to load leaders', err);
+                showToast('Failed to load leaders', 'error');
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadLeaders();
+    }, []);
+
+    // Load employees under selected leader
+    useEffect(() => {
+        const leaderId = teamForm.leaderId;
+        if (!leaderId) {
+            setEmployees([]);
+            return;
+        }
+
+        const loadEmployees = async () => {
+            try {
+                const res = await teamService.getLeaderEmployees(leaderId);
+                const emps = res.data?.employees || res.employees || [];
+                const mapped = emps.map((e) => ({
+                    id: e._id,
+                    name: e.name,
+                    mobile: e.phone || e.phone || '',
+                    currentLeads: e.leadCount || 0,
+                    status: e.isActive ? 'Active' : 'Inactive',
+                    teamLabel: e.assignedTeamName || '—',
+                }));
+                setEmployees(mapped);
+                // Reset member selection when leader changes
+                setTeamForm((p) => ({ ...p, memberIds: new Set() }));
+            } catch (err) {
+                console.error('Failed to load employees', err);
+                setEmployees([]);
+                showToast('Failed to load leader employees', 'error');
+            }
+        };
+        loadEmployees();
+    }, [teamForm.leaderId]);
 
     // ── KPIs ─────────────────────────────────────────────────────────────────
     const totalLeaders = tls.length;
@@ -172,20 +168,41 @@ export default function SalesTeamLeaders() {
         });
     };
 
-    const saveTeam = () => {
-        if (!teamForm.name.trim()) { setTeamError("Team name is required."); return; }
-        if (!teamForm.leaderId) { setTeamError("Please select a team leader."); return; }
-        if (teamForm.memberIds.size === 0) { setTeamError("Add at least one member."); return; }
+    const saveTeam = async () => {
+        try {
+            if (!teamForm.name.trim()) { setTeamError("Team name is required."); return; }
+            if (!teamForm.leaderId) { setTeamError("Please select a team leader."); return; }
+            if (teamForm.memberIds.size === 0) { setTeamError("Add at least one member."); return; }
 
-        if (teamForm.id) {
-            // Edit existing
-            setTeams((prev) => prev.map((t) => t.id === teamForm.id ? { ...teamForm } : t));
-        } else {
-            // Create new
-            const newId = `TEAM${String(teams.length + 1).padStart(3, "0")}`;
-            setTeams((prev) => [...prev, { ...teamForm, id: newId }]);
+            // Create team via API (department user route)
+            const current = JSON.parse(localStorage.getItem('user') || localStorage.getItem('admin') || 'null');
+            const departmentId = current?.department?._id || current?.department || null;
+            const createRes = await teamService.createTeam({ name: teamForm.name.trim(), department: departmentId, leader: teamForm.leaderId });
+            const createdTeam = createRes.data?.team || createRes.team;
+
+            // Add selected members
+            const memberIds = Array.from(teamForm.memberIds);
+            for (const uid of memberIds) {
+                try {
+                    await teamService.addTeamMember(createdTeam._id, uid);
+                } catch (err) {
+                    console.error('Failed to add member', uid, err);
+                }
+            }
+
+            // Update local UI state
+            setTeams((prev) => [...prev, {
+                id: createdTeam._id,
+                name: createdTeam.name,
+                leaderId: createdTeam.leader?._id || createdTeam.leader,
+                memberIds: new Set(memberIds),
+            }]);
+
+            closeModal("team-form-modal");
+        } catch (err) {
+            console.error('Create team failed', err);
+            setTeamError(err.message || 'Failed to create team');
         }
-        closeModal("team-form-modal");
     };
 
     const deleteTeam = (teamId) => {
@@ -211,7 +228,7 @@ export default function SalesTeamLeaders() {
                         <Heading primaryText="Teams" secondaryText="Management" size={12} fontSize="2xl" />
                     </div>
                     <div className="flex-shrink-0 self-center">
-                        <Button text="+ Create Team" variant="primary" size={12} onClick={openCreateTeam} />
+                        <Button text={loading ? "Loading..." : "+ Create Team"} variant="primary" size={12} onClick={openCreateTeam} disabled={loading} />
                     </div>
                 </div>
 
@@ -254,7 +271,35 @@ export default function SalesTeamLeaders() {
                                 icon: <Eye size={15} />,
                                 tooltip: "View Team",
                                 variant: "ghost",
-                                onClick: (row) => { setViewTeam(teams.find((t) => t.id === row.id)); openModal("view-team-modal"); },
+                                onClick: async (row) => {
+                                    try {
+                                        setLoading(true);
+                                        const res = await teamService.getTeamById(row.id);
+                                        const team = res.data?.team || res.team;
+                                        if (team) {
+                                            // Map members for the view modal
+                                            const members = (team.members || []).map((m) => {
+                                                const u = m.user || m;
+                                                return {
+                                                    id: u._id || u.id,
+                                                    name: u.name,
+                                                    mobile: u.phone || u.mobile || '',
+                                                    currentLeads: u.leadCount || 0,
+                                                    calls: u.calls || 0,
+                                                    sales: u.sales || 0,
+                                                    status: u.isActive ? 'Active' : 'Inactive',
+                                                };
+                                            });
+                                            setViewTeam({ id: team._id, name: team.name, leaderId: team.leader?._id || team.leader, members });
+                                            openModal("view-team-modal");
+                                        }
+                                    } catch (err) {
+                                        console.error('Failed to fetch team', err);
+                                        showToast('Failed to load team details', 'error');
+                                    } finally {
+                                        setLoading(false);
+                                    }
+                                },
                             },
                             {
                                 icon: <Pencil size={15} />,
@@ -307,6 +352,14 @@ export default function SalesTeamLeaders() {
                     />
                 </div>
             </Grid>
+
+            {/* Toast */}
+            {toast && (
+                <div className={`fixed top-6 right-6 z-[10000] flex items-center gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold text-white shadow-2xl transition-all duration-300 ${toast.type === 'error' ? 'bg-rose-500' : 'bg-emerald-500'}`}>
+                    {toast.type === 'error' ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 9v4" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 17h.01" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                    {toast.msg}
+                </div>
+            )}
 
             <Modal id="view-tl-modal" title="Team Leader Details" size="xl">
                 {viewTL && (() => {
@@ -398,7 +451,7 @@ export default function SalesTeamLeaders() {
             <Modal id="view-team-modal" title="Team Details" size="xl">
                 {viewTeam && (() => {
                     const leader = tls.find((t) => t.id === viewTeam.leaderId);
-                    const members = ALL_EMPLOYEES.filter((e) => viewTeam.memberIds.has(e.id));
+                    const members = viewTeam.members || employees.filter((e) => viewTeam.memberIds?.has?.(e.id));
                     return (
                         <div className="flex flex-col gap-5">
                             <ModalProfile
@@ -523,7 +576,7 @@ export default function SalesTeamLeaders() {
                                     label: "",
                                     // Select-all checkbox rendered in the header
                                     headerNode: (() => {
-                                        const available = ALL_EMPLOYEES.filter((e) => !takenMemberIds(teamForm.id).has(e.id));
+                                        const available = employees.filter((e) => !takenMemberIds(teamForm.id).has(e.id));
                                         const allSel = available.length > 0 && available.every((e) => teamForm.memberIds.has(e.id));
                                         return (
                                             <button
@@ -561,7 +614,7 @@ export default function SalesTeamLeaders() {
                                 { key: "status", label: "Status" },
                                 { key: "teamLabel", label: "Team" },
                             ]}
-                            rows={ALL_EMPLOYEES.map((emp) => {
+                            rows={employees.map((emp) => {
                                 const taken = takenMemberIds(teamForm.id).has(emp.id);
                                 const selected = teamForm.memberIds.has(emp.id);
                                 const takenByTeam = taken

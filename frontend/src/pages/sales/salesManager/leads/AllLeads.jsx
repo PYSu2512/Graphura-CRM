@@ -5,38 +5,37 @@ import {
 } from "../../../../components/shared/Common_Components";
 import {
   Pencil, ArchiveX, Trash2,
-  AlertTriangle, CheckCircle, GitBranch, UserCheck, Plus,
+  AlertTriangle, CheckCircle, GitBranch, UserCheck, Plus, Loader2,
 } from "lucide-react";
 import { useLeads } from "./LeadsContext";
-import { TEAM_LEADERS, MAX_LEADS } from "./leadsStore";
-
-// ─── Even distribution builder ────────────────────────────────────────────────
-function buildDistRows(totalLeads) {
-  const eligible = TEAM_LEADERS
-    .map((tl) => ({ ...tl, capacity: MAX_LEADS - tl.currentLeads }))
-    .filter((tl) => tl.capacity > 0);
-
-  if (eligible.length === 0) return [];
-
-  const base      = Math.floor(totalLeads / eligible.length);
-  const remainder = totalLeads % eligible.length;
-
-  return eligible.map((tl, i) => {
-    const share  = base + (i < remainder ? 1 : 0);
-    const assign = Math.min(share, tl.capacity);
-    return {
-      tlId:         tl.id,
-      tlName:       tl.name,
-      currentLeads: tl.currentLeads,
-      capacity:     tl.capacity,
-      assignLeads:  assign,
-      target:       Math.round(assign * 0.8),
-    };
-  });
-}
 
 export default function AllLeads() {
-  const { leads, updateLead, moveToDump, assignLead, addLeads } = useLeads();
+  const { leads, updateLead, moveToDump, assignLead, addLeads, teamLeaders, MAX_LEADS, loading } = useLeads();
+
+  // ─── Even distribution builder ────────────────────────────────────────────────
+  function buildDistRows(totalLeads) {
+    const eligible = teamLeaders
+      .map((tl) => ({ ...tl, id: tl._id, capacity: MAX_LEADS - tl.currentLeads }))
+      .filter((tl) => tl.capacity > 0);
+
+    if (eligible.length === 0) return [];
+
+    const base      = Math.floor(totalLeads / eligible.length);
+    const remainder = totalLeads % eligible.length;
+
+    return eligible.map((tl, i) => {
+      const share  = base + (i < remainder ? 1 : 0);
+      const assign = Math.min(share, tl.capacity);
+      return {
+        tlId:         tl.id || tl._id,
+        tlName:       tl.name,
+        currentLeads: tl.currentLeads,
+        capacity:     tl.capacity,
+        assignLeads:  assign,
+        target:       Math.round(assign * 0.8),
+      };
+    });
+  }
 
   // Split leads into two lists
   const unassignedLeads = useMemo(() => leads.filter((l) => l.assignedTo === "Unassigned"), [leads]);
@@ -196,6 +195,7 @@ export default function AllLeads() {
           { key: "name",      label: "Name" },
           { key: "mobile",    label: "Mobile" },
           { key: "email",     label: "Email" },
+          { key: "companyName", label: "Company" },
           { key: "status",    label: "Status" },
           { key: "createdAt", label: "Created At" },
         ]}
@@ -214,7 +214,7 @@ export default function AllLeads() {
           },
         ]}
         filters={[
-          { title: "Status", type: "toggle", key: "status", options: ["New", "Follow-up", "Prospect", "Converted"] },
+          { title: "Status", type: "toggle", key: "status", options: ["UNTOUCHED", "New", "Follow-up", "Prospect", "Converted"] },
         ]}
         actions={editAction}
         size={12}
@@ -229,6 +229,7 @@ export default function AllLeads() {
             { key: "name",       label: "Name" },
             { key: "mobile",     label: "Mobile" },
             { key: "email",      label: "Email" },
+            { key: "companyName", label: "Company" },
             { key: "status",     label: "Status" },
             { key: "assignedTo", label: "Assigned To" },
             { key: "assignedAt", label: "Assigned At" },
@@ -248,8 +249,8 @@ export default function AllLeads() {
             },
           ]}
           filters={[
-            { title: "Status",      type: "toggle", key: "status",     options: ["New", "Follow-up", "Prospect", "Converted"] },
-            { title: "Assigned To", type: "select", key: "assignedTo", options: TEAM_LEADERS.map((t) => t.name) },
+            { title: "Status",      type: "toggle", key: "status",     options: ["UNTOUCHED", "New", "Follow-up", "Prospect", "Converted"] },
+            { title: "Assigned To", type: "select", key: "assignedTo", options: teamLeaders.map((t) => t.name) },
           ]}
           actions={[
             ...editAction,
@@ -434,7 +435,7 @@ export default function AllLeads() {
               </SelectField>
               <SelectField label="Assign To" value={editLead.assignedTo} size={6} onChange={(e) => setEditLead((p) => ({ ...p, assignedTo: e.target.value }))}>
                 <Option value="Unassigned" label="Unassigned" />
-                {TEAM_LEADERS.map((tl) => <Option key={tl.id} value={tl.name} label={tl.name} />)}
+                {teamLeaders.map((tl) => <Option key={tl._id} value={tl.name} label={tl.name} />)}
               </SelectField>
               <Button text="Save Changes" variant="primary" size={6} onClick={() => { updateLead(editLead); closeModal("al-edit-modal"); }} />
               <Button text="Cancel" variant="secondary" size={6} onClick={() => closeModal("al-edit-modal")} />

@@ -20,15 +20,16 @@ function AppRoutes() {
         <Route path="/admin-login" element={<AdminLogin />} />
         <Route path="/admin-register" element={<AdminRegister />} />
         <Route path="/login" element={<DepartmentLogin />} />
+        <Route path="/department/*" element={<DepartmentWorkspace />} />
         {/* Admin Routes */}
         <Route path="/admin/*" element={<AdminRoutes />} />
-        <Route path="*" element={<Navigate to="/admin" replace />} />
         {/* Super_Admin Routes */}
         <Route path="/super-admin/*" element={<SuperAdminRoutes />} />
         {/* Sales Routes */}
         <Route path="/sales-manager/*" element={<SalesManagerRoutes />} />
         <Route path="/sales-team-leader/*" element={<SalesTeamLeaderRoutes />} />
         <Route path="/sales-executive/*" element={<SalesExecutiveRoutes />} />
+        <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
     </BrowserRouter>
   );

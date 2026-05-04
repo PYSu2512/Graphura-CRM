@@ -11,9 +11,15 @@ import {
   CalendarDays,
   Eye,
   EyeOff,
+  Users,
+  TrendingUp,
 } from "lucide-react";
 import GraphuraLogo from "../../assets/Logo/Graphura_Logo.webp";
 import { loginAdmin } from "../../services/authService";
+import {
+  DataField,
+  Button,
+} from "../../components/shared/Common_Components";
 
 const FloatingBackground = () => (
   <div className="absolute inset-0 z-0 overflow-hidden opacity-5 pointer-events-none">
@@ -84,12 +90,10 @@ const AdminLogin = () => {
 
   useEffect(() => {
     if (!statusType) return;
-
     const timeout = setTimeout(() => {
       setStatusType("");
       setStatusMessage("");
     }, 4000);
-
     return () => clearTimeout(timeout);
   }, [statusType]);
 
@@ -128,57 +132,50 @@ const AdminLogin = () => {
 
     if (!valid) {
       setStatusType(
-        email.trim() === "" ||
-          password.trim() === "" ||
-          captchaInput.trim() === ""
+        email.trim() === "" || password.trim() === "" || captchaInput.trim() === ""
           ? "alert"
           : "error",
       );
       setStatusMessage(
-        email.trim() === "" ||
-          password.trim() === "" ||
-          captchaInput.trim() === ""
+        email.trim() === "" || password.trim() === "" || captchaInput.trim() === ""
           ? "Please fill in all fields before signing in."
           : "There are issues with your information. Please correct them and try again.",
       );
       return;
     }
 
-    const getCurrentLocation = () => new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error("Geolocation is not supported by this browser."));
-        return;
-      }
+    const getCurrentLocation = () =>
+      new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation is not supported by this browser."));
+          return;
+        }
 
-      let isSettled = false;
-      const finish = (fn, payload) => {
-        if (isSettled) return;
-        isSettled = true;
-        clearTimeout(fallbackTimer);
-        fn(payload);
-      };
+        let isSettled = false;
+        const finish = (fn, payload) => {
+          if (isSettled) return;
+          isSettled = true;
+          clearTimeout(fallbackTimer);
+          fn(payload);
+        };
 
-      const fallbackTimer = setTimeout(() => {
-        finish(reject, new Error("Location request timed out. Please try again."));
-      }, 12000);
+        const fallbackTimer = setTimeout(() => {
+          finish(reject, new Error("Location request timed out. Please try again."));
+        }, 12000);
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          finish(resolve, {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        },
-        () => {
-          finish(reject, new Error("Location access is required to sign in."));
-        },
-        {
-          enableHighAccuracy: false,
-          timeout: 8000,
-          maximumAge: 60000,
-        },
-      );
-    });
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            finish(resolve, {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          () => {
+            finish(reject, new Error("Location access is required to sign in."));
+          },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 },
+        );
+      });
 
     try {
       setIsSubmitting(true);
@@ -206,9 +203,7 @@ const AdminLogin = () => {
       }, 900);
     } catch (error) {
       setStatusType("error");
-      setStatusMessage(
-        error?.message || "Unable to sign in. Please try again.",
-      );
+      setStatusMessage(error?.message || "Unable to sign in. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -226,13 +221,35 @@ const AdminLogin = () => {
             <div className="mb-10">
               <img src={GraphuraLogo} alt="Graphura Logo" className="h-20" />
             </div>
-            <h2 className="text-3xl font-extrabold text-crm-navy leading-tight mb-4" style={{ fontFamily: "'Gugi', cursive" }}>
-              Manage Customers. <br />Empower Teams. <br />Grow Faster.
+            <h2
+              className="text-3xl font-extrabold text-[#2a465a] leading-tight mb-4"
+              style={{ fontFamily: "'Gugi', cursive" }}
+            >
+              Manage Customers. <br />
+              Empower Teams. <br />
+              Grow Faster.
             </h2>
             <p className="text-slate-500 text-sm leading-relaxed">
               Empower your business with one smart platform to manage leads,
               teams, tasks, and customer relationships effortlessly.
             </p>
+            <div className="mt-8 space-y-3">
+              {[
+                { icon: Users, text: "Manage leads & teams" },
+                { icon: TrendingUp, text: "Track performance & growth" },
+                { icon: ShieldCheck, text: "Enterprise-grade security" },
+              ].map(({ icon: Icon, text }) => (
+                <div
+                  key={text}
+                  className="flex items-center gap-3 text-[#2a465a] text-sm"
+                >
+                  <div className="w-7 h-7 rounded-full bg-[#2a465a]/10 flex items-center justify-center">
+                    <Icon size={14} className="text-[#2a465a]" />
+                  </div>
+                  {text}
+                </div>
+              ))}
+            </div>
           </div>
           <div className="flex gap-2">
             <button className="text-[11px] font-bold px-4 py-2 bg-white rounded-full border border-slate-200 text-slate-600 hover:bg-slate-100">
@@ -254,12 +271,15 @@ const AdminLogin = () => {
                 className="w-40 h-15 mx-auto"
               />
             </div>
-            <h1 className="text-3xl font-black text-crm-navy mb-8 text-center tracking-tight" style={{ fontFamily: "'Courgette', cursive" }}>
+            <h1
+              className="text-3xl font-black text-crm-navy mb-8 text-center tracking-tight"
+              style={{ fontFamily: "'Gugi', cursive" }}
+            >
               Admin Control Center 🏢
             </h1>
 
-            {/* Input Form */}
             <form className="space-y-5" onSubmit={handleSubmit}>
+              {/* Status Banner */}
               {statusType ? (
                 <div
                   className={`rounded-2xl px-4 py-3 text-sm ${
@@ -267,81 +287,75 @@ const AdminLogin = () => {
                       ? "border border-emerald-200 bg-emerald-50 text-emerald-800"
                       : statusType === "alert"
                         ? "border border-yellow-200 bg-yellow-50 text-yellow-800"
-                        : "border border-red-200 bg-red-50 text-red-800"
+                        : statusType === "info"
+                          ? "border border-blue-200 bg-blue-50 text-blue-800"
+                          : "border border-red-200 bg-red-50 text-red-800"
                   }`}
                 >
                   {statusMessage}
                 </div>
               ) : null}
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="email_login"
-                  className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]"
-                >
-                  Work Email
-                </label>
-                <div className="relative rounded-2xl border border-slate-200 bg-slate-50/90 focus-within:ring-2 focus-within:ring-crm-blue/20 mt-1 transition">
-                  <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
-                    <Mail size={18} />
-                  </div>
-                  <input
-                    type="email"
-                    id="email_login"
-                    placeholder="you@company.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (emailError) setEmailError("");
-                    }}
-                    className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-4 text-crm-navy placeholder:text-slate-400 focus:outline-none"
-                  />
-                </div>
-                {emailError ? (
-                  <p className="text-xs text-rose-600">{emailError}</p>
-                ) : null}
+              {/* Email */}
+              <div>
+                <DataField
+                  label="Work Email"
+                  id="email_login"
+                  type="email"
+                  placeholder="you@company.com"
+                  value={email}
+                  icon={Mail}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (emailError) setEmailError("");
+                  }}
+                />
+                {emailError && (
+                  <p className="text-xs text-rose-600 mt-1 px-1">{emailError}</p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="password_login"
-                  className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]"
-                >
-                  Password
-                </label>
-                <div className="relative mt-1 rounded-2xl border border-slate-200 bg-slate-50/90 focus-within:ring-2 focus-within:ring-crm-blue/20 transition">
-                  <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
-                    <ShieldCheck size={18} />
-                  </div>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    id="password_login"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      if (passwordError) setPasswordError("");
-                    }}
-                    className="w-full rounded-2xl bg-transparent py-4 pl-12 pr-14 text-crm-navy placeholder:text-slate-400 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-crm-navy transition"
+              {/* Password */}
+              <div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="password_login"
+                    className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] select-none"
                   >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
+                    Password
+                  </label>
+                  <div className="relative rounded-2xl border border-slate-200 bg-slate-50/90 focus-within:ring-2 focus-within:ring-[#2a465a]/20 focus-within:border-[#2a465a]/40 transition duration-200">
+                    <div className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-slate-400">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <input
+                      id="password_login"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (passwordError) setPasswordError("");
+                      }}
+                      className="w-full rounded-2xl bg-transparent py-3.5 pl-12 pr-14 text-[#2a465a] placeholder:text-slate-400 text-sm font-medium focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-crm-navy transition"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
+                  </div>
                 </div>
-                {passwordError ? (
-                  <p className="text-xs text-rose-600">{passwordError}</p>
-                ) : null}
+                {passwordError && (
+                  <p className="text-xs text-rose-600 mt-1 px-1">{passwordError}</p>
+                )}
               </div>
 
+              {/* CAPTCHA */}
               <div className="space-y-3">
-                <label
-                  htmlFor="captcha_login"
-                  className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]"
-                >
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">
                   Security Verification
                 </label>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-2 shadow-sm">
@@ -373,9 +387,8 @@ const AdminLogin = () => {
                     </button>
                   </div>
                 </div>
-                <div className="relative rounded-2xl border border-slate-200 bg-slate-50/90 focus-within:ring-2 focus-within:ring-crm-blue/20 transition">
-                  <input
-                    type="text"
+                <div>
+                  <DataField
                     id="captcha_login"
                     placeholder="Enter the 4-digit number above"
                     value={captchaInput}
@@ -383,18 +396,18 @@ const AdminLogin = () => {
                       setCaptchaInput(e.target.value);
                       if (captchaError) setCaptchaError("");
                     }}
-                    maxLength="4"
-                    className="w-full rounded-2xl bg-transparent py-4 px-4 text-crm-navy placeholder:text-slate-400 focus:outline-none text-center tracking-[0.25em] text-md font-semibold"
+                    className="text-center tracking-[0.25em] font-semibold"
                   />
+                  {captchaError && (
+                    <p className="text-xs text-rose-600 mt-1 px-1">{captchaError}</p>
+                  )}
+                  <p className="text-xs text-slate-400 mt-1">
+                    Enter the 4-digit number shown above
+                  </p>
                 </div>
-                {captchaError ? (
-                  <p className="text-xs text-rose-600">{captchaError}</p>
-                ) : null}
-                <p className="text-xs text-slate-400">
-                  Enter the 4-digit number shown above
-                </p>
               </div>
 
+              {/* Remember me / Forgot password */}
               <div className="flex items-center justify-between text-xs font-bold pt-2">
                 <label className="flex items-center gap-2 text-slate-500 cursor-pointer">
                   <input
@@ -410,14 +423,13 @@ const AdminLogin = () => {
                 </a>
               </div>
 
-              {/* Visible Sign In Button */}
-              <button
+              {/* Submit Button */}
+              <Button
+                text={isSubmitting ? "Signing in..." : "Sign in →"}
                 type="submit"
+                variant="primary"
                 disabled={isSubmitting}
-                className="w-full mt-4 py-4 bg-[#2a465a] text-white font-bold rounded-2xl shadow-xl shadow-crm-navy/20 transition duration-300 ease-out transform hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-2xl hover:-translate-y-0.5 active:scale-95"
-              >
-                {isSubmitting ? "Signing in..." : "Sign in →"}
-              </button>
+              />
             </form>
 
             <p className="mt-8 text-center text-slate-500 text-sm">

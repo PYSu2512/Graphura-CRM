@@ -178,13 +178,27 @@ const DepartmentLogin = () => {
               <Building2 size={11} />
               DEPARTMENT PORTAL
             </div>
-            <h2 className="text-3xl font-extrabold text-crm-navy leading-tight mb-4" style={{ fontFamily: "'Gugi', cursive" }}>
+            <h2 className="text-3xl font-extrabold text-[#2a465a] leading-tight mb-4" style={{ fontFamily: "'Gugi', cursive" }}>
               Your Team. <br /> Your Tasks. <br />Your Workspace.
             </h2>
             <p className="text-slate-500 text-sm leading-relaxed">
               Sign in with your company-issued credentials to access your
               department's tools, tasks, reports, and team collaboration features.
             </p>
+            <div className="mt-8 space-y-3">
+              {[
+                { icon: Users,      text: "Collaborate with your team" },
+                { icon: TrendingUp, text: "Track tasks & performance" },
+                { icon: ShieldCheck,text: "Secure department access" },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3 text-[#2a465a] text-sm">
+                  <div className="w-7 h-7 rounded-full bg-[#2a465a]/10 flex items-center justify-center">
+                    <Icon size={14} className="text-[#2a465a]" />
+                  </div>
+                  {text}
+                </div>
+              ))}
+            </div>
           </div>
           <div className="flex gap-2">
             <button className="text-[11px] font-bold px-4 py-2 bg-white rounded-full border border-slate-200 text-slate-600 hover:bg-slate-100">
@@ -205,7 +219,7 @@ const DepartmentLogin = () => {
               <img src={GraphuraLogo} alt="Graphura Logo" className="w-40 mx-auto" />
             </div>
 
-            <h1 className="text-3xl font-black text-crm-navy mb-8 text-center tracking-tight" style={{ fontFamily: "'Courgette', cursive" }}>
+            <h1 className="text-3xl font-black text-crm-navy mb-8 text-center tracking-tight" style={{ fontFamily: "'Gugi', cursive" }}>
               Department Sign In 🏬
             </h1>
 

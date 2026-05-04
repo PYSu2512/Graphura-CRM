@@ -9,6 +9,7 @@ const router = express.Router();
 const { requireAdmin } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const teamController = require('../controllers/team.controller');
+const userTeamRoutes = require('./userTeams');
 const {
   createTeamSchema,
   updateTeamSchema,
@@ -19,6 +20,7 @@ const {
 // ════════════════════════════════════════════════════════════
 // MIDDLEWARE — Admin authentication required on all routes
 // ════════════════════════════════════════════════════════════
+router.use('/user-teams', userTeamRoutes);
 router.use(requireAdmin);
 
 // ════════════════════════════════════════════════════════════

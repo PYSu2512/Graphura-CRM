@@ -80,7 +80,9 @@ exports.createTeam = async (teamData, performedBy) => {
     },
   });
 
-  return team.populate('leader', 'name email phone role').populate('members.user', 'name email phone role');
+  await team.populate('leader', 'name email phone role');
+  await team.populate('members.user', 'name email phone role');
+  return team;
 };
 
 /**
@@ -227,7 +229,9 @@ exports.updateTeam = async (teamId, admin, updateData, performedBy) => {
     },
   });
 
-  return team.populate('leader', 'name email phone role').populate('members.user', 'name email phone role');
+  await team.populate('leader', 'name email phone role');
+  await team.populate('members.user', 'name email phone role');
+  return team;
 };
 
 /**
@@ -409,7 +413,7 @@ exports.getAvailableLeaders = async (departmentId, admin) => {
   // 2. Get users with SALES_TL role
   const leaders = await User.findActive(
     { admin, department: departmentId, role: 'SALES_TL' },
-    'name email phone role',
+    'name email phone role isActive',
     { sort: { name: 1 } }
   );
 

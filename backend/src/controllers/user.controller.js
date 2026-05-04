@@ -59,15 +59,7 @@ exports.getRoleDepartmentMap = catchAsync(async (req, res, next) => {
 });
 
 exports.createUser = catchAsync(async (req, res, next) => {
-  // If auth middleware sets req.user
-  let adminId = req.user?.id;
-
-  // Fallback for missing auth middleware
-  if (!adminId) {
-    const defaultAdmin = await Admin.findOne();
-    if (defaultAdmin) adminId = defaultAdmin._id;
-  }
-
+  const adminId = req.admin?._id;
   if (!adminId) return next(new AppError('Admin authentication required', 401));
 
   const { name, email, phone, departmentId, role, teamId, leadDataLimit } = req.body;
@@ -142,16 +134,10 @@ exports.createUser = catchAsync(async (req, res, next) => {
 });
 
 exports.getUsers = catchAsync(async (req, res, next) => {
-  let adminId = req.user?.id;
-
-  if (!adminId) {
-    const defaultAdmin = await Admin.findOne();
-    if (defaultAdmin) adminId = defaultAdmin._id;
-  }
-
+  const adminId = req.admin?._id;
   if (!adminId) return next(new AppError('Admin authentication required', 401));
 
-  const users = await User.find({ admin: adminId }).populate('department', 'name');
+  const users = await User.find({ admin: adminId, isDeleted: false }).populate('department', 'name');
 
   res.status(200).json(
     new ApiResponse(200, { users }, 'Users retrieved successfully')
@@ -159,16 +145,10 @@ exports.getUsers = catchAsync(async (req, res, next) => {
 });
 
 exports.getDepartments = catchAsync(async (req, res, next) => {
-  let adminId = req.user?.id;
-
-  if (!adminId) {
-    const defaultAdmin = await Admin.findOne();
-    if (defaultAdmin) adminId = defaultAdmin._id;
-  }
-
+  const adminId = req.admin?._id;
   if (!adminId) return next(new AppError('Admin authentication required', 401));
 
-  const departments = await Department.find({ admin: adminId, isActive: true });
+  const departments = await Department.find({ admin: adminId, isActive: true, isDeleted: false });
 
   res.status(200).json(
     new ApiResponse(200, { departments }, 'Departments retrieved successfully')

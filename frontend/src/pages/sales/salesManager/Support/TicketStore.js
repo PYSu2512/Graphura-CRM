@@ -1,23 +1,21 @@
 // ticketsStore.js — dummy data for Support pages
 
 export const kpiTickets = [
-  { title: "Total Tickets",   value: "84",  accent: "#3b82f6" },
-  { title: "Open Tickets",    value: "22",  accent: "#f59e0b" },
-  { title: "In Progress",     value: "18",  accent: "#8b5cf6" },
-  { title: "Resolved",        value: "38",  accent: "#22c55e" },
-  { title: "Escalated",       value: "6",   accent: "#f43f5e" },
+  { title: "Total Tickets", value: "84", accent: "#3b82f6" },
+  { title: "In Progress",   value: "22", accent: "#f59e0b" },
+  { title: "Replied",       value: "18", accent: "#8b5cf6" },
+  { title: "Resolved",      value: "38", accent: "#22c55e" },
 ];
 
 export const initialTickets = [
   {
     id: "TKT-001", title: "Lead data not updating",
     raisedBy: "Ankit Verma",    role: "Team Leader",
-    priority: "High",  status: "Open",
+    priority: "High",  status: "In Progress",
     createdDate: "2025-06-01",  lastReply: "2025-06-02",
     description: "The lead status is not syncing after executive updates the call status.",
     conversation: [
-      { sender: "Ankit Verma",      time: "2025-06-01 10:12", text: "Lead data is not updating after call marked done." },
-      { sender: "Sales Manager",    time: "2025-06-01 11:30", text: "Acknowledged. Escalating to tech team." },
+      { sender: "Admin",      time: "2025-06-01 10:12", text: "Don't worry this is not a big problem we'll handle it" },
     ],
   },
   {
