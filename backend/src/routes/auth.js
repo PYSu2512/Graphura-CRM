@@ -12,6 +12,11 @@ const {
   resendOTPSchema,
   adminLoginSchema,
 } = require('../validators/auth.validator');
+const {
+  forgetPasswordSchema,
+  resetPasswordSchema,
+} = require('../validators/passwordValidator');
+const { passwordResetLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -69,6 +74,39 @@ router.post(
   '/login',
   validate(adminLoginSchema, 'body'),
   authController.adminLogin
+);
+
+/**
+ * POST /api/auth/forget-password
+ * Request a password reset link
+ * Body: { email }
+ */
+router.post(
+  '/forget-password',
+  passwordResetLimiter,
+  validate(forgetPasswordSchema, 'body'),
+  authController.forgetPassword
+);
+
+/**
+ * GET /api/auth/verify-reset-token/:token
+ * Verify the reset token from the email link
+ * Params: { token }
+ */
+router.get(
+  '/verify-reset-token/:token',
+  authController.verifyResetToken
+);
+
+/**
+ * POST /api/auth/reset-password
+ * Reset password using the verified token
+ * Body: { token, newPassword }
+ */
+router.post(
+  '/reset-password',
+  validate(resetPasswordSchema, 'body'),
+  authController.resetPassword
 );
 
 module.exports = router;

@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "src/server.js",
   "scripts": {
-    "start":      "node src/server.js",
-    "dev":        "nodemon src/server.js",
-    "init:db":    "node src/scripts/seed.js",
-    "test":       "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "init:db": "node src/scripts/seed.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +27,7 @@
     "mongoose": "^9.4.1",
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
+    "rate-limit-mongo": "^2.3.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

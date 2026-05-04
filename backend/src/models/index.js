@@ -234,25 +234,23 @@ RefreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 
 // ════════════════════════════════════════════════════════════
-// MODEL 6 — PASSWORD RESET / OTP
-// Handles forgot password for Admin and User.
-// OTP stored as bcrypt hash. TTL = 10 minutes.
-// isUsed = true after OTP is consumed.
+// MODEL 6 — PASSWORD RESET
+// Handles forgot password flow. Tokens are hashed with bcrypt.
 // ════════════════════════════════════════════════════════════
 const PasswordResetSchema = new Schema({
-  holderId: { type: Schema.Types.ObjectId, required: true },
-  holderType: { type: String, enum: ['ADMIN', 'USER'], required: true },
-  admin: { type: Schema.Types.ObjectId, ref: 'Admin' },  // null for Admin resets
-  otpHash: { type: String, required: true },               // bcrypt hashed OTP
-  purpose: { type: String, enum: RESET_PURPOSE, default: 'PASSWORD_RESET' },
+  userId: { type: Schema.Types.ObjectId, required: true },
+  email: { type: String, required: true, lowercase: true, trim: true },
+  token: { type: String, required: true }, // bcrypt hashed
+  expiresAt: { type: Date, required: true }, // TTL index
   isUsed: { type: Boolean, default: false },
-  usedAt: Date,
-  ipAddress: String,
-  expiresAt: { type: Date, required: true },                 // 10 minutes from creation
-});
+  usedAt: { type: Date, default: null },
+  ipAddress: { type: String },
+  userAgent: { type: String },
+  attemptCount: { type: Number, default: 0 }
+}, { timestamps: true });
 
 PasswordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // auto-delete
-PasswordResetSchema.index({ holderId: 1, isUsed: 1 });
+PasswordResetSchema.index({ userId: 1, isUsed: 1 });
 
 
 // ════════════════════════════════════════════════════════════
@@ -486,6 +484,15 @@ const UserSchema = new Schema({
   // ── Tracking ──
   lastLoginAt: { type: Date, default: null },
   lastActiveAt: { type: Date, default: null },
+
+  // ── Password Reset Tracking ──
+  lastPasswordResetAt: { type: Date, default: null },
+  passwordResetCount: { type: Number, default: 0 },
+  passwordHistory: [{
+    hash: { type: String, required: true },
+    changedAt: { type: Date, default: Date.now },
+    _id: false,
+  }],
 }, { timestamps: true });
 
 UserSchema.plugin(softDeletePlugin);

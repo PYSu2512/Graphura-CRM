@@ -3,18 +3,23 @@
  * Handles multi-step registration with email OTP verification
  * Production-level validation, error handling, and security
  */
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
-const ApiResponse = require('../utils/apiResponse');
-const { generateOTP, OTP_EXPIRY } = require('../utils/generateOTP');
-const { sendOTPEmail, sendRegistrationConfirmationEmail } = require('../services/email.service');
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
+const ApiResponse = require("../utils/apiResponse");
+const { generateOTP, OTP_EXPIRY } = require("../utils/generateOTP");
+const {
+  sendOTPEmail,
+  sendRegistrationConfirmationEmail,
+  sendPasswordResetEmail,
+  sendPasswordResetConfirmationEmail,
+} = require("../services/email.service");
 const {
   hashPassword,
   comparePassword,
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
-} = require('../services/auth.service');
+} = require("../services/auth.service");
 const {
   Admin,
   AdminLoginLog,
@@ -24,15 +29,20 @@ const {
   Department,
   InvoiceCounter,
   LoginAttempt,
-} = require('../models/index');
-const logger = require('../utils/logger');
+  User,
+  PasswordReset,
+  AuditLog,
+} = require("../models/index");
+const logger = require("../utils/logger");
+const { generateResetToken } = require("../utils/tokenGenerator");
+const bcrypt = require("bcryptjs");
 
 const getClientIp = (req) => {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0].trim();
+  const forwarded = req.headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded.length > 0) {
+    return forwarded.split(",")[0].trim();
   }
-  return req.ip || req.socket?.remoteAddress || 'unknown';
+  return req.ip || req.socket?.remoteAddress || "unknown";
 };
 
 // ────────────────────────────────────────────────────────────
@@ -48,7 +58,9 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
   // Check if email is already registered as Admin
   const existingAdmin = await Admin.findOne({ email: email.toLowerCase() });
   if (existingAdmin) {
-    return next(new AppError('Email is already registered. Please sign in instead.', 409));
+    return next(
+      new AppError("Email is already registered. Please sign in instead.", 409),
+    );
   }
 
   // Check if OTP already sent recently (cooldown: 2 minutes)
@@ -58,10 +70,12 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
   });
 
   if (recentOTP) {
-    return next(new AppError(
-      'OTP already sent. Please check your email or wait 2 minutes before requesting a new one.',
-      429
-    ));
+    return next(
+      new AppError(
+        "OTP already sent. Please check your email or wait 2 minutes before requesting a new one.",
+        429,
+      ),
+    );
   }
 
   // Generate OTP
@@ -77,21 +91,29 @@ exports.sendOTP = catchAsync(async (req, res, next) => {
       attempts: 0,
       isVerified: false,
     },
-    { upsert: true }
+    { upsert: true },
   );
 
   // Send OTP email
   try {
-    await sendOTPEmail(email.toLowerCase(), otp, adminName || 'Admin');
+    await sendOTPEmail(email.toLowerCase(), otp, adminName || "Admin");
     logger.info(`OTP email sent to ${email}`);
   } catch (emailError) {
-    logger.error('Email sending failed', emailError.message);
-    return next(new AppError('Failed to send OTP. Please try again later.', 500));
+    logger.error("Email sending failed", emailError.message);
+    return next(
+      new AppError("Failed to send OTP. Please try again later.", 500),
+    );
   }
 
-  res.status(200).json(
-    new ApiResponse(200, { email: email.toLowerCase() }, 'OTP sent successfully')
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { email: email.toLowerCase() },
+        "OTP sent successfully",
+      ),
+    );
 });
 
 // ────────────────────────────────────────────────────────────
@@ -110,28 +132,36 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
   });
 
   if (!verification) {
-    return next(new AppError('OTP expired or not found. Please request a new OTP.', 400));
+    return next(
+      new AppError("OTP expired or not found. Please request a new OTP.", 400),
+    );
   }
 
   // Check if OTP is already verified (one-time use)
   if (verification.isVerified) {
-    return next(new AppError('This OTP has already been used. Request a new one.', 400));
+    return next(
+      new AppError("This OTP has already been used. Request a new one.", 400),
+    );
   }
 
   // Check attempt limit (max 5 attempts)
   if (verification.attempts >= 5) {
     await EmailVerification.deleteOne({ email: email.toLowerCase() });
-    return next(new AppError(
-      'Too many failed attempts. Please request a new OTP.',
-      429
-    ));
+    return next(
+      new AppError("Too many failed attempts. Please request a new OTP.", 429),
+    );
   }
 
   // Verify OTP
   if (verification.otp !== otp) {
     verification.attempts += 1;
     await verification.save();
-    return next(new AppError(`Invalid OTP. ${5 - verification.attempts} attempts remaining.`, 400));
+    return next(
+      new AppError(
+        `Invalid OTP. ${5 - verification.attempts} attempts remaining.`,
+        400,
+      ),
+    );
   }
 
   // Mark as verified
@@ -139,13 +169,15 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
   await verification.save();
   logger.info(`OTP verified for ${email}`);
 
-  res.status(200).json(
-    new ApiResponse(
-      200,
-      { email: email.toLowerCase(), verified: true },
-      'OTP verified successfully'
-    )
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { email: email.toLowerCase(), verified: true },
+        "OTP verified successfully",
+      ),
+    );
 });
 
 // ────────────────────────────────────────────────────────────
@@ -169,16 +201,16 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
     password,
   } = req.body;
 
-  const resolvedAdminName = (adminName || ownerName || '').trim();
-  const resolvedAdminEmail = (adminEmail || companyEmail || '').toLowerCase();
+  const resolvedAdminName = (adminName || ownerName || "").trim();
+  const resolvedAdminEmail = (adminEmail || companyEmail || "").toLowerCase();
   const resolvedAdminPhone = adminPhone || companyPhone;
 
   if (!resolvedAdminName) {
-    return next(new AppError('Admin/Owner name is required.', 400));
+    return next(new AppError("Admin/Owner name is required.", 400));
   }
 
   if (!resolvedAdminEmail) {
-    return next(new AppError('Admin email is required.', 400));
+    return next(new AppError("Admin email is required.", 400));
   }
 
   const normalizedEmail = resolvedAdminEmail;
@@ -191,13 +223,15 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
   });
 
   if (!verification) {
-    return next(new AppError('Email not verified. Please verify OTP first.', 400));
+    return next(
+      new AppError("Email not verified. Please verify OTP first.", 400),
+    );
   }
 
   // Double-check email is not already registered
   const existingAdmin = await Admin.findOne({ email: normalizedEmail });
   if (existingAdmin) {
-    return next(new AppError('Email already registered.', 409));
+    return next(new AppError("Email already registered.", 409));
   }
 
   // Hash password
@@ -217,7 +251,7 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
     },
     isActive: true,
     isProfileComplete: false,
-    planStatus: 'TRIAL',
+    planStatus: "TRIAL",
     userLimit: 40, // Default user limit
     clientLimit: 6000, // Default client/lead limit
   });
@@ -229,12 +263,16 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
   // AUTO-SETUP: Create Default Departments
   // ──────────────────────────────────────────────────────────────
   const defaultDepts = [
-    { name: 'SALES', displayName: 'Sales Department', isDefault: true },
-    { name: 'FINANCE', displayName: 'Finance Department', isDefault: true },
-    { name: 'MANAGEMENT', displayName: 'Management Department', isDefault: true },
+    { name: "SALES", displayName: "Sales Department", isDefault: true },
+    { name: "FINANCE", displayName: "Finance Department", isDefault: true },
+    {
+      name: "MANAGEMENT",
+      displayName: "Management Department",
+      isDefault: true,
+    },
   ];
 
-  const deptData = defaultDepts.map(d => ({
+  const deptData = defaultDepts.map((d) => ({
     ...d,
     admin: admin._id,
   }));
@@ -248,7 +286,7 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
   await InvoiceCounter.create({
     admin: admin._id,
     seq: 0,
-    prefix: 'INV',
+    prefix: "INV",
   });
   logger.info(`Invoice counter created for admin: ${admin._id}`);
 
@@ -258,15 +296,15 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
   const accessToken = generateAccessToken({
     id: admin._id,
     email: admin.email,
-    role: 'ADMIN',
-    type: 'ADMIN',
+    role: "ADMIN",
+    type: "ADMIN",
   });
 
   const refreshToken = generateRefreshToken({
     id: admin._id,
     email: admin.email,
-    role: 'ADMIN',
-    type: 'ADMIN',
+    role: "ADMIN",
+    type: "ADMIN",
   });
 
   // Store refresh token in database
@@ -275,7 +313,7 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
 
   await RefreshToken.create({
     token: refreshToken,
-    holderType: 'ADMIN',
+    holderType: "ADMIN",
     holderId: admin._id,
     expiresAt: refreshTokenExpiry,
   });
@@ -283,8 +321,12 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
   // ──────────────────────────────────────────────────────────────
   // Send Confirmation Email (async, don't wait)
   // ──────────────────────────────────────────────────────────────
-  sendRegistrationConfirmationEmail(normalizedEmail, resolvedAdminName, companyName).catch(err =>
-    logger.error('Failed to send confirmation email', err.message)
+  sendRegistrationConfirmationEmail(
+    normalizedEmail,
+    resolvedAdminName,
+    companyName,
+  ).catch((err) =>
+    logger.error("Failed to send confirmation email", err.message),
   );
 
   // ──────────────────────────────────────────────────────────────
@@ -308,8 +350,8 @@ exports.registerAdmin = catchAsync(async (req, res, next) => {
         accessToken,
         refreshToken,
       },
-      'Registration successful. Welcome to Graphura CRM!'
-    )
+      "Registration successful. Welcome to Graphura CRM!",
+    ),
   );
 });
 
@@ -338,102 +380,117 @@ exports.resendOTP = catchAsync(async (req, res, next) => {
 
   // Send OTP email
   try {
-    await sendOTPEmail(email.toLowerCase(), otp, adminName || 'Admin');
+    await sendOTPEmail(email.toLowerCase(), otp, adminName || "Admin");
   } catch (emailError) {
-    return next(new AppError('Failed to send OTP. Please try again later.', 500));
+    return next(
+      new AppError("Failed to send OTP. Please try again later.", 500),
+    );
   }
 
-  res.status(200).json(
-    new ApiResponse(200, { email: email.toLowerCase() }, 'OTP resent successfully')
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { email: email.toLowerCase() },
+        "OTP resent successfully",
+      ),
+    );
 });
 
 // ────────────────────────────────────────────────────────────
 // ADMIN LOGIN
 // ────────────────────────────────────────────────────────────
 exports.adminLogin = catchAsync(async (req, res, next) => {
-  const {
-    email,
-    password,
-    latitude,
-    longitude,
-    rememberMe = false,
-  } = req.body;
+  const { email, password, latitude, longitude, rememberMe = false } = req.body;
 
   const normalizedEmail = email.toLowerCase().trim();
   const ipAddress = getClientIp(req);
-  const userAgent = req.get('user-agent') || 'unknown';
+  const userAgent = req.get("user-agent") || "unknown";
 
   if (latitude === undefined || longitude === undefined) {
-    return next(new AppError('Location permission is required to continue.', 403));
+    return next(
+      new AppError("Location permission is required to continue.", 403),
+    );
   }
 
   const blockRecord = await LoginAttempt.findOne({
     identifier: normalizedEmail,
-    identifierType: 'EMAIL',
+    identifierType: "EMAIL",
   });
 
-  if (blockRecord?.isBlocked && blockRecord.blockedUntil && blockRecord.blockedUntil > new Date()) {
-    return next(new AppError('Too many failed attempts. Please try again later.', 429));
+  if (
+    blockRecord?.isBlocked &&
+    blockRecord.blockedUntil &&
+    blockRecord.blockedUntil > new Date()
+  ) {
+    return next(
+      new AppError("Too many failed attempts. Please try again later.", 429),
+    );
   }
 
-  const admin = await Admin.findOne({ email: normalizedEmail, isDeleted: false });
+  const admin = await Admin.findOne({
+    email: normalizedEmail,
+    isDeleted: false,
+  });
 
   if (!admin) {
     await LoginAttempt.updateOne(
-      { identifier: normalizedEmail, identifierType: 'EMAIL' },
+      { identifier: normalizedEmail, identifierType: "EMAIL" },
       {
         $set: {
           identifier: normalizedEmail,
-          identifierType: 'EMAIL',
+          identifierType: "EMAIL",
           ipAddress,
           userAgent,
           lastAttemptAt: new Date(),
         },
         $inc: { attempts: 1 },
       },
-      { upsert: true }
+      { upsert: true },
     );
-    return next(new AppError('Invalid email or password.', 401));
+    return next(new AppError("Invalid email or password.", 401));
   }
 
   if (!admin.isActive) {
     await AdminLoginLog.create({
       admin: admin._id,
       email: normalizedEmail,
-      role: 'ADMIN',
+      role: "ADMIN",
       ipAddress,
       latitude,
       longitude,
       userAgent,
       device: userAgent,
       isSuccess: false,
-      failReason: 'ADMIN_DEACTIVATED',
+      failReason: "ADMIN_DEACTIVATED",
       loginAt: new Date(),
     });
-    return next(new AppError('Your account is deactivated. Contact support.', 403));
+    return next(
+      new AppError("Your account is deactivated. Contact support.", 403),
+    );
   }
 
   const isPasswordValid = await comparePassword(password, admin.password);
   if (!isPasswordValid) {
     const updatedAttempt = await LoginAttempt.findOneAndUpdate(
-      { identifier: normalizedEmail, identifierType: 'EMAIL' },
+      { identifier: normalizedEmail, identifierType: "EMAIL" },
       {
         $set: {
           identifier: normalizedEmail,
-          identifierType: 'EMAIL',
+          identifierType: "EMAIL",
           ipAddress,
           userAgent,
           lastAttemptAt: new Date(),
         },
         $inc: { attempts: 1 },
       },
-      { new: true, upsert: true }
+      { new: true, upsert: true },
     );
 
     if (updatedAttempt.attempts >= 5) {
       updatedAttempt.isBlocked = true;
-      updatedAttempt.blockReason = 'TOO_MANY_ATTEMPTS';
+      updatedAttempt.blockReason = "TOO_MANY_ATTEMPTS";
       updatedAttempt.blockedAt = new Date();
       updatedAttempt.blockedUntil = new Date(Date.now() + 15 * 60 * 1000);
       await updatedAttempt.save();
@@ -442,42 +499,47 @@ exports.adminLogin = catchAsync(async (req, res, next) => {
     await AdminLoginLog.create({
       admin: admin._id,
       email: normalizedEmail,
-      role: 'ADMIN',
+      role: "ADMIN",
       ipAddress,
       latitude,
       longitude,
       userAgent,
       device: userAgent,
       isSuccess: false,
-      failReason: 'INVALID_CREDENTIALS',
+      failReason: "INVALID_CREDENTIALS",
       loginAt: new Date(),
     });
 
-    return next(new AppError('Invalid email or password.', 401));
+    return next(new AppError("Invalid email or password.", 401));
   }
 
-  await LoginAttempt.deleteOne({ identifier: normalizedEmail, identifierType: 'EMAIL' });
+  await LoginAttempt.deleteOne({
+    identifier: normalizedEmail,
+    identifierType: "EMAIL",
+  });
 
   const accessToken = generateAccessToken({
     id: admin._id,
     email: admin.email,
-    role: 'ADMIN',
-    type: 'ADMIN',
+    role: "ADMIN",
+    type: "ADMIN",
   });
 
   const refreshToken = generateRefreshToken({
     id: admin._id,
     email: admin.email,
-    role: 'ADMIN',
-    type: 'ADMIN',
+    role: "ADMIN",
+    type: "ADMIN",
   });
 
   const refreshTokenExpiry = new Date();
-  refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + (rememberMe ? 30 : 7));
+  refreshTokenExpiry.setDate(
+    refreshTokenExpiry.getDate() + (rememberMe ? 30 : 7),
+  );
 
   await RefreshToken.create({
     token: refreshToken,
-    holderType: 'ADMIN',
+    holderType: "ADMIN",
     holderId: admin._id,
     admin: admin._id,
     expiresAt: refreshTokenExpiry,
@@ -488,7 +550,7 @@ exports.adminLogin = catchAsync(async (req, res, next) => {
   await AdminLoginLog.create({
     admin: admin._id,
     email: normalizedEmail,
-    role: 'ADMIN',
+    role: "ADMIN",
     ipAddress,
     latitude,
     longitude,
@@ -508,14 +570,14 @@ exports.adminLogin = catchAsync(async (req, res, next) => {
           id: admin._id,
           name: admin.name,
           email: admin.email,
-          company: admin.company?.name || '',
-          role: 'ADMIN',
+          company: admin.company?.name || "",
+          role: "ADMIN",
         },
         accessToken,
         refreshToken,
       },
-      'Login successful'
-    )
+      "Login successful",
+    ),
   );
 });
 
@@ -531,11 +593,17 @@ exports.adminLogin = catchAsync(async (req, res, next) => {
  */
 exports.logout = catchAsync(async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const accessToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
-  const refreshToken = req.headers['x-refresh-token'] || req.query.refreshToken || req.body?.refreshToken;
+  const accessToken =
+    authHeader && authHeader.startsWith("Bearer ")
+      ? authHeader.split(" ")[1]
+      : null;
+  const refreshToken =
+    req.headers["x-refresh-token"] ||
+    req.query.refreshToken ||
+    req.body?.refreshToken;
 
   if (!accessToken && !refreshToken) {
-    return res.status(200).json(new ApiResponse(200, null, 'Logged out'));
+    return res.status(200).json(new ApiResponse(200, null, "Logged out"));
   }
 
   let decoded = null;
@@ -550,9 +618,9 @@ exports.logout = catchAsync(async (req, res, next) => {
     try {
       await TokenBlacklist.create({
         token: accessToken,
-        holderType: decoded.type || 'ADMIN',
+        holderType: decoded.type || "ADMIN",
         holderId: decoded.id,
-        reason: 'LOGOUT',
+        reason: "LOGOUT",
         expiresAt,
       });
     } catch (e) {
@@ -563,16 +631,293 @@ exports.logout = catchAsync(async (req, res, next) => {
   if (refreshToken) {
     await RefreshToken.updateOne(
       { token: refreshToken },
-      { $set: { isRevoked: true, revokedAt: new Date(), revokedReason: 'LOGOUT' } }
+      {
+        $set: {
+          isRevoked: true,
+          revokedAt: new Date(),
+          revokedReason: "LOGOUT",
+        },
+      },
     );
   } else if (decoded && decoded.id) {
     await RefreshToken.updateMany(
       { holderId: decoded.id },
-      { $set: { isRevoked: true, revokedAt: new Date(), revokedReason: 'LOGOUT' } }
+      {
+        $set: {
+          isRevoked: true,
+          revokedAt: new Date(),
+          revokedReason: "LOGOUT",
+        },
+      },
     );
   }
 
-  res.status(200).json(new ApiResponse(200, null, 'Logged out successfully'));
+  res.status(200).json(new ApiResponse(200, null, "Logged out successfully"));
+});
+
+// ────────────────────────────────────────────────────────────
+// FORGET PASSWORD
+// ────────────────────────────────────────────────────────────
+exports.forgetPassword = catchAsync(async (req, res, next) => {
+  const { email } = req.body;
+  const normalizedEmail = email.toLowerCase().trim();
+  const ipAddress = getClientIp(req);
+  const userAgent = req.get("user-agent") || "unknown";
+
+  // 1. Find user (or Admin, though plan says except SuperAdmin. Assuming User model as per schema `userId: { ref: 'User' }`)
+  // To support both Admin and User, we can check both, but the plan focused on User. We'll search User first.
+  let user = await User.findOne({ email: normalizedEmail, isDeleted: false });
+  let isUser = true;
+
+  if (!user) {
+    // Try Admin
+    user = await Admin.findOne({ email: normalizedEmail, isDeleted: false });
+    isUser = false;
+  }
+
+  // Email Enumeration Protection: Always return success even if user not found
+  if (!user) {
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          null,
+          "If that email exists, a reset link has been sent.",
+        ),
+      );
+  }
+
+  // 2. Generate Token
+  const { rawToken, hashedToken } = await generateResetToken();
+
+  // 3. Save to DB
+  // Invalidate any existing unused tokens for this user
+  await PasswordReset.updateMany(
+    { userId: user._id, isUsed: false },
+    { $set: { isUsed: true, usedAt: new Date() } },
+  );
+
+  const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 mins
+  await PasswordReset.create({
+    userId: user._id,
+    email: normalizedEmail,
+    token: hashedToken,
+    expiresAt,
+    ipAddress,
+    userAgent,
+  });
+
+  // 4. Send Email
+  // Construct token string as `userId.rawToken` to allow fast lookup later
+  const lookupToken = `${user._id.toString()}.${rawToken}`;
+  console.log("RESET TOKEN:", lookupToken);
+  await sendPasswordResetEmail(normalizedEmail, lookupToken, user.name);
+
+  // 5. Audit Log
+  await AuditLog.create({
+    admin: isUser ? user.admin : user._id,
+    performedBy: user._id,
+    performerType: isUser ? "USER" : "ADMIN",
+    action: "PASSWORD_CHANGED", // Close enough, or add a new action like PASSWORD_RESET_REQUESTED
+    targetModel: isUser ? "User" : "Admin",
+    targetId: user._id,
+    ipAddress,
+    note: "Password reset requested",
+  });
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        null,
+        "If that email exists, a reset link has been sent.",
+      ),
+    );
+});
+
+// ────────────────────────────────────────────────────────────
+// VERIFY RESET TOKEN
+// ────────────────────────────────────────────────────────────
+exports.verifyResetToken = catchAsync(async (req, res, next) => {
+  const { token } = req.params;
+
+  if (!token || !token.includes(".")) {
+    return next(new AppError("Invalid or expired reset link", 400));
+  }
+
+  const [userId, rawToken] = token.split(".");
+
+  const resetRecord = await PasswordReset.findOne({
+    userId,
+    isUsed: false,
+    expiresAt: { $gt: new Date() },
+  });
+
+  if (!resetRecord) {
+    return next(new AppError("Invalid or expired reset link", 400));
+  }
+
+  if (resetRecord.attemptCount >= 3) {
+    return next(
+      new AppError("Too many failed attempts. Please request a new link.", 400),
+    );
+  }
+
+  // Verify bcrypt hash
+  const isValid = await bcrypt.compare(rawToken, resetRecord.token);
+
+  if (!isValid) {
+    resetRecord.attemptCount += 1;
+    await resetRecord.save();
+    return next(new AppError("Invalid or expired reset link", 400));
+  }
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { email: resetRecord.email, tokenValid: true },
+        "Token is valid",
+      ),
+    );
+});
+
+// ────────────────────────────────────────────────────────────
+// RESET PASSWORD
+// ────────────────────────────────────────────────────────────
+exports.resetPassword = catchAsync(async (req, res, next) => {
+  const { token, newPassword } = req.body;
+  const ipAddress = getClientIp(req);
+
+  if (!token || !token.includes(".")) {
+    return next(new AppError("Invalid or expired reset link", 400));
+  }
+
+  const [userId, rawToken] = token.split(".");
+
+  const resetRecord = await PasswordReset.findOne({
+    userId,
+    isUsed: false,
+    expiresAt: { $gt: new Date() },
+  });
+
+  if (!resetRecord) {
+    return next(new AppError("Invalid or expired reset link", 400));
+  }
+
+  if (resetRecord.attemptCount >= 3) {
+    return next(
+      new AppError("Too many failed attempts. Please request a new link.", 400),
+    );
+  }
+
+  const isValid = await bcrypt.compare(rawToken, resetRecord.token);
+
+  if (!isValid) {
+    resetRecord.attemptCount += 1;
+    await resetRecord.save();
+    return next(new AppError("Invalid or expired reset link", 400));
+  }
+
+  // Find User or Admin
+  let user = await User.findById(userId);
+  let isUser = true;
+  if (!user) {
+    user = await Admin.findById(userId);
+    isUser = false;
+  }
+
+  if (!user) {
+    return next(new AppError("User not found", 404));
+  }
+
+  // Current password check
+  const isSameAsCurrent = await comparePassword(newPassword, user.password);
+  if (isSameAsCurrent) {
+    return next(
+      new AppError(
+        "New password cannot be the same as your current password",
+        422,
+      ),
+    );
+  }
+
+  // Password history check (only for User as per Schema changes, Admin schema doesn't have it unless added)
+  if (isUser && user.passwordHistory && user.passwordHistory.length > 0) {
+    for (const past of user.passwordHistory) {
+      const isReused = await bcrypt.compare(newPassword, past.hash);
+      if (isReused) {
+        return next(new AppError("Cannot reuse a recently used password", 422));
+      }
+    }
+  }
+
+  // Hash new password
+  const newHashedPassword = await hashPassword(newPassword);
+
+  // Update User
+  user.password = newHashedPassword;
+
+  if (isUser) {
+    user.lastPasswordResetAt = new Date();
+    user.passwordResetCount = (user.passwordResetCount || 0) + 1;
+
+    // Add to history and maintain max 5
+    user.passwordHistory.unshift({
+      hash: newHashedPassword,
+      changedAt: new Date(),
+    });
+    if (user.passwordHistory.length > 5) {
+      user.passwordHistory = user.passwordHistory.slice(0, 5);
+    }
+  }
+
+  await user.save();
+
+  // Mark token as used
+  resetRecord.isUsed = true;
+  resetRecord.usedAt = new Date();
+  await resetRecord.save();
+
+  // Send confirmation email
+  await sendPasswordResetConfirmationEmail(user.email, user.name);
+
+  // Invalidate all Refresh Tokens (forces logout everywhere)
+  await RefreshToken.updateMany(
+    { holderId: user._id },
+    {
+      $set: {
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedReason: "PASSWORD_CHANGED",
+      },
+    },
+  );
+
+  // Audit Log
+  await AuditLog.create({
+    admin: isUser ? user.admin : user._id,
+    performedBy: user._id,
+    performerType: isUser ? "USER" : "ADMIN",
+    action: "PASSWORD_CHANGED",
+    targetModel: isUser ? "User" : "Admin",
+    targetId: user._id,
+    ipAddress,
+    note: "Password reset successfully completed",
+  });
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { redirectUrl: "/login" },
+        "Password reset successfully",
+      ),
+    );
 });
 
 module.exports = exports;

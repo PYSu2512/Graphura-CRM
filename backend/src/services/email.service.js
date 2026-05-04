@@ -144,13 +144,14 @@ const sendRegistrationConfirmationEmail = async (email, adminName, companyName) 
 };
 
 /**
- * Send Password Reset OTP Email
+ * Send Password Reset Link Email
  * @param {string} email - User email
- * @param {string} otp - 6-digit OTP
+ * @param {string} token - Reset token
  * @param {string} name - User's name
  */
-const sendPasswordResetEmail = async (email, otp, name = 'User') => {
+const sendPasswordResetEmail = async (email, token, name = 'User') => {
   try {
+    const resetLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password?token=${token}`;
     const response = await axios.post(
       'https://api.brevo.com/v3/smtp/email',
       {
@@ -169,11 +170,11 @@ const sendPasswordResetEmail = async (email, otp, name = 'User') => {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Password Reset Request</h2>
             <p>Hi ${name},</p>
-            <p>We received a request to reset your password. Use this OTP to proceed:</p>
-            <div style="background-color: #f0f0f0; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-              <h1 style="letter-spacing: 5px; color: #333; margin: 0;">${otp}</h1>
+            <p>We received a request to reset your password. Click the link below to create a new password:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" style="background-color: #1976d2; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; display: inline-block;">Reset Password</a>
             </div>
-            <p style="color: #666;">This OTP is valid for 10 minutes only.</p>
+            <p style="color: #666;">This link expires in 30 minutes.</p>
             <p style="color: #d32f2f;">If you didn't request this, please ignore this email and your password will remain unchanged.</p>
             <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
             <p style="color: #999; font-size: 12px; text-align: center;">
@@ -194,7 +195,60 @@ const sendPasswordResetEmail = async (email, otp, name = 'User') => {
     return { success: true, messageId: response.data.messageId };
   } catch (error) {
     logger.error('Failed to send password reset email', error.message);
-    throw new Error('Unable to send password reset email. Please try again.');
+    // Silent fail per requirements to prevent enumeration
+    return { success: false, error: 'Brevo API error' };
+  }
+};
+
+/**
+ * Send Password Reset Confirmation Email
+ * @param {string} email - User email
+ * @param {string} name - User's name
+ */
+const sendPasswordResetConfirmationEmail = async (email, name = 'User') => {
+  try {
+    const response = await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: {
+          name: 'Graphura CRM',
+          email: process.env.BREVO_SENDER_EMAIL || 'noreply@graphura.com',
+        },
+        to: [
+          {
+            email,
+            name,
+          },
+        ],
+        subject: 'Your Password Has Been Reset Successfully',
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Password Reset Successful</h2>
+            <p>Hi ${name},</p>
+            <p>Your password for Graphura CRM has been successfully changed.</p>
+            <p style="color: #666;">If you did not make this change, please contact your administrator immediately.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" style="background-color: #1976d2; color: white; padding: 12px 30px; text-decoration: none; border-radius: 4px; display: inline-block;">Go to Login</a>
+            </div>
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+            <p style="color: #999; font-size: 12px; text-align: center;">
+              Graphura CRM | Create Bold. Edit Smart. Design Loud.
+            </p>
+          </div>
+        `,
+      },
+      {
+        headers: {
+          'api-key': process.env.BREVO_API_KEY,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    logger.info(`Password reset confirmation email sent to ${email}`);
+    return { success: true, messageId: response.data.messageId };
+  } catch (error) {
+    logger.error('Failed to send password reset confirmation email', error.message);
+    return { success: false, error: 'Brevo API error' };
   }
 };
 
@@ -202,4 +256,5 @@ module.exports = {
   sendOTPEmail,
   sendRegistrationConfirmationEmail,
   sendPasswordResetEmail,
+  sendPasswordResetConfirmationEmail,
 };
