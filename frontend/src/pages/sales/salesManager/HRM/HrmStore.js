@@ -8,14 +8,17 @@ export const kpiAttendance = [
 ];
 
 export const attendanceRows = [
-  { name: "Rahul Sharma",  role: "Executive",   teamLeader: "Ankit Verma", date: "2025-06-01", clockIn: "09:02", clockOut: "18:05", hours: "9h 03m", status: "Completed", attendancePct: "94%" },
-  { name: "Priya Mehta",   role: "Executive",   teamLeader: "Sonal Gupta", date: "2025-06-01", clockIn: "09:15", clockOut: "18:00", hours: "8h 45m", status: "Completed", attendancePct: "88%" },
-  { name: "Arjun Kapoor",  role: "Executive",   teamLeader: "Ankit Verma", date: "2025-06-01", clockIn: "09:45", clockOut: "—",     hours: "6h 30m", status: "Working",     attendancePct: "76%" },
-  { name: "Sneha Rajput",  role: "Executive",   teamLeader: "Nisha Patel", date: "2025-06-01", clockIn: "—",     clockOut: "—",     hours: "—",      status: "Not Working", attendancePct: "62%" },
-  { name: "Vikram Tiwari", role: "Executive",   teamLeader: "Sonal Gupta", date: "2025-06-01", clockIn: "09:10", clockOut: "18:10", hours: "9h 00m", status: "Completed", attendancePct: "91%" },
-  { name: "Ankit Verma",   role: "Team Leader", teamLeader: "Self",        date: "2025-06-01", clockIn: "08:55", clockOut: "—",     hours: "4h 45m", status: "Working",     attendancePct: "97%" },
-  { name: "Sonal Gupta",   role: "Team Leader", teamLeader: "Self",        date: "2025-06-01", clockIn: "09:00", clockOut: "18:00", hours: "9h 00m", status: "Completed", attendancePct: "95%" },
-  { name: "Kavya Patel",   role: "Executive",   teamLeader: "Nisha Patel", date: "2025-06-01", clockIn: "—",     clockOut: "—",     hours: "—",      status: "Not Working", attendancePct: "58%" },
+  { name: "Rahul Sharma",  role: "Executive",   teamLeader: "Ankit Verma", date: "2026-05-03", clockIn: "09:02", clockOut: "18:05", hours: "9h 03m", status: "Completed",   attendancePct: "94%" },
+  { name: "Priya Mehta",   role: "Executive",   teamLeader: "Sonal Gupta", date: "2026-05-03", clockIn: "09:15", clockOut: "18:00", hours: "8h 45m", status: "Completed",   attendancePct: "88%" },
+  { name: "Arjun Kapoor",  role: "Executive",   teamLeader: "Ankit Verma", date: "2026-05-03", clockIn: "09:45", clockOut: "—",     hours: "6h 30m", status: "Working",     attendancePct: "76%" },
+  { name: "Sneha Rajput",  role: "Executive",   teamLeader: "Nisha Patel", date: "2026-05-03", clockIn: "—",     clockOut: "—",     hours: "—",      status: "Not Working", attendancePct: "62%" },
+  { name: "Vikram Tiwari", role: "Executive",   teamLeader: "Sonal Gupta", date: "2026-05-03", clockIn: "09:10", clockOut: "18:10", hours: "9h 00m", status: "Completed",   attendancePct: "91%" },
+  { name: "Ankit Verma",   role: "Team Leader", teamLeader: "Self",        date: "2026-05-03", clockIn: "08:55", clockOut: "—",     hours: "4h 45m", status: "Paused",      attendancePct: "97%" },
+  { name: "Sonal Gupta",   role: "Team Leader", teamLeader: "Self",        date: "2026-05-03", clockIn: "09:00", clockOut: "18:00", hours: "9h 00m", status: "Completed",   attendancePct: "95%" },
+  { name: "Kavya Patel",   role: "Executive",   teamLeader: "Nisha Patel", date: "2026-05-03", clockIn: "10:00", clockOut: "—",     hours: "3h 20m", status: "Paused",      attendancePct: "58%" },
+  { name: "Mohit Joshi",   role: "Executive",   teamLeader: "Nisha Patel", date: "2026-05-03", clockIn: "09:30", clockOut: "18:30", hours: "9h 00m", status: "Completed",   attendancePct: "90%" },
+  { name: "Divya Nair",    role: "Executive",   teamLeader: "Ankit Verma", date: "2026-05-03", clockIn: "—",     clockOut: "—",     hours: "—",      status: "Not Working", attendancePct: "55%" },
+  { name: "Nisha Patel",   role: "Team Leader", teamLeader: "Self",        date: "2026-05-03", clockIn: "08:50", clockOut: "—",     hours: "5h 10m", status: "Working",     attendancePct: "93%" },
 ];
 
 export const kpiLeaves = [

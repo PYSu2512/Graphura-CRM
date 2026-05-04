@@ -3,6 +3,7 @@ import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 import { useState, memo, useCallback } from "react";
 import GlobalCallModal from "../components/shared/GlobalCallModal";
+import { AttendanceProvider } from "../context/AttendanceContext";
 
 const MemoNavbar = memo(Navbar);
 
@@ -28,6 +29,7 @@ function MainLayout() {
   }, [toggleDesktop, openMobile]);
 
   return (
+    <AttendanceProvider>
     <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#fff7ed_0%,_#f7f8f0_40%,_#eef4f7_100%)]">
 
       {/* ── Mobile/Tablet backdrop ── */}
@@ -83,6 +85,7 @@ function MainLayout() {
 
       <GlobalCallModal />
     </div>
+    </AttendanceProvider>
   );
 }
 

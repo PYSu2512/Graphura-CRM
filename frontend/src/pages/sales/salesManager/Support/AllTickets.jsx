@@ -307,7 +307,7 @@ export default function AllTickets({ tickets, setTickets }) {
         columns={ticketCols}
         rows={tickets}
         actions={actions}
-        size={12}
+        size={10}
         pageSize={8}
         searchable
         filters={[

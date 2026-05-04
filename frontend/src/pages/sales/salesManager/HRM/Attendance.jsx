@@ -3,31 +3,56 @@ import {
   Heading, DashGrid, DashCard, DataTable,
   openModal, closeModal, Modal, ModalData, ModalProfile, ModalGrid, Button,
 } from "../../../../components/shared/Common_Components";
+import SessionTimer from "../../../../components/shared/SessionTimer";
 import { kpiAttendance, attendanceRows } from "./HrmStore";
 import { Users, UserCheck, UserX, Clock, Calendar, Eye } from "lucide-react";
+import { useAttendance } from "../../../../context/AttendanceContext";
 
 const KPI_ICONS   = [<Users size={22} />, <UserCheck size={22} />, <UserX size={22} />, <Calendar size={22} />, <Clock size={22} />];
 const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f43f5e", "#f59e0b", "#8b5cf6"];
 
 const COLS = [
-  { key: "name",          label: "Employee" },
-  { key: "role",          label: "Role" },
-  { key: "date",          label: "Date" },
-  { key: "clockIn",       label: "Clock In" },
-  { key: "clockOut",      label: "Clock Out" },
-  { key: "hours",         label: "Hours" },
+  { key: "name",          label: "Employee"   },
+  { key: "role",          label: "Role"       },
+  { key: "date",          label: "Date"       },
+  { key: "clockIn",       label: "Clock In"   },
+  { key: "clockOut",      label: "Clock Out"  },
+  { key: "hours",         label: "Hours"      },
   { key: "attendancePct", label: "Attendance" },
-  { key: "status", label: "Status" },
+  { key: "status",        label: "Status"     },
 ];
 
-// Unique team leaders for the filter dropdown
 const TEAM_LEADERS = [...new Set(attendanceRows.map((r) => r.teamLeader).filter((t) => t !== "Self"))];
 
+// ── Bridge: SessionTimer ← AttendanceContext (shared with Navbar) ────────────
+function AttendanceWidget() {
+  const ctx = useAttendance();
+  return (
+    <SessionTimer
+      label="Today's Attendance"
+      targetSeconds={8 * 60 * 60}
+      status={ctx.status}
+      elapsed={ctx.elapsed}
+      pct={ctx.pct}
+      remaining={ctx.remaining}
+      checkInAt={ctx.checkInAt}
+      checkOutAt={ctx.checkOutAt}
+      targetReached={ctx.targetReached}
+      onCheckIn={ctx.checkIn}
+      onPause={ctx.pause}
+      onResume={ctx.resume}
+      onCheckOut={ctx.checkOut}
+    />
+  );
+}
+
+// ── Main Attendance Page ──────────────────────────────────────────────────────
 export default function Attendance() {
   const [selected, setSelected] = useState(null);
 
   return (
     <div className="flex flex-col gap-6">
+
       {/* KPI cards */}
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="HRM" secondaryText="Attendance" size={12} />
@@ -37,7 +62,10 @@ export default function Attendance() {
         ))}
       </DashGrid>
 
-      {/* Table — filters live inside the DataTable filter modal */}
+      {/* ── Check In / Out Widget ── */}
+      <AttendanceWidget />
+
+      {/* ── Attendance Table ── */}
       <DataTable
         title="Attendance Records"
         userProfile="name"
@@ -59,9 +87,9 @@ export default function Attendance() {
         exportable
         exportFileName="attendance-report"
         filters={[
-          { title: "Status", type: "toggle", key: "Status", options: ["Working", "Not Working","Completed"] },
-          { title: "Role",           type: "toggle", key: "role",          options: ["Executive", "Team Leader"] },
-          { title: "Team Leader",    type: "select", key: "teamLeader",    options: TEAM_LEADERS },
+          { title: "Status",      type: "toggle", key: "status",     options: ["Working", "Paused", "Not Working", "Completed"] },
+          { title: "Role",        type: "toggle", key: "role",       options: ["Executive", "Team Leader"] },
+          { title: "Team Leader", type: "select", key: "teamLeader", options: TEAM_LEADERS },
         ]}
       />
 
@@ -77,10 +105,10 @@ export default function Attendance() {
             <ModalGrid title="Attendance Info" cols={2}>
               <ModalData label="Clock In"      value={selected.clockIn} />
               <ModalData label="Clock Out"     value={selected.clockOut} />
-              <ModalData label="Working Hours"  value={selected.hours} />
-              <ModalData label="Attendance %"   value={selected.attendancePct} />
-              <ModalData label="Status" value={selected.status} />
-              <ModalData label="Team Leader"    value={selected.teamLeader} />
+              <ModalData label="Working Hours" value={selected.hours} />
+              <ModalData label="Attendance %"  value={selected.attendancePct} />
+              <ModalData label="Status"        value={selected.status} />
+              <ModalData label="Team Leader"   value={selected.teamLeader} />
               <ModalData label="Role"          value={selected.role} />
             </ModalGrid>
             <div className="flex justify-end pt-2">
@@ -89,6 +117,7 @@ export default function Attendance() {
           </div>
         )}
       </Modal>
+
     </div>
   );
 }

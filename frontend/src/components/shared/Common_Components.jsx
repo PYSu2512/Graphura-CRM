@@ -1657,6 +1657,7 @@ export const DataTable = ({
                           Warm: ["bg-amber-100", "text-amber-700"],
                           Proposal: ["bg-amber-100", "text-amber-700"],
                           Interested: ["bg-amber-100", "text-amber-700"],
+                          Paused: ["bg-amber-100", "text-amber-700"],
                           // ── Blue ──
                           New: ["bg-blue-100", "text-blue-700"],
                           Cold: ["bg-blue-100", "text-blue-700"],
