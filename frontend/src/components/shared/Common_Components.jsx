@@ -1661,6 +1661,8 @@ export const DataTable = ({
                           // ── Blue ──
                           New: ["bg-blue-100", "text-blue-700"],
                           Cold: ["bg-blue-100", "text-blue-700"],
+                          Open: ["bg-blue-100", "text-blue-700"],
+                          Replied: ["bg-blue-100", "text-blue-700"],
                           // ── Purple ──
                           Prospect: ["bg-purple-100", "text-purple-700"],
                           Qualified: ["bg-purple-100", "text-purple-700"],
@@ -1677,6 +1679,9 @@ export const DataTable = ({
                           Invalid: ["bg-rose-100", "text-rose-700"],
                           Unpaid: ["bg-rose-100", "text-rose-700"],
                           Absent: ["bg-rose-100", "text-rose-500"],
+                          Escalated: ["bg-rose-100", "text-rose-700"],
+                          // ── Green (additional) ──
+                          Resolved: ["bg-emerald-100", "text-emerald-700"],
                         };
                         const [statusBg, statusText] = STATUS_MAP[val] ?? ["bg-slate-100", "text-slate-600"];
                         return (
@@ -3975,9 +3980,9 @@ export const EnhancedDataTable = ({
                   if (col.key === "status") {
                     const val = row[col.key];
                     let statusBg = "bg-slate-100 text-slate-600";
-                    if (val === "Completed" || val === "Approved" || val === "Active" || val === "Won") statusBg = "bg-emerald-100 text-emerald-800";
-                    else if (val === "Pending" || val === "In Progress" || val === "Interested" || val === "Proposal") statusBg = "bg-amber-100 text-amber-800";
-                    else if (val === "Failed" || val === "Cancelled" || val === "Inactive" || val === "Lost" || val === "Rejected") statusBg = "bg-rose-100 text-rose-800";
+                    if (val === "Completed" || val === "Approved" || val === "Active" || val === "Won" || val === "Resolved" || val === "Accepted" || val === "Done") statusBg = "bg-emerald-100 text-emerald-800";
+                    else if (val === "Pending" || val === "In Progress" || val === "Interested" || val === "Proposal" || val === "Open" || val === "Replied") statusBg = "bg-amber-100 text-amber-800";
+                    else if (val === "Failed" || val === "Cancelled" || val === "Inactive" || val === "Lost" || val === "Rejected" || val === "Escalated") statusBg = "bg-rose-100 text-rose-800";
                     return <td key={col.key} className="py-3.5 px-5 whitespace-nowrap"><span className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg}`}>{val ?? "—"}</span></td>;
                   }
                   return <td key={col.key} className={`py-3.5 px-5 text-[#1e3445] font-semibold ${isExpanded ? "whitespace-normal text-xs min-w-[120px]" : "whitespace-nowrap"}`}>{row[col.key] ?? "—"}</td>;
@@ -4203,3 +4208,270 @@ export const PanelModal = ({ id, title, children, isVisible, onClose }) => {
   • isVisible — boolean for prop-based control (optional; overrides event system)
   • onClose   — callback fired when the modal closes (optional)
 */
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UserChat
+// ─────────────────────────────────────────────────────────────────────────────
+/*
+  ── HOW TO USE UserChat ──────────────────────────────────────────────────────
+
+  A fully self-contained chat widget with:
+    • Scrollable message thread (text + image bubbles)
+    • Initials avatars for each participant
+    • Paperclip button to attach & send an image inline
+    • Send button (icon-only) with tooltip
+    • Enter to send, Shift+Enter for newline
+    • Auto-smooth-scroll to the latest message on every update
+
+  ── MINIMAL USAGE ────────────────────────────────────────────────────────────
+
+    import { UserChat } from "./Common_Components";
+
+    // 1. Keep messages in parent state:
+    const [messages, setMessages] = useState([
+      { sender: "Support", time: "2026-05-03 10:00", text: "How can I help you?" },
+    ]);
+
+    // 2. Render:
+    <UserChat
+      messages={messages}
+      onSend={(msg) => setMessages((prev) => [...prev, msg])}
+      currentUser="Sales Manager"
+    />
+
+  ── ALL PROPS ─────────────────────────────────────────────────────────────────
+
+    messages      Message[]   Required. Array of message objects to display.
+                              Each message must have:
+                                sender    string  — display name of the sender
+                                time      string  — timestamp string (any format)
+                              And one of:
+                                text      string  — plain text message
+                                imageUrl  string  — URL of an image to display
+                                imageName string  — (optional) filename caption
+
+    onSend        function    Required. Called with a new message object when
+                              the user sends a text or image:
+                                { sender, time, text }        — for text
+                                { sender, time, imageUrl, imageName } — for image
+
+    currentUser   string      Required. The sender name that identifies "me"
+                              (right-aligned navy bubbles). All other senders
+                              appear on the left in grey.
+
+    placeholder   string      Optional. Textarea placeholder text.
+                              Default: "Type a message… (Enter to send)"
+
+    maxHeight     string      Optional. Tailwind max-height class for the
+                              scrollable message area.
+                              Default: "max-h-80"
+
+    showAttach    boolean     Optional. Show the paperclip attach-image button.
+                              Default: true
+
+  ── EXAMPLES ─────────────────────────────────────────────────────────────────
+
+    // Basic ticket chat
+    <UserChat
+      messages={ticket.conversation}
+      onSend={(msg) => updateTicket(ticket.id, msg)}
+      currentUser="Sales Manager"
+    />
+
+    // Custom height, no attachment button
+    <UserChat
+      messages={chatLog}
+      onSend={handleSend}
+      currentUser="Admin"
+      maxHeight="max-h-48"
+      showAttach={false}
+      placeholder="Reply to customer…"
+    />
+
+*/
+
+export const UserChat = ({
+  messages      = [],
+  onSend,
+  currentUser   = "Me",
+  placeholder   = "Type a message… (Enter to send)",
+  maxHeight     = "max-h-80",
+  showAttach    = true,
+}) => {
+  const [text,       setText]      = React.useState("");
+  const chatEndRef                 = React.useRef(null);
+  const imgInputRef                = React.useRef(null);
+
+  // ── Auto-scroll to bottom on every new message ──
+  React.useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  // ── Build a timestamped message object ──
+  const makeMsg = (payload) => ({
+    sender: currentUser,
+    time:   new Date().toISOString().slice(0, 16).replace("T", " "),
+    ...payload,
+  });
+
+  // ── Send text message ──
+  const handleSendText = () => {
+    if (!text.trim() || !onSend) return;
+    onSend(makeMsg({ text }));
+    setText("");
+  };
+
+  // ── Send image message from file picker ──
+  const handleImageFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !onSend) return;
+    onSend(makeMsg({ imageUrl: URL.createObjectURL(file), imageName: file.name }));
+    e.target.value = "";
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+
+      {/* ── Message thread ── */}
+      <div className={`flex flex-col gap-3 ${maxHeight} overflow-y-auto px-2 py-2 custom-scrollbar rounded-2xl bg-slate-50 border border-slate-100`}>
+        {messages.length === 0 ? (
+          /* Empty state */
+          <div className="flex flex-col items-center justify-center py-10 gap-2">
+            <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <p className="text-xs text-slate-400 font-medium">No messages yet.</p>
+          </div>
+        ) : (
+          messages.map((msg, i) => {
+            const isMe    = msg.sender === currentUser;
+            // Generate 2-letter initials from sender name
+            const initials = msg.sender.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+            return (
+              <div key={i} className={`flex items-end gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+
+                {/* ── Avatar ── */}
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 shadow-sm ${
+                  isMe ? "bg-[#2a465a] text-white" : "bg-slate-200 text-slate-600"
+                }`}>
+                  {initials}
+                </div>
+
+                {/* ── Bubble ── */}
+                <div className={`flex flex-col gap-0.5 max-w-[72%] ${isMe ? "items-end" : "items-start"}`}>
+                  {/* Sender + timestamp */}
+                  <span className="text-[10px] font-semibold text-slate-400 px-1">
+                    {msg.sender} · {msg.time}
+                  </span>
+
+                  {msg.imageUrl ? (
+                    /* Image bubble — click to open full-size */
+                    <div className={`rounded-2xl overflow-hidden shadow-sm border ${
+                      isMe ? "border-[#2a465a]/20 rounded-br-sm" : "border-slate-200 rounded-bl-sm"
+                    }`}>
+                      <img
+                        src={msg.imageUrl}
+                        alt={msg.imageName || "attachment"}
+                        className="max-w-[180px] max-h-[180px] object-cover cursor-pointer hover:opacity-90 transition"
+                        onClick={() => window.open(msg.imageUrl, "_blank")}
+                      />
+                      {msg.imageName && (
+                        <div className={`px-2 py-1 text-[10px] font-medium truncate max-w-[180px] ${
+                          isMe ? "bg-[#2a465a] text-white/70" : "bg-slate-50 text-slate-400"
+                        }`}>
+                          {msg.imageName}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Text bubble */
+                    <div className={`px-3.5 py-2 rounded-2xl text-xs font-medium leading-relaxed shadow-sm ${
+                      isMe
+                        ? "bg-[#2a465a] text-white rounded-br-sm"
+                        : "bg-white border border-slate-200 text-[#2a465a] rounded-bl-sm"
+                    }`}>
+                      {msg.text}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+        {/* Invisible sentinel — scrolled into view on new message */}
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* ── Reply input row ── */}
+      <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 focus-within:ring-2 focus-within:ring-[#2a465a]/20 focus-within:border-[#2a465a]/40 transition">
+
+        {/* Attach image button (hidden file input + paperclip icon) */}
+        {showAttach && (
+          <>
+            <input
+              ref={imgInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageFile}
+            />
+            <div className="relative group shrink-0">
+              <button
+                type="button"
+                onClick={() => imgInputRef.current?.click()}
+                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:bg-slate-200 hover:text-[#2a465a] transition"
+              >
+                {/* Paperclip SVG */}
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                </svg>
+              </button>
+              {/* Tooltip */}
+              <div className="pointer-events-none absolute bottom-full left-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                <div className="bg-[#1e293b] text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap">
+                  Attach Image
+                </div>
+                <div className="absolute top-full left-3 border-4 border-transparent border-t-[#1e293b]" />
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Textarea */}
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSendText(); } }}
+          placeholder={placeholder}
+          rows={1}
+          className="flex-1 bg-transparent text-sm text-[#2a465a] placeholder:text-slate-400 focus:outline-none resize-none leading-5 py-0.5"
+        />
+
+        {/* Send button */}
+        <div className="relative group shrink-0">
+          <button
+            type="button"
+            onClick={handleSendText}
+            disabled={!text.trim()}
+            className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#2a465a] text-white hover:bg-[#1e3a52] transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-[#2a465a]/20"
+          >
+            {/* Send icon */}
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          </button>
+          {/* Tooltip */}
+          <div className="pointer-events-none absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+            <div className="bg-[#1e293b] text-white text-[10px] font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap">
+              Send Reply
+            </div>
+            <div className="absolute top-full right-3 border-4 border-transparent border-t-[#1e293b]" />
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
