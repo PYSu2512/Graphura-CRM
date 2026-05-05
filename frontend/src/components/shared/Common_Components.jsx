@@ -382,6 +382,8 @@ export const Button = ({
       "bg-white text-[#2a465a] border border-slate-200 hover:bg-slate-50 hover:-translate-y-0.5",
     danger:
       "bg-rose-500 text-white shadow-lg shadow-rose-500/20 hover:bg-rose-600 hover:-translate-y-0.5",
+    success:
+      "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 hover:-translate-y-0.5",
     ghost: "bg-transparent text-[#2a465a] hover:bg-slate-100",
   };
 
@@ -1152,8 +1154,9 @@ export const DataTable = ({
 
   const actionVariantCls = {
     primary: "bg-[#2a465a] text-white hover:bg-[#1e3a52]",
-    danger: "bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100",
-    ghost: "bg-slate-100 text-slate-600 hover:bg-slate-200",
+    danger:  "bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100",
+    success: "bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100",
+    ghost:   "bg-slate-100 text-slate-600 hover:bg-slate-200",
   };
 
   // ── CSV Export — exports ALL fields from every row (not just visible columns)
@@ -1644,58 +1647,69 @@ export const DataTable = ({
                     {columns.map((col) => {
                       if (col.key === "status") {
                         const val = row[col.key];
-                        // ── Status → colour map ──────────────────────────────
-                        // Green  — positive / done
-                        // Amber  — in-progress / warm / pending
-                        // Blue   — new / cold / info
-                        // Purple — prospect / interested
-                        // Rose   — failed / dump / hot (urgent)
-                        // Slate  — default / unknown
+                        // ── Status → colour map ──────────────────────────────────────────
+                        // Emerald — positive / completed / active / success
+                        // Teal    — working / in-session / live
+                        // Blue    — new / info / open / replied
+                        // Purple  — prospect / qualified / interested
+                        // Amber   — pending / in-progress / paused / warm / follow-up
+                        // Slate   — neutral / not-respond / unassigned
+                        // Rose    — failed / rejected / escalated / dump / overdue / inactive
                         const STATUS_MAP = {
-                          // ── Green ──
-                          Completed: ["bg-emerald-100", "text-emerald-700"],
-                          Converted: ["bg-emerald-100", "text-emerald-700"],
-                          Done: ["bg-emerald-100", "text-emerald-700"],
-                          Active: ["bg-emerald-100", "text-emerald-700"],
-                          Approved: ["bg-emerald-100", "text-emerald-700"],
-                          Won: ["bg-emerald-100", "text-emerald-700"],
-                          Valid: ["bg-emerald-100", "text-emerald-700"],
-                          Paid: ["bg-emerald-100", "text-emerald-700"],
-                          Accepted: ["bg-emerald-100", "text-emerald-700"],
-                          Working: ["bg-emerald-100", "text-emerald-700"],
-                          // ── Amber ──
-                          "In Progress": ["bg-amber-100", "text-amber-700"],
-                          "Not Working": ["bg-amber-100", "text-amber-700"],
-                          Pending: ["bg-amber-100", "text-amber-700"],
-                          "Follow-up": ["bg-amber-100", "text-amber-700"],
-                          Warm: ["bg-amber-100", "text-amber-700"],
-                          Proposal: ["bg-amber-100", "text-amber-700"],
-                          Interested: ["bg-amber-100", "text-amber-700"],
-                          Paused: ["bg-amber-100", "text-amber-700"],
-                          // ── Blue ──
-                          New: ["bg-blue-100", "text-blue-700"],
-                          Cold: ["bg-blue-100", "text-blue-700"],
-                          Open: ["bg-blue-100", "text-blue-700"],
-                          Replied: ["bg-blue-100", "text-blue-700"],
-                          // ── Purple ──
-                          Prospect: ["bg-purple-100", "text-purple-700"],
-                          Qualified: ["bg-purple-100", "text-purple-700"],
-                          // ── Slate ──
-                          "Not Respond": ["bg-slate-200", "text-slate-600"],
-                          // ── Rose ──
-                          Failed: ["bg-rose-100", "text-rose-700"],
-                          Cancelled: ["bg-rose-100", "text-rose-700"],
-                          Dump: ["bg-rose-100", "text-rose-700"],
-                          Hot: ["bg-rose-100", "text-rose-700"],
-                          Lost: ["bg-rose-100", "text-rose-700"],
-                          Rejected: ["bg-rose-100", "text-rose-700"],
-                          Inactive: ["bg-rose-100", "text-rose-700"],
-                          Invalid: ["bg-rose-100", "text-rose-700"],
-                          Unpaid: ["bg-rose-100", "text-rose-700"],
-                          Absent: ["bg-rose-100", "text-rose-500"],
-                          Escalated: ["bg-rose-100", "text-rose-700"],
-                          // ── Green (additional) ──
-                          Resolved: ["bg-emerald-100", "text-emerald-700"],
+                          // ── Emerald (positive / done) ──
+                          Completed:      ["bg-emerald-100", "text-emerald-700"],
+                          Converted:      ["bg-emerald-100", "text-emerald-700"],
+                          Done:           ["bg-emerald-100", "text-emerald-700"],
+                          done:           ["bg-emerald-100", "text-emerald-700"],
+                          Active:         ["bg-emerald-100", "text-emerald-700"],
+                          Approved:       ["bg-emerald-100", "text-emerald-700"],
+                          Won:            ["bg-emerald-100", "text-emerald-700"],
+                          Valid:          ["bg-emerald-100", "text-emerald-700"],
+                          Paid:           ["bg-emerald-100", "text-emerald-700"],
+                          Accepted:       ["bg-emerald-100", "text-emerald-700"],
+                          Resolved:       ["bg-emerald-100", "text-emerald-700"],
+                          Success:        ["bg-emerald-100", "text-emerald-700"],
+                          // ── Teal (live / working session) ──
+                          Working:        ["bg-teal-100",    "text-teal-700"],
+                          // ── Blue (new / info / open / replied) ──
+                          New:            ["bg-blue-100",    "text-blue-700"],
+                          new:            ["bg-blue-100",    "text-blue-700"],
+                          Cold:           ["bg-blue-100",    "text-blue-700"],
+                          Open:           ["bg-blue-100",    "text-blue-700"],
+                          Replied:        ["bg-blue-100",    "text-blue-700"],
+                          // ── Purple (prospect / qualified) ──
+                          Prospect:       ["bg-purple-100",  "text-purple-700"],
+                          Qualified:      ["bg-purple-100",  "text-purple-700"],
+                          // ── Amber (pending / in-progress / paused / warm) ──
+                          "In Progress":  ["bg-amber-100",   "text-amber-700"],
+                          Pending:        ["bg-amber-100",   "text-amber-700"],
+                          pending:        ["bg-amber-100",   "text-amber-700"],
+                          "Follow-up":    ["bg-amber-100",   "text-amber-700"],
+                          Warm:           ["bg-amber-100",   "text-amber-700"],
+                          Proposal:       ["bg-amber-100",   "text-amber-700"],
+                          Interested:     ["bg-amber-100",   "text-amber-700"],
+                          Paused:         ["bg-amber-100",   "text-amber-700"],
+                          "Not Working":  ["bg-amber-100",   "text-amber-700"],
+                          Hot:            ["bg-amber-100",   "text-amber-700"],
+                          // ── Slate (neutral / no response) ──
+                          "Not Respond":  ["bg-slate-200",   "text-slate-600"],
+                          Unassigned:     ["bg-slate-200",   "text-slate-600"],
+                          // ── Rose (failed / rejected / escalated / overdue / inactive) ──
+                          Failed:         ["bg-rose-100",    "text-rose-700"],
+                          Cancelled:      ["bg-rose-100",    "text-rose-700"],
+                          Dump:           ["bg-rose-100",    "text-rose-700"],
+                          Lost:           ["bg-rose-100",    "text-rose-700"],
+                          Rejected:       ["bg-rose-100",    "text-rose-700"],
+                          Inactive:       ["bg-rose-100",    "text-rose-700"],
+                          Invalid:        ["bg-rose-100",    "text-rose-700"],
+                          Unpaid:         ["bg-rose-100",    "text-rose-700"],
+                          Absent:         ["bg-rose-100",    "text-rose-700"],
+                          Escalated:      ["bg-rose-100",    "text-rose-700"],
+                          overdue:        ["bg-rose-100",    "text-rose-700"],
+                          Overdue:        ["bg-rose-100",    "text-rose-700"],
+                          // ── Orange (expired / warning) ──
+                          Expired:        ["bg-orange-100",  "text-orange-700"],
+                          Warning:        ["bg-orange-100",  "text-orange-700"],
                         };
                         const [statusBg, statusText] = STATUS_MAP[val] ?? ["bg-slate-100", "text-slate-600"];
                         return (
@@ -3994,9 +4008,30 @@ export const EnhancedDataTable = ({
                   if (col.key === "status") {
                     const val = row[col.key];
                     let statusBg = "bg-slate-100 text-slate-600";
-                    if (val === "Completed" || val === "Approved" || val === "Active" || val === "Won" || val === "Resolved" || val === "Accepted" || val === "Done") statusBg = "bg-emerald-100 text-emerald-800";
-                    else if (val === "Pending" || val === "In Progress" || val === "Interested" || val === "Proposal" || val === "Open" || val === "Replied") statusBg = "bg-amber-100 text-amber-800";
-                    else if (val === "Failed" || val === "Cancelled" || val === "Inactive" || val === "Lost" || val === "Rejected" || val === "Escalated") statusBg = "bg-rose-100 text-rose-800";
+                    // Emerald — positive / done / active / success
+                    if (["Completed","Approved","Active","Won","Resolved","Accepted","Done","done","Valid","Paid","Success"].includes(val))
+                      statusBg = "bg-emerald-100 text-emerald-800";
+                    // Teal — live / working
+                    else if (val === "Working")
+                      statusBg = "bg-teal-100 text-teal-800";
+                    // Blue — new / open / info / replied
+                    else if (["New","new","Open","Cold","Replied"].includes(val))
+                      statusBg = "bg-blue-100 text-blue-800";
+                    // Purple — prospect / qualified
+                    else if (["Prospect","Qualified"].includes(val))
+                      statusBg = "bg-purple-100 text-purple-800";
+                    // Amber — pending / in-progress / paused / warm / follow-up
+                    else if (["Pending","pending","In Progress","Follow-up","Warm","Proposal","Interested","Paused","Not Working","Hot"].includes(val))
+                      statusBg = "bg-amber-100 text-amber-800";
+                    // Slate — neutral / no response
+                    else if (["Not Respond","Unassigned"].includes(val))
+                      statusBg = "bg-slate-200 text-slate-700";
+                    // Orange — expired / warning
+                    else if (["Expired","Warning"].includes(val))
+                      statusBg = "bg-orange-100 text-orange-800";
+                    // Rose — failed / rejected / escalated / overdue / inactive
+                    else if (["Failed","Cancelled","Inactive","Lost","Rejected","Escalated","Dump","Invalid","Unpaid","Absent","overdue","Overdue"].includes(val))
+                      statusBg = "bg-rose-100 text-rose-800";
                     return <td key={col.key} className="py-3.5 px-5 whitespace-nowrap"><span className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg}`}>{val ?? "—"}</span></td>;
                   }
                   return <td key={col.key} className={`py-3.5 px-5 text-[#1e3445] font-semibold ${isExpanded ? "whitespace-normal text-xs min-w-[120px]" : "whitespace-nowrap"}`}>{row[col.key] ?? "—"}</td>;

@@ -248,7 +248,7 @@ export default function AllTickets({ tickets, setTickets }) {
     },
     {
       icon: <CheckCircle2 size={15} />, tooltip: "Resolved",
-      variant: "ghost",
+      variant: "success",
       onClick: (row) => setMyTickets((prev) => prev.map((t) => t.id === row.id ? { ...t, status: "Resolved" } : t)),
     },
     {
@@ -308,7 +308,7 @@ export default function AllTickets({ tickets, setTickets }) {
         rows={tickets}
         actions={actions}
         size={10}
-        pageSize={8}
+        pageSize={10}
         searchable
         filters={[
           { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High"] },
