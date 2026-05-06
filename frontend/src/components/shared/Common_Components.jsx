@@ -1898,12 +1898,12 @@ export const DataTable = ({
     { name: "Carol White",   email: "carol@acme.com", role: "Staff",   status: "Failed",      date: "2024-04-10" },
   ];
 
-  // Icon-only actions with tooltips
+  // Icon-only actions with tooltips (recommended — compact, clean)
   const actions = [
     {
       icon: <Pencil size={14} />,
       tooltip: "Edit",
-      variant: "ghost",                 // "primary" | "danger" | "ghost"
+      variant: "ghost",                 // "primary" | "success" | "danger" | "ghost"
       onClick: (row) => handleEdit(row),
     },
     {
@@ -1912,12 +1912,6 @@ export const DataTable = ({
       variant: "danger",
       onClick: (row) => handleDelete(row),
     },
-  ];
-
-  // Label + icon actions (no tooltip needed)
-  const actions = [
-    { label: "Edit",   icon: <Pencil size={14} />, variant: "primary", onClick: (row) => handleEdit(row) },
-    { label: "Delete",                              variant: "danger",  onClick: (row) => handleDelete(row) },
   ];
 
   // Full example with all filter types, date range, bulk actions, and toolbar date picker
@@ -1953,9 +1947,12 @@ export const DataTable = ({
   Props:
   • columns          — array of { key, label }; key "status" renders a colored badge
   • rows             — array of data objects (keys must match column keys)
-  • actions          — array of { label?, icon?, tooltip?, variant?, onClick }
-                         label + icon → labeled button; icon only → square icon button with tooltip
-                         variant: "primary" | "danger" | "ghost"  (default: "ghost")
+  • actions          — array of { icon, tooltip, variant?, onClick }
+                         icon:    React element (e.g. <Eye size={14} />) — required for icon-only buttons
+                         tooltip: string shown on hover — required when using icon-only
+                         variant: "primary" | "success" | "danger" | "ghost"  (default: "ghost")
+                         onClick: (row) => void
+                         show:    (row) => boolean — optional, hides the button for specific rows
   • title            — optional heading shown above the table
   • size             — 1–12 grid columns  (default: 12)
   • pageSize         — rows per page  (default: 5)
