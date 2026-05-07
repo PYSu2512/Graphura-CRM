@@ -36,7 +36,20 @@ export function useClientLeads() {
   const [prospectForm, setProspectForm] = useState(DEFAULT_PROSPECT_FORM);
 
   useEffect(() => {
-    fetchClientLeads().then((leads) => setClientLeads(leads));
+    fetchClientLeads().then((leads) => {
+      // Auto-mark leads with no activity as "Untouched"
+      const processed = leads.map((lead) => {
+        const hasActivity =
+          (lead.comments && lead.comments.length > 0) ||
+          (lead.followUps && lead.followUps.length > 0) ||
+          (lead.lastContact && lead.lastContact !== lead.assignedAt);
+        if (!hasActivity && lead.status !== "Dumped" && lead.status !== "Interested") {
+          return { ...lead, status: "Untouched" };
+        }
+        return lead;
+      });
+      setClientLeads(processed);
+    });
   }, []);
 
   const openLeadDetails = (lead) => {
