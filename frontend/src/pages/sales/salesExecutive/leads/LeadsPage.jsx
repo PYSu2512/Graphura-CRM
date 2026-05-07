@@ -1,12 +1,3 @@
-// View assigned leads
-// Filter (Talk / Not Talk / Untouched / Interested)
-// Call / WhatsApp
-// Add comments
-// Set reminders
-// Update status
-// Fill prospect form
-// Move to dump
-
 import { useMemo } from "react";
 import {
   DashCard,
@@ -18,6 +9,7 @@ import { ClientLeadDetailsModal } from "./components/ClientLeadDetailsModal";
 import { CommentModal } from "./components/CommentModal";
 import { ProspectFormModal } from "./components/ProspectFormModal";
 import { ReminderModal } from "./components/ReminderModal";
+import { ActionModal } from "./components/ActionModal";
 import { useClientLeads } from "./hooks/useClientLeads";
 
 export default function LeadsPage() {
@@ -26,19 +18,24 @@ export default function LeadsPage() {
     selectedLead,
     draftStatus,
     setDraftStatus,
+
     commentLead,
     commentText,
     setCommentText,
+
     reminderDate,
     setReminderDate,
     followUpForm,
     setFollowUpForm,
+
     prospectLead,
     prospectForm,
     setProspectForm,
+
     openLeadDetails,
     saveStatus,
     moveToDump,
+
     openCommentModal,
     saveComment,
     openReminderModal,
@@ -47,6 +44,13 @@ export default function LeadsPage() {
     saveProspect,
     handleCallLead,
     handleWhatsAppLead,
+
+    // Action modal
+    actionLead,
+    actionValue,
+    setActionValue,
+    openActionModal,
+    saveLeadAction,
   } = useClientLeads();
 
   const stats = useMemo(() => {
@@ -99,12 +103,8 @@ export default function LeadsPage() {
       <ClientLeadsTable
         leads={clientLeads}
         onOpenLead={openLeadDetails}
-        onCallLead={handleCallLead}
-        onWhatsAppLead={handleWhatsAppLead}
-        onOpenComment={openCommentModal}
-        onOpenReminder={openReminderModal}
-        onOpenProspectForm={openProspectForm}
         onMoveToDump={moveToDump}
+        onOpenActionModal={openActionModal}
       />
 
       <ClientLeadDetailsModal
@@ -112,6 +112,19 @@ export default function LeadsPage() {
         draftStatus={draftStatus}
         setDraftStatus={setDraftStatus}
         saveStatus={saveStatus}
+      />
+
+      <ActionModal
+        selectedLead={actionLead}
+        actionValue={actionValue}
+        setActionValue={setActionValue}
+        commentText={commentText}
+        setCommentText={setCommentText}
+        followUpForm={followUpForm}
+        setFollowUpForm={setFollowUpForm}
+        prospectForm={prospectForm}
+        setProspectForm={setProspectForm}
+        onSave={saveLeadAction}
       />
 
       <CommentModal
