@@ -168,9 +168,9 @@ src/pages/sales/salesTeamLeader/
 │
 │   ── Packet 5 — HRM + LoginLogs + PaymentAlerts ──
 ├── hrm/
-│   ├── HRMPage.jsx                       [TODO] self apply leave + clock in/out + attendance
-│   ├── LeaveForm.jsx                     [TODO]
-│   └── AttendanceTable.jsx               [TODO]
+│   ├── HRMPage.jsx                       [TODO] tab layout (Attendance | Leaves) — mirrors Manager's HrmLayout
+│   ├── Attendance.jsx                    [TODO] self KPIs + clock-in/out widget + attendance log + work summary + charts
+│   └── Leaves.jsx                        [TODO] My Leaves table + Apply Leave modal (no Pending/History — that's Packet 3)
 ├── loginLogs/
 │   └── LoginLogs.jsx                     [TODO] self + team executives
 └── payments/
@@ -198,7 +198,7 @@ For copy-paste sources (one level up in `salesManager/`):
 | Packet 3 (My Team) | `src/pages/sales/salesManager/Employees/Employees.jsx` + `salesManager/HRM/{Attendance,Leaves}.jsx` |
 | Packet 4 (Reports) | `src/pages/sales/salesManager/Reports/*` |
 | Packet 4 (Announcements) | `src/pages/sales/salesManager/Announcements/*` |
-| Packet 5 (HRM) | `src/pages/sales/salesExecutive/hrm/*` (NOT Manager — Executive is the right shape for self-HRM) |
+| Packet 5 (HRM) | `src/pages/sales/salesManager/HRM/{HrmLayout,Attendance,Leaves}.jsx` — use Manager's tabbed layout (Attendance \| Leaves), trim to self-only data and drop the "Pending Leaves" / "Leave History" tables (those Approve-others workflows live in Packet 3). |
 | Packet 5 (Login Logs) | `src/pages/sales/salesManager/LoginLogs/LoginLogs.jsx` |
 | Packet 5 (Payment Alerts) | `src/pages/sales/salesExecutive/payments/PaymentsPage.jsx` |
 
@@ -292,13 +292,13 @@ For copy-paste sources (one level up in `salesManager/`):
 
 **Pages to build:**
 
-- `hrm/HRMPage.jsx` — self apply leave + clock in/out + attendance
-- `hrm/LeaveForm.jsx`
-- `hrm/AttendanceTable.jsx`
+- `hrm/HRMPage.jsx` — top-level tab layout (Attendance | Leaves), matches Manager's `HrmLayout.jsx`
+- `hrm/Attendance.jsx` — self KPIs + clock-in/out widget + attendance log + work summary + charts
+- `hrm/Leaves.jsx` — My Leaves table + Apply Leave modal
 - `loginLogs/LoginLogs.jsx` — logs for self + team executives (username, date/time, IP, lat/long)
 - `payments/PaymentAlerts.jsx` — failed/successful payment feed for self + team
 
-**Spec source for self-HRM:** copy from `salesExecutive/hrm/*`, NOT from Manager. Manager's HRM is a control panel; the TL's *personal* HRM looks like the Executive's.
+**Spec source for self-HRM:** copy from `salesManager/HRM/{HrmLayout,Attendance,Leaves}.jsx`. Use Manager's tabbed structure but trim to self-only data — drop the Pending Leaves and Leave History tables (those Approve-others workflows live in Packet 3's `LeaveApprovals.jsx`). The clock-in/out widget shape comes from `services/hrmService.js`.
 
 **Routing — these are NEW routes that don't exist yet.** When your pages are ready, send Pranjal the following snippet (or your final version of it):
 
