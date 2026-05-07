@@ -1,6 +1,7 @@
 import apiClient from './apiClient';
 
 const base = '/teams/user-teams';
+const leadBase = '/sales-manager/leads';
 
 export const teamService = {
   getAvailableLeaders: async (departmentId) => {
@@ -29,6 +30,24 @@ export const teamService = {
   },
   addTeamMember: async (teamId, userId) => {
     const response = await apiClient.post(`${base}/${teamId}/members`, { userId });
+    return response.data;
+  },
+  getLeadAssignmentTargets: async (role = 'SALES_TL') => {
+    const response = await apiClient.get(`${leadBase}/assignment-targets`, {
+      params: { role },
+    });
+    return response.data;
+  },
+  assignBulkLeads: async (payload) => {
+    const response = await apiClient.post(`${leadBase}/bulk/distribute`, payload);
+    return response.data;
+  },
+  assignLeadsToUser: async (payload) => {
+    const response = await apiClient.post(`${leadBase}/bulk/transfer`, payload);
+    return response.data;
+  },
+  assignBatchLeads: async (uploadId, payload) => {
+    const response = await apiClient.post(`${leadBase}/bulk/${uploadId}/assign-batch`, payload);
     return response.data;
   },
 };

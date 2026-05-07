@@ -6,7 +6,8 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "init:db": "node src/scripts/seed.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "seed:second-admin-users": "node src/scripts/seedSecondAdminUsers.js",
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",

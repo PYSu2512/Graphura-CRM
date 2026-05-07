@@ -727,9 +727,6 @@ Support Tickets:
 API Configuration:
   - Set/update: Razorpay keys, Brevo API key, Firebase key
   - Stored in ApiConfig model
-
-Department Management:
-  - Create/delete global department types (only Super Admin can)
 ```
 
 ## ADMIN Features
@@ -753,7 +750,6 @@ Department Management:
   - View all 3 default departments
   - Assign managers to departments
   - Monitor department performance
-  - NOTE: Create/Delete department = Super Admin only
 
 Login Logs (All Departments):
   - View ALL UserLoginLog for this admin
@@ -956,6 +952,83 @@ Pro-Level (Optional):
   - Call quality scoring (future AI)
 ```
 
+## SALES TEAM LEADER Lead Assignment Workspace
+```
+Purpose:
+  - Sales TL is the operational owner of the team's active pipeline.
+  - The panel must fetch assigned-to-me leads from DB, assign leads to own executives,
+    and refresh both assigned and unassigned lists after every mutation.
+
+Access Scope:
+  - admin-scoped only (tenant isolation)
+  - own team only
+  - active team only
+  - no cross-team assignment
+  - no dumped leads in active assignment screens
+  - no soft-deleted leads anywhere in TL assignment workflow
+
+Panel Tabs:
+  1. Leads Assigned To Me
+     - DB source: Lead where admin = current admin, assignedTo = current TL, isDeleted != true, isDumped != true
+     - Use case: review, reassign, track workload, and view current team pipeline
+
+  2. Leads I Assigned To Executives
+     - DB source: Lead where admin = current admin, assignedBy = current TL, isDeleted != true, isDumped != true
+     - Use case: audit trail, accountability, and manager reporting
+
+  3. Unassigned Team Pool
+     - DB source: Lead where admin = current admin, assignedTo = null, isDeleted != true, isDumped != true
+     - Use case: select leads for distribution to own executives
+
+  4. Assignment History
+     - DB source: LeadAssignmentHistory filtered by admin and team
+     - Shows assignedTo, assignedBy, team, reason, assignedAt, releasedAt
+
+Assignment Rules:
+  - TL can assign only to approved, active SALES_EXECUTIVE users in the same team
+  - TL cannot assign to another TL, Sales Manager, or different team
+  - TL cannot assign dumped or deleted leads
+  - Lead limits must respect user leadDataLimit, admin leadLimits, or DataLimitOverride
+  - If a lead is already assigned to the same executive in the same team, skip it
+  - If the backend persists zero leads, return an error instead of success
+
+DB Write Rules on Successful TL Assignment:
+  - Update Lead.assignedTo = target executive
+  - Update Lead.assignedBy = current TL
+  - Update Lead.team = current team
+  - Insert one LeadAssignmentHistory row per lead
+  - Insert one AuditLog row per lead
+  - Insert Notification row for the target executive
+  - Never hard-delete or duplicate lead records
+
+Frontend Behavior:
+  - Distribution modal defaults Assign Leads = 0 and Target = 0
+  - TL manually enters distribution counts per executive
+  - After success, refresh assigned leads, unassigned leads, and assignment targets from backend
+  - Assigned table must use DB-backed assigned-leads endpoint, not local derivation
+  - Unassigned table must immediately exclude assigned leads after refresh
+  - Any 409 or assignment error must display the backend message verbatim
+
+Required APIs:
+  - GET /api/sales-manager/leads/assignment-targets?role=SALES_EXECUTIVE
+  - GET /api/sales-manager/leads/assigned
+  - POST /api/sales-manager/leads/:leadId/assign
+  - POST /api/sales-manager/leads/bulk/transfer
+  - POST /api/sales-manager/leads/bulk/distribute
+
+Recommended Table Columns:
+  - Assigned To table: name, mobile, email, companyName, status, assignedTo, assignedBy, team, assignedAt, assignmentReason
+  - Unassigned table: name, mobile, email, companyName, status, createdAt
+  - History table: lead, assignedTo, assignedBy, team, reason, assignedAt, releasedAt
+
+Operational Guarantees:
+  - No fake success messages
+  - No leakage across teams
+  - No stale assigned rows after refresh
+  - No dumped leads in active assignment workflows
+  - Every assignment must be reconstructible from DB history
+```
+
 ## SALES EXECUTIVE Features
 ```
 Access Scope: OWN ASSIGNED leads only
@@ -1042,6 +1115,7 @@ HRM (Self):
   - Apply Leave, Leave Status, Working Days, Clock In/Out
 
 Notification Control:
+  - Receive notification when work order is signed
   - Receive notification when work order is signed
 
 Global Payment Page (Razorpay):
@@ -1153,15 +1227,21 @@ HRM (Self):
 ```
 SALES:
 1. Sales Manager uploads leads (CSV/Excel) → Client + Lead records created
-2. Sales Manager distributes leads to Sales TL → LeadAssignmentHistory
-3. Sales TL assigns to Sales Executive → LeadAssignmentHistory
-4. Sales Executive contacts client:
+2. Sales Manager distributes leads to Sales TL → Lead.assignedTo + LeadAssignmentHistory
+3. Sales TL opens Assigned Leads panel:
+  - fetches leads assigned to self from DB
+  - fetches own team executives from DB
+  - assigns selected leads to own executives
+  - writes Lead.assignedTo, Lead.assignedBy, Lead.team, LeadAssignmentHistory, AuditLog, Notification
+  - refreshes assigned/unassigned tables from backend after success
+4. Sales TL can reassign or redistribute within own team only
+5. Sales Executive contacts client:
    - Updates status: TALK/NOT_TALK/INTERESTED
    - Logs in LeadActivity (status + comment + duration)
    - notTalkCount >= 3 → auto-dump (isDumped: true)
-5. Client interested → Executive fills ProspectForm
+6. Client interested → Executive fills ProspectForm
    (requirement, budget, suggestedServices from Service catalog)
-6. ProspectForm.status = SENT_TO_FINANCE
+7. ProspectForm.status = SENT_TO_FINANCE
 
 FINANCE:
 7. Finance Manager views ProspectForm
