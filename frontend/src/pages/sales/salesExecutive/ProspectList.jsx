@@ -271,7 +271,7 @@ const ProspectList = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-      <Heading primaryText="Prospect Management" />
+      <Heading primaryText="Prospect" secondaryText="Management" />
 
       {/* ── Summary Cards — EnhancedDashCard with wave animation ── */}
       <DashGrid cols={12} gap={4}>

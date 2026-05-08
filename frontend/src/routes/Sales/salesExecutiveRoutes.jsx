@@ -6,7 +6,6 @@ import EditProspect from "../../pages/sales/salesExecutive/EditProspect";
 import LeadsLayout from "../../pages/sales/salesExecutive/leads/LeadsLayout";
 import LeadsPage from "../../pages/sales/salesExecutive/leads/LeadsPage";
 import FollowUpsPage from "../../pages/sales/salesExecutive/leads/FollowUpsPage";
-import ProspectLeadsPage from "../../pages/sales/salesExecutive/leads/ProspectLeadsPage";
 import DumpDataPage from "../../pages/sales/salesExecutive/dumpData/DumpDataPage";
 import PaymentsPage from "../../pages/sales/salesExecutive/payments/PaymentsPage";
 import HRMLayout from "../../pages/sales/salesExecutive/hrm/HrmLayout";
@@ -28,7 +27,7 @@ function SalesExecutiveRoutes() {
                     <Route index element={<Navigate to="all" replace />} />
                     <Route path="all" element={<LeadsPage />} />
                     <Route path="follow-ups" element={<FollowUpsPage />} />
-                    <Route path="prospects" element={<ProspectLeadsPage />} />
+                    <Route path="prospects" element={<ProspectList />} />
                     <Route path="dump" element={<DumpDataPage />} />
                 </Route>
                 <Route path="dump" element={<Navigate to="leads/dump" replace />} />
