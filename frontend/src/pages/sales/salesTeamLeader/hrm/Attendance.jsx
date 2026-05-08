@@ -1,93 +1,49 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import toast from "react-hot-toast";
 import {
-  CalendarDays, CheckCircle2, XCircle, Palmtree, CalendarCheck,
-  Clock, BarChart2, AlertCircle, LogIn, LogOut, Timer, Loader2,
-} from "lucide-react";
-import {
   Heading, DashGrid, DashCard, DataTable,
-  GColumnChart, GLineChart, GPieChart,
+  Modal, ModalGrid, ModalData, ModalProfile, Button,
+  openModal, closeModal,
 } from "../../../../components/shared/Common_Components";
-import { hrmService, MOCK_ATTENDANCE, MOCK_LEAVES_INIT } from "../../../../services/hrmService";
+import {
+  Users, UserCheck, UserX, Palmtree,
+  Clock, LogIn, LogOut, Timer, Loader2, Eye,
+} from "lucide-react";
+import { hrmService, MOCK_ATTENDANCE } from "../../../../services/hrmService";
+import { currentTL, teamExecutives, attendanceRecords } from "../myTeam/teamStore";
 
-// ─── Section header ──────────────────────────────────────────────────────────
-const SectionHeader = ({ icon: Icon, iconColor, title, badge }) => (
-  <div className="flex items-center gap-3 mb-4">
-    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${iconColor}`}>
-      <Icon size={15} className="text-white" />
-    </div>
-    <h2 className="text-base font-bold text-[#1a2e3f] tracking-tight">{title}</h2>
-    {badge !== undefined && (
-      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[#1a2e3f]/10 text-[#1a2e3f]">{badge}</span>
-    )}
-    <div className="flex-1 h-px bg-slate-100 ml-1" />
-  </div>
-);
+const KPI_ICONS   = [<Users size={22} />, <UserCheck size={22} />, <UserX size={22} />, <Palmtree size={22} />];
+const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f43f5e", "#f59e0b"];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-const parseHoursToMins = (hoursStr) => {
-  const hMatch = hoursStr.match(/(\d+)h/);
-  const mMatch = hoursStr.match(/(\d+)m/);
-  return (hMatch ? parseInt(hMatch[1], 10) : 0) * 60 + (mMatch ? parseInt(mMatch[1], 10) : 0);
-};
-
-// ─── Chart data (derived from MOCK_ATTENDANCE) ───────────────────────────────
-const BAR_DATA = MOCK_ATTENDANCE
-  .filter((r) => !["Weekend", "Holiday"].includes(r.status))
-  .slice(0, 7)
-  .map((r) => ({
-    name: `${r.day} ${r.date.slice(8)}`,
-    Present: r.status === "Present" ? 1 : 0,
-    Absent:  r.status === "Absent"  ? 1 : 0,
-    Late:    r.status === "Late"    ? 1 : 0,
-    Leave:   r.status === "Leave"   ? 1 : 0,
-  }));
-
-const LINE_DATA = MOCK_ATTENDANCE
-  .filter((r) => r.hours && r.hours !== "—")
-  .map((r) => ({
-    name:  `${r.day} ${r.date.slice(8)}`,
-    hours: parseFloat((parseHoursToMins(r.hours) / 60).toFixed(2)),
-  }));
-
-const PIE_DATA = [
-  { name: "Present", value: MOCK_ATTENDANCE.filter((r) => r.status === "Present").length },
-  { name: "Absent",  value: MOCK_ATTENDANCE.filter((r) => r.status === "Absent").length  },
-  { name: "Late",    value: MOCK_ATTENDANCE.filter((r) => r.status === "Late").length    },
-  { name: "Leave",   value: MOCK_ATTENDANCE.filter((r) => r.status === "Leave").length   },
-].filter((d) => d.value > 0);
-
-const PIE_COLORS = ["#10b981", "#f43f5e", "#f59e0b", "#8b5cf6"];
-
-// ─── Work summary ────────────────────────────────────────────────────────────
-const WORK_SUMMARY = (() => {
-  const rows  = MOCK_ATTENDANCE.filter((r) => r.hours && r.hours !== "—");
-  const mins  = rows.reduce((s, r) => s + parseHoursToMins(r.hours), 0);
-  const late  = MOCK_ATTENDANCE.filter((r) => r.status === "Late").length;
-  const early = rows.filter((r) => r.checkIn && r.checkIn !== "—" && +r.checkIn.split(":")[0] < 9).length;
-  return {
-    totalHours:  rows.length ? (mins / 60).toFixed(1) : "0.0",
-    avgPerDay:   rows.length ? (mins / rows.length / 60).toFixed(2) : "0.00",
-    lateCount:   late,
-    workingDays: rows.length,
-    punctuality: rows.length ? Math.round(((rows.length - late - early) / rows.length) * 100) : 0,
-  };
-})();
-
-const fmtAttDate = (d) => {
-  const [, m, day] = d.split("-");
-  return `${day} ${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+m-1]} 2026`;
-};
-
-const ATTENDANCE_COLS = [
-  { key: "dateDisplay", label: "Date" },
-  { key: "checkIn",     label: "Check-in" },
-  { key: "checkOut",    label: "Check-out" },
-  { key: "hours",       label: "Total Hours" },
-  { key: "status",      label: "Status" }, // auto-renders as colored badge
+const COLS = [
+  { key: "name",     label: "Employee" },
+  { key: "role",     label: "Role" },
+  { key: "date",     label: "Date" },
+  { key: "clockIn",  label: "Clock In" },
+  { key: "clockOut", label: "Clock Out" },
+  { key: "hours",    label: "Hours" },
+  { key: "status",   label: "Status" }, // auto-renders as colored badge
 ];
 
-// ─── Clock Widget ────────────────────────────────────────────────────────────
+// ─── Build TL's own attendance rows (same shape as teamStore.attendanceRecords) ──
+const tlAttendance = MOCK_ATTENDANCE.map((r) => ({
+  id:       `ATT-${currentTL.id}-${r.date}`,
+  execId:   currentTL.id,
+  name:     currentTL.name,
+  role:     "Team Leader",
+  date:     r.date,
+  clockIn:  r.checkIn === "-" ? "—" : r.checkIn,
+  clockOut: r.checkOut === "-" ? "—" : r.checkOut,
+  hours:    r.hours === "-" ? "—" : r.hours,
+  status:   r.status,
+}));
+
+// Combined team attendance (TL self + 6 executives)
+const COMBINED_ATTENDANCE = [...tlAttendance, ...attendanceRecords].sort((a, b) =>
+  b.date.localeCompare(a.date) || a.name.localeCompare(b.name)
+);
+
+// ─── Self ClockWidget ───────────────────────────────────────────────────────
 function ClockWidget() {
   const [clockInTime,  setClockInTime]  = useState(null);
   const [clockOutTime, setClockOutTime] = useState(null);
@@ -108,11 +64,6 @@ function ClockWidget() {
 
   const fmtTime    = (d) => d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
   const fmtElapsed = (s) => `${String(Math.floor(s/3600)).padStart(2,"0")}:${String(Math.floor((s%3600)/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
-  const totalHours = () => {
-    if (!clockInTime || !clockOutTime) return null;
-    const s = Math.floor((clockOutTime - clockInTime) / 1000);
-    return `${Math.floor(s/3600)}h ${String(Math.floor((s%3600)/60)).padStart(2,"0")}m`;
-  };
 
   const handleClockIn = async () => {
     setLoading("in");
@@ -171,14 +122,6 @@ function ClockWidget() {
                   <span>Out: <span className="font-bold text-[#1a2e3f]">{fmtTime(clockOutTime)}</span></span>
                 </div>
               )}
-              {isClockedOut && totalHours() && (
-                <div className="flex items-center gap-1.5 text-slate-500">
-                  <div className="w-5 h-5 rounded-md bg-sky-100 flex items-center justify-center flex-shrink-0">
-                    <Timer size={11} className="text-sky-600" />
-                  </div>
-                  <span>Total: <span className="font-bold text-sky-600">{totalHours()}</span></span>
-                </div>
-              )}
             </div>
           </div>
           <div className="flex flex-col gap-3 flex-shrink-0 w-full sm:w-auto">
@@ -206,19 +149,6 @@ function ClockWidget() {
             )}
           </div>
         </div>
-        {(isClockedIn || isClockedOut) && (
-          <div className="mt-5 pt-4 border-t border-slate-100">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Daily Progress (9h target)</span>
-              <span className="text-[10px] font-bold text-[#1a2e3f]">{Math.min(100, Math.round((elapsed / (9*3600)) * 100))}%</span>
-            </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div className={`h-full rounded-full transition-all duration-1000
-                ${elapsed >= 9*3600 ? "bg-emerald-500" : elapsed >= 7*3600 ? "bg-sky-500" : "bg-[#38bdf8]"}`}
-                style={{ width: `${Math.min(100, (elapsed / (9*3600)) * 100)}%` }} />
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -226,149 +156,89 @@ function ClockWidget() {
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function Attendance() {
-  const [todayStatus, setTodayStatus] = useState(null);
-  const [autoMarked,  setAutoMarked]  = useState(false);
+  const [selected, setSelected] = useState(null);
 
-  useEffect(() => {
-    const t = setTimeout(async () => {
-      if (autoMarked) return;
-      try {
-        setAutoMarked(true);
-        const res = await hrmService.autoMarkAttendance();
-        const { status } = res.data;
-        if (status === "Present") {
-          setTodayStatus("Present");
-          toast.success("Auto Attendance: Marked Present for today.", { icon: "🟢" });
-        } else if (!status || status === "Absent") {
-          setTodayStatus("Absent");
-          toast.error("Auto Status: No clock-in detected — marked Absent.", { icon: "🔴" });
-        } else if (status === "Leave") {
-          setTodayStatus("Leave");
-          toast("Today is marked as Leave.", { icon: "🟣" });
-        }
-      } catch {
-        toast.error("Failed to load HRM data.");
-      }
-    }, 600);
-    return () => clearTimeout(t);
-  }, []); // eslint-disable-line
+  // ── Today snapshot ───────────────────────────────────────────────────────
+  const today = "2026-05-07"; // anchor matches teamStore + MOCK_ATTENDANCE
+  const todayRows = useMemo(() => COMBINED_ATTENDANCE.filter((r) => r.date === today), []);
 
-  const presentDays      = MOCK_ATTENDANCE.filter((r) => r.status === "Present").length;
-  const absentDays       = MOCK_ATTENDANCE.filter((r) => r.status === "Absent").length;
-  const leavesTaken      = MOCK_LEAVES_INIT.filter((l) => l.status === "Approved").reduce((s, l) => s + l.days, 0);
-  const totalWorkingDays = MOCK_ATTENDANCE.filter((r) => !["Weekend", "Holiday"].includes(r.status)).length;
-  const remainingLeaves  = Math.max(0, 12 - leavesTaken);
-
-  const attendanceRows = MOCK_ATTENDANCE.map((r) => ({ ...r, dateDisplay: fmtAttDate(r.date) }));
+  const kpis = useMemo(() => {
+    const total   = teamExecutives.length + 1; // execs + TL
+    const present = todayRows.filter((r) => r.status === "Present").length;
+    const absent  = todayRows.filter((r) => r.status === "Absent").length;
+    const onLeave = todayRows.filter((r) => r.status === "Leave").length;
+    return [
+      { title: "Team Size",     value: String(total)   },
+      { title: "Present Today", value: String(present) },
+      { title: "Absent Today",  value: String(absent)  },
+      { title: "On Leave",      value: String(onLeave) },
+    ];
+  }, [todayRows]);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Today's status banner ─────────────────────────────────────────── */}
-      {todayStatus && (
-        <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-medium
-          ${todayStatus === "Present" ? "bg-emerald-50 border-emerald-200 text-emerald-800"
-          : todayStatus === "Absent"  ? "bg-rose-50 border-rose-200 text-rose-700"
-          : todayStatus === "Leave"   ? "bg-violet-50 border-violet-200 text-violet-800"
-          : "bg-slate-50 border-slate-200 text-slate-600"}`}>
-          <span className="text-base flex-shrink-0">
-            {todayStatus === "Present" ? "🟢" : todayStatus === "Absent" ? "🔴" : "🟣"}
-          </span>
-          <div className="flex-1">
-            <span className="font-bold">Today's Status: {todayStatus}</span>
-            {todayStatus === "Present" && <span className="ml-2 text-xs opacity-80">— Auto-marked on login</span>}
-            {todayStatus === "Absent"  && <span className="ml-2 text-xs opacity-80">— No clock-in detected</span>}
-            {todayStatus === "Leave"   && <span className="ml-2 text-xs opacity-80">— Approved leave</span>}
-          </div>
-          {todayStatus !== "Absent" && (
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0
-              ${todayStatus === "Present" ? "bg-emerald-100 text-emerald-700" : "bg-violet-100 text-violet-700"}`}>
-              {remainingLeaves} leaves left
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* ── Summary KPIs (5 cards in one row) ─────────────────────────────── */}
+      {/* ── KPI cards ────────────────────────────────────────────────────── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Working Days"     value={String(totalWorkingDays)} icon={<CalendarDays  size={22} />} accentColor="#38bdf8" size={2} />
-        <DashCard title="Present"          value={String(presentDays)}      icon={<CheckCircle2  size={22} />} accentColor="#22c55e" size={2} />
-        <DashCard title="Absent"           value={String(absentDays)}       icon={<XCircle       size={22} />} accentColor="#f43f5e" size={2} />
-        <DashCard title="Leaves Taken"     value={String(leavesTaken)}      icon={<Palmtree      size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Remaining Leaves" value={String(remainingLeaves)}  icon={<CalendarCheck size={22} />} accentColor="#8b5cf6" size={3} />
+        <Heading primaryText="Attendance" secondaryText={currentTL.team} size={12} />
+        {kpis.map((k, i) => (
+          <DashCard key={k.title} title={k.title} value={k.value}
+            icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={3} />
+        ))}
       </DashGrid>
 
-      {/* ── Clock In / Out ────────────────────────────────────────────────── */}
+      {/* ── Self Clock In/Out ────────────────────────────────────────────── */}
       <div>
-        <SectionHeader icon={Clock} iconColor="bg-emerald-500" title="Today's Attendance" />
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2">
+          <Timer size={13} /> My Attendance — Today
+        </p>
         <ClockWidget />
       </div>
 
-      {/* ── Attendance table ──────────────────────────────────────────────── */}
-      <div>
-        <SectionHeader icon={CalendarDays} iconColor="bg-[#1a2e3f]" title="Attendance Log" badge={`${MOCK_ATTENDANCE.length} records`} />
-        <DataTable
-          title="Attendance Log"
-          columns={ATTENDANCE_COLS}
-          rows={attendanceRows}
-          searchable={false}
-          pageSize={7}
-          hidePagination={true}
-          size={12}
-          filters={[
-            { title: "Status", type: "toggle", key: "status",
-              options: ["Present", "Absent", "Late", "Leave", "Holiday", "Weekend"] },
-          ]}
-        />
-      </div>
+      {/* ── Combined attendance log ──────────────────────────────────────── */}
+      <DataTable
+        title="Attendance Records"
+        columns={COLS}
+        rows={COMBINED_ATTENDANCE}
+        size={12}
+        pageSize={10}
+        searchable
+        date
+        exportable
+        exportFileName="team_attendance"
+        filters={[
+          { title: "Status",   type: "toggle", key: "status", options: ["Present", "Late", "Absent", "Leave"] },
+          { title: "Role",     type: "toggle", key: "role",   options: ["Team Leader", "Sales Executive"] },
+          { title: "Employee", type: "select", key: "name",   options: [currentTL.name, ...teamExecutives.map((e) => e.name)] },
+        ]}
+        actions={[
+          {
+            icon: <Eye size={15} />, tooltip: "View Details", variant: "ghost",
+            onClick: (row) => { setSelected(COMBINED_ATTENDANCE.find((r) => r.id === row.id)); openModal("tl-hrm-att-view"); },
+          },
+        ]}
+      />
 
-      {/* ── Work Summary ──────────────────────────────────────────────────── */}
-      <div>
-        <SectionHeader icon={Timer} iconColor="bg-sky-500" title="Work Summary — May 2026" />
-        <DashGrid cols={12} gap={4}>
-          <DashCard title="Total Hours"    value={`${WORK_SUMMARY.totalHours}h`}  icon={<Clock       size={22} />} accentColor="#38bdf8" size={3} />
-          <DashCard title="Avg Hours/Day"  value={`${WORK_SUMMARY.avgPerDay}h`}   icon={<Timer       size={22} />} accentColor="#22c55e" size={3} />
-          <DashCard title="Late Entries"   value={String(WORK_SUMMARY.lateCount)} icon={<AlertCircle size={22} />} accentColor="#f59e0b" size={3} />
-          <DashCard title="Punctuality"    value={`${WORK_SUMMARY.punctuality}%`} icon={<CheckCircle2 size={22} />} accentColor="#8b5cf6" size={3} />
-        </DashGrid>
-      </div>
-
-      {/* ── Analytics charts ──────────────────────────────────────────────── */}
-      <div>
-        <SectionHeader icon={BarChart2} iconColor="bg-[#38bdf8]" title="Attendance Analytics" />
-        <div className="space-y-4">
-          <GColumnChart
-            title="Weekly Attendance Breakdown"
-            subtitle="Present · Absent · Late · Leave per day"
-            data={BAR_DATA}
-            bars={[
-              { key: "Present", label: "Present", color: "#10b981" },
-              { key: "Absent",  label: "Absent",  color: "#f43f5e" },
-              { key: "Late",    label: "Late",    color: "#f59e0b" },
-              { key: "Leave",   label: "Leave",   color: "#8b5cf6" },
-            ]}
-            size={12} height={260}
-          />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2">
-              <GLineChart
-                title="Daily Working Hours"
-                subtitle="Hours logged on each working day"
-                data={LINE_DATA}
-                lines={[{ key: "hours", label: "Hours Worked", color: "#38bdf8" }]}
-                size={12} height={260}
-              />
-            </div>
-            <div>
-              <GPieChart
-                title="Attendance Distribution"
-                subtitle="Breakdown by status"
-                data={PIE_DATA} colors={PIE_COLORS}
-                size={12} height={260}
-              />
+      {/* ── View modal ───────────────────────────────────────────────────── */}
+      <Modal id="tl-hrm-att-view" title="Attendance Details" size="md">
+        {selected && (
+          <div className="flex flex-col gap-4">
+            <ModalProfile
+              name={selected.name}
+              subtitle={`${selected.role} · ${selected.status}`}
+              meta={`Date: ${selected.date}`}
+            />
+            <ModalGrid title="Clock" cols={2}>
+              <ModalData label="Clock In"  value={selected.clockIn} />
+              <ModalData label="Clock Out" value={selected.clockOut} />
+              <ModalData label="Hours"     value={selected.hours} />
+              <ModalData label="Status"    value={selected.status} />
+            </ModalGrid>
+            <div className="flex justify-end pt-2 border-t border-slate-100">
+              <Button text="Close" variant="primary" size={3} onClick={() => closeModal("tl-hrm-att-view")} />
             </div>
           </div>
-        </div>
-      </div>
+        )}
+      </Modal>
     </div>
   );
 }

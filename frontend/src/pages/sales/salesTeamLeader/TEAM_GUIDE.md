@@ -138,7 +138,10 @@ src/pages/sales/salesTeamLeader/
 ├── SalesTeamLeaderTargets.jsx            [DONE]  View + update-progress only
 ├── targetsStore.js                       [DONE]
 │
-├── SalesTeamLeaderTickets.jsx            [DONE earlier — reference for in-folder import style]
+├── SalesTeamLeaderTickets.jsx            [DONE]  9-line wrapper holding state + rendering AllTickets (mirrors Manager's SupportLayout)
+├── ticketsStore.js                       [DONE]  initialTickets (Team) + MY_TICKETS_SEED (TL→Manager) + role constants
+├── tickets/
+│   └── AllTickets.jsx                    [DONE]  KPIs + Create + My Tickets + Team Tickets + chat-modals (mirrors Manager AllTickets)
 │
 │   ── Packet 2 — Leads workspace ──
 ├── SalesTeamLeaderLeads.jsx              [TODO] becomes <Outlet/> layout w/ tabs
@@ -169,12 +172,13 @@ src/pages/sales/salesTeamLeader/
 │   ── Packet 5 — HRM + LoginLogs + PaymentAlerts ──
 ├── hrm/
 │   ├── HRMPage.jsx                       [TODO] tab layout (Attendance | Leaves) — mirrors Manager's HrmLayout
-│   ├── Attendance.jsx                    [TODO] self KPIs + clock-in/out widget + attendance log + work summary + charts
-│   └── Leaves.jsx                        [TODO] My Leaves table + Apply Leave modal (no Pending/History — that's Packet 3)
+│   ├── Attendance.jsx                    [TODO] team-wide attendance log (TL + 6 execs) + self ClockWidget + KPIs
+│   └── Leaves.jsx                        [TODO] My Leaves + Pending Leaves (Approve/Reject execs) + Leave History
 ├── loginLogs/
 │   └── LoginLogs.jsx                     [TODO] self + team executives
 └── payments/
     └── PaymentAlerts.jsx                 [TODO] failed/successful (self + team)
+│
 ```
 
 > **Note:** routes and sidebar entries for every packet are added by Pranjal (see Section 2). You only build the page; you ship a route snippet to Pranjal when your page is ready.
@@ -198,7 +202,8 @@ For copy-paste sources (one level up in `salesManager/`):
 | Packet 3 (My Team) | `src/pages/sales/salesManager/Employees/Employees.jsx` + `salesManager/HRM/{Attendance,Leaves}.jsx` |
 | Packet 4 (Reports) | `src/pages/sales/salesManager/Reports/*` |
 | Packet 4 (Announcements) | `src/pages/sales/salesManager/Announcements/*` |
-| Packet 5 (HRM) | `src/pages/sales/salesManager/HRM/{HrmLayout,Attendance,Leaves}.jsx` — use Manager's tabbed layout (Attendance \| Leaves), trim to self-only data and drop the "Pending Leaves" / "Leave History" tables (those Approve-others workflows live in Packet 3). |
+| Packet 5 (HRM) | `src/pages/sales/salesManager/HRM/{HrmLayout,Attendance,Leaves}.jsx` — keep Manager's structure intact (team-wide Attendance log + Leaves with My Leaves / Pending / History tables and Approve-Reject for executives). Only change is the data scope: TL's own self + the 6 executives in `currentTL.team` (no other teams, no other TLs). |
+| Packet 6 (Tickets refactor) | **DONE.** Mirrors `salesManager/Support/{SupportLayout,AllTickets,TicketStore}` end-to-end. Only data + role strings + modal IDs changed (`tl-ticket-create`, `tl-ticket-view`, `tl-myticket-view`). |
 | Packet 5 (Login Logs) | `src/pages/sales/salesManager/LoginLogs/LoginLogs.jsx` |
 | Packet 5 (Payment Alerts) | `src/pages/sales/salesExecutive/payments/PaymentsPage.jsx` |
 
@@ -292,13 +297,15 @@ For copy-paste sources (one level up in `salesManager/`):
 
 **Pages to build:**
 
-- `hrm/HRMPage.jsx` — top-level tab layout (Attendance | Leaves), matches Manager's `HrmLayout.jsx`
-- `hrm/Attendance.jsx` — self KPIs + clock-in/out widget + attendance log + work summary + charts
-- `hrm/Leaves.jsx` — My Leaves table + Apply Leave modal
+- `hrm/HRMPage.jsx` — top-level tab layout (Attendance | Leaves), mirrors Manager's `HrmLayout.jsx`
+- `hrm/Attendance.jsx` — KPIs (Team Size, Present Today, Absent Today, On Leave) + self ClockWidget + **team-wide attendance log** (TL self + 6 executives, scoped to `currentTL.team` only) + Role / Status / Employee filters
+- `hrm/Leaves.jsx` — KPIs + Apply Leave button + **three tables**: My Leaves (TL's own — from `MOCK_LEAVES_INIT`), Pending Leaves (executives' pending — from `teamStore.leaveRequests`, with Approve/Reject row actions), Leave History (executives' actioned)
 - `loginLogs/LoginLogs.jsx` — logs for self + team executives (username, date/time, IP, lat/long)
 - `payments/PaymentAlerts.jsx` — failed/successful payment feed for self + team
 
-**Spec source for self-HRM:** copy from `salesManager/HRM/{HrmLayout,Attendance,Leaves}.jsx`. Use Manager's tabbed structure but trim to self-only data — drop the Pending Leaves and Leave History tables (those Approve-others workflows live in Packet 3's `LeaveApprovals.jsx`). The clock-in/out widget shape comes from `services/hrmService.js`.
+**Spec source for HRM:** copy from `salesManager/HRM/{HrmLayout,Attendance,Leaves}.jsx`. **Keep Manager's full structure** including Pending Leaves + Leave History with Approve/Reject — don't trim. The only change is scope: TL's HRM shows the TL's own self plus the 6 executives in `currentTL.team` (no other teams, no other TLs). The clock-in/out widget shape comes from `services/hrmService.js`. Leave-request data is shared with Packet 3 via `myTeam/teamStore.js`.
+
+> **Note on duplication with Packet 3:** Packet 3's `LeaveApprovals.jsx` and Packet 5's `Leaves.jsx` both let the TL approve executives' leaves. They share the same `leaveRequests` data source in `myTeam/teamStore.js`. This duplication is intentional — Packet 3 is the My Team admin entry point; Packet 5 is the HRM entry point. Both must stay in sync (when one is edited, update the other to match).
 
 **Routing — these are NEW routes that don't exist yet.** When your pages are ready, send Pranjal the following snippet (or your final version of it):
 
@@ -309,6 +316,30 @@ For copy-paste sources (one level up in `salesManager/`):
 ```
 
 Pranjal will add it to `salesTeamLeaderRoutes.jsx` and request the matching sidebar entries from the Frontend Lead.
+
+---
+
+### Packet 6 — Tickets refactor (DONE)
+
+**Files shipped:**
+- `SalesTeamLeaderTickets.jsx` — 9-line wrapper holding `tickets` state, renders `<AllTickets />`. Mirrors Manager's `SupportLayout.jsx`.
+- `tickets/AllTickets.jsx` — KPI cards + Create button + My Tickets table + Team Tickets table + chat-modals. Mirrors Manager's `AllTickets.jsx` end-to-end.
+- `ticketsStore.js` — `initialTickets` (Team Tickets — Executives → TL), `MY_TICKETS_SEED` (TL → Manager), `kpiTickets`, role constants.
+
+**What changed vs Manager source (data only):**
+- Dummy tickets reflect TL's actual workflow (raise to Manager, receive from Executives).
+- "All Tickets" → "Team Tickets" terminology.
+- Modal IDs prefixed `tl-` (`tl-ticket-create`, `tl-ticket-view`, `tl-myticket-view`).
+- `<UserChat currentUser>` set to `"Sales Team Leader"`.
+- Create-ticket form's "Send To" defaults to `"Sales Manager"`.
+- Escalate action sets `raisedTo: "Sales Manager"` (Brief Section 7: TL escalates to Sales Manager).
+
+**What stayed identical:**
+- Page structure (KPIs → Create button → My Tickets table → Team Tickets table)
+- Conversation thread component (`<UserChat />`)
+- Ticket field shape (`id`, `title`, `raisedBy`, `role`, `priority`, `status`, `createdDate`, `lastReply`, `description`, `conversation`, `attachments`)
+- Create-ticket form (Title, Category, Priority, Send To, Description, Attachments)
+- Action variants (View & Reply / Escalate / Mark Resolved / Delete)
 
 ---
 
