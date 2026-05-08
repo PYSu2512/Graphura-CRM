@@ -67,20 +67,20 @@ const MOCK_PROSPECTS = [
   },
   {
     id: "6", name: "Sunita Rao", phone: "9876511111", email: "sunita.r@example.com",
-    company: "Rao Enterprises", city: "Chennai", source: "Referral", status: "Won",
+    company: "Rao Enterprises", city: "Chennai", source: "Referral", status: "Interested",
     priority: "High", dealValue: "5,00,000", followUpDate: "2026-05-01", followUpTime: "10:00",
     assignedTo: "John Doe (You)",
     activities: [
-      { id: 1, icon: "check", color: "text-emerald-600", bg: "bg-emerald-100", title: "Deal Won!", desc: "Client signed the contract.", date: "Today, 10:00 AM" }
+      { id: 1, icon: "target", color: "text-purple-600", bg: "bg-purple-100", title: "Status changed to Interested", desc: "Client showed strong interest after demo.", date: "Today, 10:00 AM" }
     ],
   },
   {
     id: "7", name: "Rahul Verma", phone: "9876522222", email: "rahul.v@example.com",
-    company: "Verma Logistics", city: "Kolkata", source: "Website", status: "Lost",
+    company: "Verma Logistics", city: "Kolkata", source: "Website", status: "Not Interested",
     priority: "Medium", dealValue: "75,000", followUpDate: "2026-04-28", followUpTime: "14:00",
     assignedTo: "John Doe (You)",
     activities: [
-      { id: 1, icon: "alert", color: "text-red-600", bg: "bg-red-100", title: "Deal Lost", desc: "Went with competitor.", date: "2 days ago" }
+      { id: 1, icon: "alert", color: "text-rose-600", bg: "bg-rose-100", title: "Marked Not Interested", desc: "Prospect declined after pricing discussion.", date: "2 days ago" }
     ],
   }
 ];
@@ -88,11 +88,9 @@ const MOCK_PROSPECTS = [
 const STATUS_COLORS = {
   Interested:             "bg-purple-100 text-purple-700",
   "Not Talk (Untouched)": "bg-slate-100 text-slate-600",
-  "Untouch":              "bg-slate-100 text-slate-500",
+  "Untouched":            "bg-slate-100 text-slate-500",
   Talk:                   "bg-blue-100 text-blue-700",
   "Not Interested":       "bg-rose-100 text-rose-700",
-  Won:                    "bg-emerald-100 text-emerald-700",
-  Lost:                   "bg-red-100 text-red-700",
 };
 
 const PRIORITY_DOT = {
@@ -134,8 +132,8 @@ const isUntouched = (prospect) => {
 // Apply untouched logic to mock data
 const applyUntouchedLogic = (prospects) =>
   prospects.map(p => {
-    if (isUntouched(p) && !["Won", "Lost", "Interested", "Not Interested"].includes(p.status)) {
-      return { ...p, status: "Untouch" };
+    if (isUntouched(p) && !["Interested", "Not Interested"].includes(p.status)) {
+      return { ...p, status: "Untouched" };
     }
     return p;
   });
@@ -144,9 +142,7 @@ const STATUS_CARD_CFG = {
   Talk:                   { strip: "bg-blue-500",    avatar: "bg-blue-100 text-blue-700",      ring: "hover:border-blue-300"   },
   "Not Interested":       { strip: "bg-rose-400",    avatar: "bg-rose-100 text-rose-700",      ring: "hover:border-rose-300"   },
   "Not Talk (Untouched)": { strip: "bg-slate-400",   avatar: "bg-slate-100 text-slate-600",    ring: "hover:border-slate-300"  },
-  "Untouch":              { strip: "bg-slate-400",   avatar: "bg-slate-100 text-slate-500",    ring: "hover:border-slate-300"  },
-  Won:                    { strip: "bg-emerald-500", avatar: "bg-emerald-100 text-emerald-700",ring: "hover:border-emerald-300"},
-  Lost:                   { strip: "bg-red-400",     avatar: "bg-red-100 text-red-700",        ring: "hover:border-red-300"    },
+  "Untouched":            { strip: "bg-slate-400",   avatar: "bg-slate-100 text-slate-500",    ring: "hover:border-slate-300"  },
 };
 
 // ── Prospect Card ─────────────────────────────────────────────────────────────
@@ -196,7 +192,7 @@ const ProspectCard = ({ prospect, onView, onEdit, index }) => {
             <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Deal Value</p>
             <p className="text-sm font-black text-[#1a2e3f]">{prospect.dealValue && prospect.dealValue !== "0" ? `₹ ${prospect.dealValue}` : "-"}</p>
           </div>
-          {prospect.status !== "Untouch" && (
+          {prospect.status !== "Untouched" && (
             <div className="text-right">
               <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Follow-up</p>
               <p className="text-xs font-semibold text-amber-600">{prospect.followUpDate}</p>
@@ -213,7 +209,7 @@ const ProspectCard = ({ prospect, onView, onEdit, index }) => {
           >
             View Details
           </button>
-          {prospect.status !== "Untouch" && (
+          {prospect.status !== "Untouched" && (
             <button
               onClick={e => { e.stopPropagation(); onEdit(prospect); }}
               className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors"
@@ -262,7 +258,7 @@ const ProspectList = () => {
   const total         = prospects.length;
   const inProgress    = prospects.filter(p => ["Talk", "Interested"].includes(p.status)).length;
   const notInterested = prospects.filter(p => p.status === "Not Interested").length;
-  const won           = prospects.filter(p => p.status === "Won").length;
+  const untouched     = prospects.filter(p => p.status === "Untouched").length;
 
   const STATUS_TABS = ["All", "Talk", "Not Talk (Untouched)", "Interested", "Not Interested"];
   const filtered = prospects.filter(p => {
@@ -279,9 +275,9 @@ const ProspectList = () => {
 
       {/* ── Summary Cards — EnhancedDashCard with wave animation ── */}
       <DashGrid cols={12} gap={4}>
-        <EnhancedDashCard title="TOTAL PROSPECTS" value={String(total)}      icon={<Users size={20} />}        accentColor="#38bdf8" size={3} />
-        <EnhancedDashCard title="IN PROGRESS"     value={String(inProgress)} icon={<TrendingUp size={20} />}   accentColor="#f59e0b" size={3} />
-        <EnhancedDashCard title="WON"             value={String(won)}        icon={<CheckCircle2 size={20} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="TOTAL PROSPECTS" value={String(total)}         icon={<Users size={20} />}        accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="IN PROGRESS"     value={String(inProgress)}    icon={<TrendingUp size={20} />}   accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="UNTOUCHED"        value={String(untouched)}     icon={<XCircle size={20} />}      accentColor="#94a3b8" size={3} />
         <EnhancedDashCard title="NOT INTERESTED"  value={String(notInterested)} icon={<AlertCircle size={20} />} accentColor="#f43f5e" size={3} />
       </DashGrid>
 
@@ -332,13 +328,13 @@ const ProspectList = () => {
             _status: p.status,  // dedicated status key for action.show
             name:         p.name,
             dealValue:    p.dealValue && p.dealValue !== "0" ? `₹ ${p.dealValue}` : "—",
-            followUpDate: p.status === "Untouch" ? "—" : (p.followUpDate || "—"),
+            followUpDate: p.status === "Untouched" ? "—" : (p.followUpDate || "—"),
           }))}
           searchable={true}
           pageSize={10}
           size={12}
           filters={[
-            { title: "Status",   type: "toggle", key: "status",   options: ["Talk", "Untouch", "Interested", "Not Interested", "Won", "Lost"] },
+            { title: "Status",   type: "toggle", key: "status",   options: ["Talk", "Untouched", "Interested", "Not Interested"] },
             { title: "Priority", type: "toggle", key: "priority", options: ["High", "Medium", "Low"] },
             { title: "Source",   type: "select", key: "source",   options: ["Website", "Facebook", "Referral", "LinkedIn", "Other"] },
           ]}
@@ -358,7 +354,7 @@ const ProspectList = () => {
               icon: <Edit size={15} />,
               tooltip: "Edit Prospect",
               variant: "ghost",
-              show: (row) => row._status !== "Untouch",
+              show: (row) => row._status !== "Untouched",
               onClick: (row) => {
                 const prospect = prospects.find(p => String(p.id) === String(row._id));
                 if (prospect) navigate(`/sales-executive/edit-prospect/${prospect.id}`);
@@ -458,7 +454,7 @@ const ProspectList = () => {
               </ModalGrid>
 
               {/* Follow-up — hidden for Untouch records */}
-              {selectedProspect.status !== "Untouch" && (
+              {selectedProspect.status !== "Untouched" && (
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200">
                 <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
                   <Calendar size={16} className="text-amber-600" />
@@ -514,7 +510,7 @@ const ProspectList = () => {
                 </button>
                 <button onClick={() => { closeModal("prospect-view"); navigate(`/sales-executive/edit-prospect/${selectedProspect.id}`); }}
                   className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95
-                    ${selectedProspect.status === "Untouch"
+                    ${selectedProspect.status === "Untouched"
                       ? "bg-slate-50 border border-slate-200 text-slate-300 cursor-not-allowed"
                       : "bg-white border border-slate-200 text-[#2a465a] hover:bg-slate-50"}`}
                   disabled={selectedProspect.status === "Untouch"}>
