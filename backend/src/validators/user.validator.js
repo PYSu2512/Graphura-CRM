@@ -47,7 +47,19 @@ const departmentLoginSchema = Joi.object({
   rememberMe: Joi.boolean().optional(),
 });
 
+const setupAccountSchema = Joi.object({
+  newPassword: Joi.string().min(8).required().messages({
+    'string.empty': 'New password is required',
+    'string.min': 'Password must be at least 8 characters',
+  }),
+  confirmPassword: Joi.any().valid(Joi.ref('newPassword')).required().messages({
+    'any.only': 'Passwords do not match',
+    'any.required': 'Confirm password is required',
+  }),
+});
+
 module.exports = {
   createUserSchema,
   departmentLoginSchema,
+  setupAccountSchema,
 };

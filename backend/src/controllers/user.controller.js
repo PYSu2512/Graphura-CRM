@@ -406,3 +406,58 @@ exports.getUserStats = catchAsync(async (req, res, next) => {
     }, 'User stats retrieved successfully')
   );
 });
+
+/**
+ * Handle initial account setup for department users
+ * (Changes password from default and completes profile)
+ */
+exports.setupAccount = catchAsync(async (req, res, next) => {
+  const { newPassword } = req.body;
+  const userId = req.user?._id;
+
+  if (!userId) {
+    return next(new AppError('Authentication required', 401));
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  // 1. Hash new password
+  const hashedPassword = await hashPassword(newPassword);
+
+  // 2. Update user status
+  user.password = hashedPassword;
+  user.mustChangePassword = false;
+  user.tempPassword = undefined; // Security: Clear the temporary password if it exists
+  
+  // Update onboarding progress
+  user.prereqStep = 'bank-details';
+  // Note: isProfileComplete and prereqCompleted will be set true after bank details are provided
+  
+  await user.save();
+
+  // 3. Log the activity
+  await AuditLog.create({
+    admin: user.admin,
+    performedBy: user._id,
+    performerType: 'USER',
+    action: 'PASSWORD_CHANGED',
+    targetModel: 'User',
+    targetId: user._id,
+    note: 'User completed account setup and changed default password'
+  });
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      user: {
+        id: user._id,
+        email: user.email,
+        mustChangePassword: user.mustChangePassword,
+        isProfileComplete: user.isProfileComplete,
+        prereqStep: user.prereqStep
+      }
+    }, 'Password updated successfully. Please provide your bank details.')
+  );
+});

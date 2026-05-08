@@ -1,8 +1,8 @@
 const express = require('express');
 const userController = require('../controllers/user.controller');
-const { createUserSchema, departmentLoginSchema } = require('../validators/user.validator');
+const { createUserSchema, departmentLoginSchema, setupAccountSchema } = require('../validators/user.validator');
 const validate = require('../middleware/validate');
-const { requireAdmin, requireAuth } = require('../middleware/auth');
+const { requireAdmin, requireAuth, requireUser } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -12,5 +12,8 @@ router.post('/login', validate(departmentLoginSchema, 'body'), userController.lo
 router.get('/', requireAuth, userController.getUsers);
 router.get('/stats', requireAuth, userController.getUserStats);
 router.post('/', requireAdmin, validate(createUserSchema, 'body'), userController.createUser);
+
+// Account setup (password update) for department users
+router.patch('/setup-account', requireUser, validate(setupAccountSchema, 'body'), userController.setupAccount);
 
 module.exports = router;
