@@ -126,18 +126,18 @@ const MENUS = {
         ],
       },
       {
-        label: "Performance",
-        items: [
-          { name: "Performance", path: "/sales-manager/performance", icon: TrendingUp },
-        ],
-      },
-      {
         label: "Management",
         items: [
           { name: "HRM", path: "/sales-manager/hrm", icon: ClipboardList },
           { name: "Support", path: "/sales-manager/support", icon: LifeBuoy },
           { name: "Announcements", path: "/sales-manager/announcements", icon: MessageSquare },
           { name: "Logs", path: "/sales-manager/logs", icon: History },
+        ],
+      },
+      {
+        label: "Performance",
+        items: [
+          { name: "Performance", path: "/sales-manager/performance", icon: TrendingUp },
           { name: "Reports", path: "/sales-manager/reports", icon: BarChart2 },
         ],
       },
@@ -197,9 +197,15 @@ const MENUS = {
       {
         label: "Leads",
         items: [
-          { name: "Leads", path: "/sales-executive/leads", icon: Target },
-          { name: "Prospects", path: "/sales-executive/prospects", icon: ClipboardList },
-          { name: "Dump Data", path: "/sales-executive/dump", icon: Database },
+          {
+            name: "Leads", path: "/sales-executive/leads", icon: Target,
+            children: [
+              { name: "All Leads", path: "/admin/leads", icon: Target },
+              { name: "My Prospects", path: "/sales-executive/prospects", icon: ClipboardList },
+              { name: "Follow Ups", path: "/sales-executive/follow-ups", icon: PieChart },
+              { name: "Dump Data", path: "/sales-executive/dump", icon: Database },
+            ],
+          },
         ],
       },
       {
