@@ -8,11 +8,14 @@ import {
   Mail,
   Users as UsersIcon,
   Clock,
-  RotateCcw,
-  Plus,
   ChevronLeft,
   ChevronRight,
   Eye,
+  Zap,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw,
+  PhoneOff,
 } from "lucide-react";
 import {
   DashGrid,
@@ -20,11 +23,15 @@ import {
   PanelModal as Modal,
   openModal,
   closeModal,
+  Grid,
   DataField,
   SelectField,
   Option,
-  Grid,
+  Button,
+  DataTable,
 } from "../../../../components/shared/Common_Components";
+import DatePicker from "../../../../components/shared/DatePicker";
+import { TimePicker } from "../../../../components/shared/DatePicker";
 import { DUMMY_FOLLOWUPS } from "./leadsStore";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -41,6 +48,24 @@ const priorityBadge = {
   Low:    "bg-slate-100 text-slate-500",
 };
 
+// ── Action options ────────────────────────────────────────────────────────────
+const ACTION_OPTIONS = [
+  { value: "Interested",    label: "Interested",    icon: ThumbsUp,  color: "text-emerald-600" },
+  { value: "Not Interested",label: "Not Interested",icon: ThumbsDown,color: "text-rose-600"    },
+  { value: "Reschedule",    label: "Reschedule",    icon: RotateCcw, color: "text-blue-600"    },
+  { value: "Not Talk",      label: "Not Talk",      icon: PhoneOff,  color: "text-amber-600"   },
+];
+
+const EMPTY_ACTION_FORM = {
+  action: "",
+  // Prospect fields
+  prospectService: "", prospectBudget: "", prospectCity: "", prospectSource: "",
+  // Comment (Not Interested / Not Talk)
+  comment: "",
+  // Reschedule fields
+  reschedTitle: "", reschedDate: "", reschedTime: "", reschedType: "", reschedNote: "",
+};
+
 export default function FollowUps() {
   const now = new Date();
   const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
@@ -51,6 +76,29 @@ export default function FollowUps() {
   const [selectedDay, setSelectedDay] = useState(now.getDate()); // default = today
   const [filterType,  setFilterType]  = useState("All");
   const [viewLead,    setViewLead]    = useState(null);
+  const [actionLead,  setActionLead]  = useState(null);
+  const [actionForm,  setActionForm]  = useState(EMPTY_ACTION_FORM);
+
+  const openActionModal = (f) => {
+    setActionLead(f);
+    setActionForm(EMPTY_ACTION_FORM);
+    openModal("sm-lead-action-modal");
+  };
+
+  const handleActionSave = () => {
+    if (!actionForm.action) return;
+    if (actionForm.action === "Reschedule") {
+      // update date/time in the list
+      setFollowups(prev => prev.map(f =>
+        f.id === actionLead.id
+          ? { ...f, date: actionForm.reschedDate || f.date, time: actionForm.reschedTime || f.time, status: "pending" }
+          : f
+      ));
+    } else if (actionForm.action === "Interested" || actionForm.action === "Not Interested" || actionForm.action === "Not Talk") {
+      setFollowups(prev => prev.map(f => f.id === actionLead.id ? { ...f, status: "done" } : f));
+    }
+    closeModal("sm-lead-action-modal");
+  };
 
   // ── Calendar navigation ──
   const prevMonth = () => {
@@ -89,8 +137,8 @@ export default function FollowUps() {
 
   // ── Stat counts (global, not date-filtered) ──
   const todayFollowups  = followups.filter((f) => f.date === todayKey);
-  const todayCount      = todayFollowups.filter((f) => f.status === "pending" || f.status === "overdue").length;
-  const overdueCount    = followups.filter((f) => f.status === "overdue").length;
+  const todayCount      = todayFollowups.filter((f) => f.status === "pending" || f.status === "expired").length;
+  const expiredCount    = followups.filter((f) => f.status === "expired").length;
   const completedCount  = followups.filter((f) => f.status === "done").length;
   const thisWeekCount   = useMemo(() => {
     const startOfWeek = new Date(now);
@@ -102,10 +150,6 @@ export default function FollowUps() {
       return d >= startOfWeek && d <= endOfWeek;
     }).length;
   }, [followups]);
-
-  const handleMarkDone = (id) => {
-    setFollowups(prev => prev.map(f => f.id === id ? { ...f, status: "done" } : f));
-  };
 
   // ── Calendar layout ──
   const monthName   = new Date(calYear, calMonth).toLocaleString("default", { month: "long" });
@@ -132,7 +176,7 @@ export default function FollowUps() {
       {/* ── Stat Cards ── */}
       <DashGrid cols={12} gap={4}>
         <DashCard title="Today"     value={String(todayCount)}     icon={<CalendarClock size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Overdue"   value={String(overdueCount)}   icon={<AlertTriangle size={22} />} accentColor="#f43f5e" size={3} />
+        <DashCard title="Expired"   value={String(expiredCount)}   icon={<AlertTriangle size={22} />} accentColor="#f43f5e" size={3} />
         <DashCard title="This Week" value={String(thisWeekCount)}  icon={<Calendar      size={22} />} accentColor="#14b8a6" size={3} />
         <DashCard title="Completed" value={String(completedCount)} icon={<CheckCircle2  size={22} />} accentColor="#22c55e" size={3} />
       </DashGrid>
@@ -245,7 +289,7 @@ export default function FollowUps() {
               visibleFollowups.map((f) => {
                 const Icon      = typeIcons[f.type]  || Phone;
                 const color     = typeColors[f.type] || "#3b82f6";
-                const isOverdue = f.status === "overdue";
+                const isOverdue = f.status === "expired";
                 const isDone    = f.status === "done";
 
                 return (
@@ -272,7 +316,7 @@ export default function FollowUps() {
                           <p className="text-sm font-bold text-[#2a465a] truncate">{f.leadName}</p>
                           {isOverdue && (
                             <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-600 uppercase tracking-widest">
-                              Overdue
+                              Expired
                             </span>
                           )}
                           {isDone && (
@@ -280,6 +324,25 @@ export default function FollowUps() {
                               Done
                             </span>
                           )}
+                        </div>
+
+                        {/* Phone + Email */}
+                        <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                          <a
+                            href={`tel:${f.mobile}`}
+                            onClick={e => e.stopPropagation()}
+                            className="flex items-center gap-1 text-[11px] text-blue-600 font-semibold hover:underline"
+                          >
+                            <Phone size={10} /> {f.mobile}
+                          </a>
+                          <span className="text-slate-300 text-xs">·</span>
+                          <a
+                            href={`mailto:${f.email}`}
+                            onClick={e => e.stopPropagation()}
+                            className="flex items-center gap-1 text-[11px] text-purple-600 font-semibold hover:underline truncate"
+                          >
+                            <Mail size={10} /> {f.email}
+                          </a>
                         </div>
 
                         {/* Time · Type · Priority */}
@@ -308,20 +371,12 @@ export default function FollowUps() {
                         <Eye size={13} /> View
                       </button>
                       {!isDone && (
-                        <>
-                          <button
-                            onClick={() => handleMarkDone(f.id)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#2a465a] text-white hover:bg-[#1e3a52] transition active:scale-95 shadow-md shadow-[#2a465a]/20"
-                          >
-                            <CheckCircle2 size={13} /> Mark Done
-                          </button>
-                          <button
-                            onClick={() => openModal("sm-reschedule-modal")}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition active:scale-95 shadow-sm"
-                          >
-                            <RotateCcw size={13} /> Reschedule
-                          </button>
-                        </>
+                        <button
+                          onClick={() => openActionModal(f)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#2a465a] text-white hover:bg-[#1e3a52] transition active:scale-95 shadow-md shadow-[#2a465a]/20"
+                        >
+                          <Zap size={13} /> Action
+                        </button>
                       )}
                     </div>
                   </div>
@@ -332,15 +387,96 @@ export default function FollowUps() {
         </div>
       </div>
 
+      {/* ── Follow-up History Table ── */}
+      <DataTable
+        title="Follow-up History"
+        size={12}
+        searchable
+        exportable
+        onDateFilter
+        exportFileName="followup-history"
+        pageSize={10}
+        date
+        ellipse={3}
+        columns={[
+          { key: "leadName",    label: "Lead"       },
+          { key: "mobile",      label: "Phone"      },
+          { key: "date",        label: "Date"       },
+          { key: "time",        label: "Time"       },
+          { key: "type",        label: "Type"       },
+          { key: "assignedExec",label: "Executive"  },
+          { key: "priority",    label: "Priority"   },
+          { key: "status",      label: "Status"     },
+          { key: "notes",       label: "Notes"      },
+        ]}
+        rows={followups.map(f => ({
+          ...f,
+          _id:      f.id,
+          _status:  f.status,
+          status: f.status === "done"
+            ? "Done"
+            : f.status === "expired"
+              ? "Expired"
+              : "Pending",
+        }))}
+        filters={[
+          {
+            title:   "Type",
+            type:    "toggle",
+            key:     "type",
+            options: ["Call", "Email", "Meeting"],
+          },
+          {
+            title:   "Priority",
+            type:    "toggle",
+            key:     "priority",
+            options: ["High", "Medium", "Low"],
+          },
+          {
+            title:   "Status",
+            type:    "toggle",
+            key:     "status",
+            options: ["Pending", "Expired", "Done"],
+          },
+          {
+            title:   "Executive",
+            type:    "select",
+            key:     "assignedExec",
+            options: [...new Set(followups.map(f => f.assignedExec))],
+          },
+        ]}
+        actions={[
+          {
+            icon: <Eye size={15} />,
+            tooltip: "View Details",
+            variant: "ghost",
+            onClick: (row) => {
+              const lead = followups.find(f => f.id === row._id);
+              if (lead) { setViewLead(lead); openModal("sm-view-modal"); }
+            },
+          },
+          {
+            icon: <Zap size={15} />,
+            tooltip: "Action",
+            variant: "primary",
+            show: (row) => row._status !== "done",
+            onClick: (row) => {
+              const lead = followups.find(f => f.id === row._id);
+              if (lead) openActionModal(lead);
+            },
+          },
+        ]}
+      />
+
       {/* ── View Follow-up Modal ── */}
-      <Modal id="sm-view-modal" title="Follow-up Details" size="md">
+      <Modal id="sm-view-modal" title="Follow-up Details" size="xl">
         {viewLead && (() => {
           const Icon  = typeIcons[viewLead.type]  || Phone;
           const color = typeColors[viewLead.type] || "#3b82f6";
           const statusMap = {
-            pending: { cls: "bg-blue-100 text-blue-700",    label: "Pending"  },
-            overdue: { cls: "bg-rose-100 text-rose-700",    label: "Overdue"  },
-            done:    { cls: "bg-emerald-100 text-emerald-700", label: "Done"  },
+            pending: { cls: "bg-blue-100 text-blue-700",       label: "Pending"  },
+            expired: { cls: "bg-rose-100 text-rose-700",       label: "Expired"  },
+            done:    { cls: "bg-emerald-100 text-emerald-700", label: "Done"     },
           };
           const { cls: statusCls, label: statusLabel } = statusMap[viewLead.status] ?? statusMap.pending;
 
@@ -354,13 +490,41 @@ export default function FollowUps() {
                 >
                   <Icon size={22} />
                 </div>
-                <div>
+                <div className="flex-1 min-w-0">
                   <p className="text-base font-black text-[#2a465a]">{viewLead.leadName}</p>
                   <p className="text-xs text-slate-400 mt-0.5">Assigned to {viewLead.assignedExec}</p>
                 </div>
                 <span className={`ml-auto shrink-0 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest ${statusCls}`}>
                   {statusLabel}
                 </span>
+              </div>
+
+              {/* Contact info */}
+              <div className="grid grid-cols-2 gap-3">
+                <a
+                  href={`tel:${viewLead.mobile}`}
+                  className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-blue-50 hover:border-blue-200 transition-colors group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
+                    <Phone size={14} className="text-blue-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Phone</p>
+                    <p className="text-xs font-bold text-[#2a465a] truncate">{viewLead.mobile}</p>
+                  </div>
+                </a>
+                <a
+                  href={`mailto:${viewLead.email}`}
+                  className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-purple-50 hover:border-purple-200 transition-colors group"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0 group-hover:bg-purple-100 transition-colors">
+                    <Mail size={14} className="text-purple-600" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Email</p>
+                    <p className="text-xs font-bold text-[#2a465a] truncate">{viewLead.email}</p>
+                  </div>
+                </a>
               </div>
 
               {/* Details grid */}
@@ -390,10 +554,13 @@ export default function FollowUps() {
               <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
                 {viewLead.status !== "done" && (
                   <button
-                    onClick={() => { handleMarkDone(viewLead.id); closeModal("sm-view-modal"); }}
+                    onClick={() => {
+                      closeModal("sm-view-modal");
+                      openActionModal(viewLead);
+                    }}
                     className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#2a465a] text-white hover:bg-[#1e3a52] transition active:scale-95 shadow-md shadow-[#2a465a]/20"
                   >
-                    <CheckCircle2 size={15} /> Mark Done
+                    <Zap size={15} /> Action
                   </button>
                 )}
                 <button
@@ -408,87 +575,205 @@ export default function FollowUps() {
         })()}
       </Modal>
 
-      {/* ── Add Follow-up Modal ── */}
-      <Modal id="sm-add-followup-modal" title="Add New Follow-up">
-        <div className="space-y-5">
-          <Grid cols={12} gap={4}>
-            <SelectField label="Select Lead" id="sm-new-flw-lead" size={12} placeholder="Search lead...">
-              {DUMMY_FOLLOWUPS.slice(0, 8).map((f) => (
-                <Option key={f.id} value={f.id} label={f.leadName} />
-              ))}
-            </SelectField>
-            <DataField label="Date" id="sm-new-flw-date" type="date" size={6} />
-            <DataField label="Time" id="sm-new-flw-time" type="time" size={6} />
-            <SelectField label="Type" id="sm-new-flw-type" size={6} placeholder="Select type">
-              <Option value="call"    label="Call" />
-              <Option value="email"   label="Email" />
-              <Option value="meeting" label="Meeting" />
-            </SelectField>
-            <SelectField label="Priority" id="sm-new-flw-priority" size={6} placeholder="Select priority">
-              <Option value="high"   label="High" />
-              <Option value="medium" label="Medium" />
-              <Option value="low"    label="Low" />
-            </SelectField>
-            <div className="col-span-12">
-              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Notes / Agenda
-              </label>
-              <textarea
-                placeholder="Write brief notes here..."
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-[#2a465a] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 resize-none h-24 focus:bg-white transition-colors"
-              />
+      {/* ── Lead Action Modal ── */}
+      <Modal id="sm-lead-action-modal" title="Lead Action" size="xl">
+        {actionLead && (
+          <div className="space-y-5">
+            {/* Selected lead info */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Selected Lead</p>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#2a465a]/10 flex items-center justify-center text-sm font-black text-[#2a465a] flex-shrink-0">
+                  {actionLead.leadName.split(" ").map(n => n[0]).slice(0, 2).join("")}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-[#2a465a]">{actionLead.leadName}</p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <a href={`tel:${actionLead.mobile}`} className="flex items-center gap-1 text-[11px] text-blue-600 font-semibold hover:underline">
+                      <Phone size={10} /> {actionLead.mobile}
+                    </a>
+                    <span className="text-slate-300 text-xs">·</span>
+                    <a href={`mailto:${actionLead.email}`} className="flex items-center gap-1 text-[11px] text-purple-600 font-semibold hover:underline truncate max-w-[160px]">
+                      <Mail size={10} /> {actionLead.email}
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
-          </Grid>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button
-              onClick={() => closeModal("sm-add-followup-modal")}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => closeModal("sm-add-followup-modal")}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-[#2a465a] hover:bg-[#1e3a52] transition active:scale-95 shadow-lg shadow-[#2a465a]/20"
-            >
-              Save Follow-up
-            </button>
-          </div>
-        </div>
-      </Modal>
 
-      {/* ── Reschedule Modal ── */}
-      <Modal id="sm-reschedule-modal" title="Reschedule Follow-up">
-        <div className="space-y-5">
-          <p className="text-sm text-slate-500">Select a new date and time for this follow-up.</p>
-          <Grid cols={12} gap={4}>
-            <DataField label="New Date" id="sm-resch-date" type="date" size={6} />
-            <DataField label="New Time" id="sm-resch-time" type="time" size={6} />
-            <div className="col-span-12">
-              <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">
-                Reason / Note (Optional)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. Lead was busy"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3.5 text-sm text-[#2a465a] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:bg-white transition-colors"
+            {/* Action selector */}
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Action</p>
+              <div className="grid grid-cols-2 gap-2">
+                {ACTION_OPTIONS.map(({ value, label, icon: ActionIcon, color }) => (
+                  <button
+                    key={value}
+                    onClick={() => setActionForm(f => ({ ...EMPTY_ACTION_FORM, action: value }))}
+                    className={`flex items-center gap-2 px-4 py-3 rounded-xl border text-sm font-bold transition-all ${
+                      actionForm.action === value
+                        ? "border-[#2a465a] bg-[#2a465a] text-white shadow-md"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    <ActionIcon size={15} className={actionForm.action === value ? "text-white" : color} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Conditional sub-form ── */}
+
+            {/* Interested → Prospect Form */}
+            {actionForm.action === "Interested" && (
+              <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 space-y-3">
+                <p className="text-xs font-black text-emerald-700 uppercase tracking-widest">Prospect Details</p><hr/>
+                <Grid cols={12} gap={3}>
+                  <DataField
+                    label="Service / Product"
+                    id="prospect-service"
+                    size={6}
+                    placeholder="e.g. CRM Software"
+                    value={actionForm.prospectService}
+                    onChange={e => setActionForm(f => ({ ...f, prospectService: e.target.value }))}
+                  />
+                  <DataField
+                    label="Budget"
+                    id="prospect-budget"
+                    size={6}
+                    placeholder="e.g. ₹50,000"
+                    value={actionForm.prospectBudget}
+                    onChange={e => setActionForm(f => ({ ...f, prospectBudget: e.target.value }))}
+                  />
+                  <DataField
+                    label="City"
+                    id="prospect-city"
+                    size={6}
+                    placeholder="e.g. Mumbai"
+                    value={actionForm.prospectCity}
+                    onChange={e => setActionForm(f => ({ ...f, prospectCity: e.target.value }))}
+                  />
+                  <SelectField
+                    label="Source"
+                    id="prospect-source"
+                    size={6}
+                    placeholder="Select source"
+                    searchable={false}
+                    value={actionForm.prospectSource}
+                    onChange={e => setActionForm(f => ({ ...f, prospectSource: e.target.value }))}
+                  >
+                    {["Website", "Referral", "Facebook", "LinkedIn", "Cold Call", "Other"].map(s => (
+                      <Option key={s} value={s} label={s} />
+                    ))}
+                  </SelectField>
+                </Grid>
+              </div>
+            )}
+
+            {/* Not Interested → Comment */}
+            {actionForm.action === "Not Interested" && (
+              <Grid cols={12} gap={3}>
+                <DataField
+                  label="Comment (Required)"
+                  id="not-interested-comment"
+                  type="textarea"
+                  size={12}
+                  rows={4}
+                  placeholder="Reason / note why not interested..."
+                  value={actionForm.comment}
+                  onChange={e => setActionForm(f => ({ ...f, comment: e.target.value }))}
+                />
+              </Grid>
+            )}
+
+            {/* Reschedule → Follow-up Form */}
+            {actionForm.action === "Reschedule" && (
+              <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 space-y-3">
+                <p className="text-xs font-black text-blue-700 uppercase tracking-widest">New Follow-up</p>
+                <Grid cols={12} gap={3}>
+                  <DataField
+                    label="Title"
+                    id="resched-title"
+                    size={12}
+                    placeholder="e.g. Second follow-up call"
+                    value={actionForm.reschedTitle}
+                    onChange={e => setActionForm(f => ({ ...f, reschedTitle: e.target.value }))}
+                  />
+                  <div className="col-span-12 sm:col-span-6">
+                    <DatePicker
+                      label="Date"
+                      id="resched-date"
+                      value={actionForm.reschedDate}
+                      onChange={val => setActionForm(f => ({ ...f, reschedDate: val }))}
+                    />
+                  </div>
+                  <div className="col-span-12 sm:col-span-6">
+                    <TimePicker
+                      label="Time"
+                      id="resched-time"
+                      value={actionForm.reschedTime}
+                      onChange={val => setActionForm(f => ({ ...f, reschedTime: val }))}
+                    />
+                  </div>
+                  <SelectField
+                    label="Type"
+                    id="resched-type"
+                    size={12}
+                    placeholder="Select type"
+                    searchable={false}
+                    value={actionForm.reschedType}
+                    onChange={e => setActionForm(f => ({ ...f, reschedType: e.target.value }))}
+                  >
+                    <Option value="Call"    label="Call" />
+                    <Option value="Meeting" label="Meeting" />
+                    <Option value="Email"   label="Email" />
+                  </SelectField>
+                  <DataField
+                    label="Note"
+                    id="resched-note"
+                    size={12}
+                    placeholder="e.g. Lead requested callback next week"
+                    value={actionForm.reschedNote}
+                    onChange={e => setActionForm(f => ({ ...f, reschedNote: e.target.value }))}
+                  />
+                </Grid>
+              </div>
+            )}
+
+            {/* Not Talk → Comment */}
+            {actionForm.action === "Not Talk" && (
+              <Grid cols={12} gap={3}>
+                <DataField
+                  label="Reason (Required)"
+                  id="not-talk-reason"
+                  type="textarea"
+                  size={12}
+                  rows={4}
+                  placeholder="Reason why the lead could not be reached..."
+                  value={actionForm.comment}
+                  onChange={e => setActionForm(f => ({ ...f, comment: e.target.value }))}
+                />
+              </Grid>
+            )}
+
+            {/* Footer */}
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <Button
+                text="Cancel"
+                variant="secondary"
+                size={3}
+                onClick={() => closeModal("sm-lead-action-modal")}
+              />
+              <Button
+                text="Save"
+                variant="primary"
+                size={3}
+                disabled={!actionForm.action}
+                onClick={handleActionSave}
               />
             </div>
-          </Grid>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <button
-              onClick={() => closeModal("sm-reschedule-modal")}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={() => closeModal("sm-reschedule-modal")}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition active:scale-95 shadow-lg shadow-blue-500/20"
-            >
-              Confirm Reschedule
-            </button>
           </div>
-        </div>
+        )}
       </Modal>
 
     </div>
