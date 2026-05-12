@@ -19,7 +19,7 @@ const XLSX = require('xlsx');
 const AppError = require('../utils/appError');
 
 const ASSIGNMENT_RULES = {
-  SALES_MANAGER: ['SALES_TL'],
+  SALES_MANAGER: ['SALES_TL', 'SALES_EXECUTIVE'],
   SALES_TL: ['SALES_EXECUTIVE'],
   ADMIN: ['SALES_TL', 'SALES_EXECUTIVE'],
   SUPER_ADMIN: ['SALES_TL', 'SALES_EXECUTIVE'],
@@ -393,7 +393,7 @@ const normalizeLeadRow = (row) => {
   const normalized = {};
   for (const key in row) {
     const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '');
-    
+
     // Map common variations to our expected keys
     let finalKey = normalizedKey;
     if (normalizedKey === 'name' || normalizedKey === 'company' || normalizedKey === 'companyname') finalKey = 'name';
@@ -430,7 +430,7 @@ const validateRow = (row) => {
   const fieldErrors = [];
 
   if (!row.name) fieldErrors.push({ field: 'name', message: 'Name is required' });
-  
+
   const email = row.email ? String(row.email).trim().toLowerCase() : '';
   if (!email) {
     fieldErrors.push({ field: 'email', message: 'Email is required' });
@@ -457,8 +457,8 @@ exports.processUploadPreview = async (uploadId) => {
   if (!upload) throw new Error('Upload not found');
 
   try {
-    let rawRows = upload.fileType === 'CSV' 
-      ? await parseCsv(upload.fileUrl) 
+    let rawRows = upload.fileType === 'CSV'
+      ? await parseCsv(upload.fileUrl)
       : parseExcel(upload.fileUrl);
 
     validateFileStructure(rawRows);
@@ -472,7 +472,7 @@ exports.processUploadPreview = async (uploadId) => {
     const seenEmailsInFile = new Set();
     const seenMobilesInFile = new Set();
     const failedRows = [];
-    
+
     let validCount = 0;
     let duplicateCount = 0;
     let invalidCount = 0;
@@ -562,7 +562,7 @@ exports.commitUpload = async (uploadId) => {
   if (!upload) throw new Error('Upload not found');
 
   if (upload.status === 'DONE') throw new Error('Upload is already committed');
-  
+
   try {
     upload.status = 'PROCESSING';
     await upload.save();
@@ -577,7 +577,7 @@ exports.commitUpload = async (uploadId) => {
 
     const seenEmailsInFile = new Set();
     const seenMobilesInFile = new Set();
-    
+
     let importedCount = 0;
     const finalFailedRows = [];
 
@@ -663,8 +663,11 @@ exports.generateErrorCsv = (failedRows) => {
   return header + rows;
 };
 
-exports.getAssignmentTargets = async (adminId, performerRole, targetRole = null) => {
+exports.getAssignmentTargets = async (adminId, performer, targetRole = null) => {
+  const performerRole = performer.role;
   const allowedRoles = resolveAllowedTargetRoles(performerRole);
+  const effectiveAdminId = String(adminId?._id || adminId);
+
   if (allowedRoles.length === 0) {
     throw new AppError('You do not have permission to view assignment targets.', 403);
   }
@@ -674,17 +677,28 @@ exports.getAssignmentTargets = async (adminId, performerRole, targetRole = null)
     throw new AppError('Target role is not allowed for your account.', 403);
   }
 
-  const users = await User.find({
-    admin: adminId,
+  const query = {
+    admin: effectiveAdminId,
     isDeleted: false,
     isActive: true,
     approvalStatus: 'APPROVED',
     role: { $in: roles },
-  }).select('name email phone role leadDataLimit').sort({ name: 1 });
+  };
+
+  // If performer is a TL, only show members of their team
+  if (performerRole === 'SALES_TL') {
+    const team = await resolveUserTeam(effectiveAdminId, performer._id, performerRole);
+    if (team && team.members) {
+      const memberIds = team.members.map(m => m.user).filter(Boolean);
+      query._id = { $in: memberIds };
+    }
+  }
+
+  const users = await User.find(query).select('name email phone role leadDataLimit').sort({ name: 1 });
 
   const userIds = users.map((user) => user._id);
   const teams = await Team.find({
-    admin: adminId,
+    admin: effectiveAdminId,
     isDeleted: false,
     isActive: true,
     $or: [{ leader: { $in: userIds } }, { 'members.user': { $in: userIds } }],

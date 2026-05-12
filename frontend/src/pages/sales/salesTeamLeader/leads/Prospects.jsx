@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DataTable, Modal, Button, DataField, SelectField, Option,
   openModal, closeModal, ModalProfile, ModalData, ModalGrid, Grid,
@@ -7,16 +7,17 @@ import {
 import {
   Eye, Pencil, Phone, MessageCircle, Flame, Snowflake, Activity, Target,
 } from "lucide-react";
-import { INITIAL_PROSPECTS, teamExecutives, executiveNames } from "./leadsStore";
+import { LEAD_STATUS_OPTIONS } from "./leadsStore";
+import apiClient from "../../../../services/apiClient";
 
 const COLS = [
   { key: "name",          label: "Name" },
   { key: "companyName",   label: "Company" },
-  { key: "service",       label: "Service" },
-  { key: "budget",        label: "Budget" },
-  { key: "assignedExec",  label: "Assigned To" },
-  { key: "expectedClose", label: "Expected Close" },
+  { key: "mobile",        label: "Mobile" },
+  { key: "email",         label: "Email" },
+  { key: "assignedTo",    label: "Assigned To" },
   { key: "status",        label: "Status" },
+  { key: "createdAt",     label: "Created" },
 ];
 
 const STATUS_OPTIONS = ["Hot", "Warm", "Cold"];
@@ -24,9 +25,38 @@ const STATUS_OPTIONS = ["Hot", "Warm", "Cold"];
 const stripPhone = (m) => (m || "").replace(/\D/g, "");
 
 export default function Prospects() {
-  const [prospects, setProspects] = useState(INITIAL_PROSPECTS);
+  const [prospects, setProspects] = useState([]);
+  const [executives, setExecutives] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [viewRow,   setViewRow]   = useState(null);
   const [editRow,   setEditRow]   = useState(null);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [leadsRes, targetsRes] = await Promise.all([
+        apiClient.get("/sales-team-leader/leads/assigned"),
+        apiClient.get("/sales-manager/leads/assignment-targets?role=SALES_EXECUTIVE")
+      ]);
+      
+      if (leadsRes.data.success) {
+        // For now, we'll treat assigned leads with specific statuses as prospects
+        // In a real scenario, there might be a separate flag
+        setProspects(leadsRes.data.data);
+      }
+      if (targetsRes.data.success) setExecutives(targetsRes.data.data.targets || []);
+    } catch (error) {
+      console.error("Failed to fetch prospects data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const executiveNames = useMemo(() => executives.map(e => e.name), [executives]);
 
   const callLead     = (row) => { window.location.href = `tel:${stripPhone(row.mobile)}`; };
   const whatsappLead = (row) => { window.open(`https://wa.me/${stripPhone(row.mobile)}`, "_blank", "noopener"); };
@@ -40,6 +70,8 @@ export default function Prospects() {
   const hot   = prospects.filter((p) => p.status === "Hot").length;
   const warm  = prospects.filter((p) => p.status === "Warm").length;
   const cold  = prospects.filter((p) => p.status === "Cold").length;
+
+  if (loading) return <div className="p-10 text-center">Loading prospects...</div>;
 
   return (
     <div className="flex flex-col gap-6">
@@ -61,7 +93,7 @@ export default function Prospects() {
         exportFileName="team_prospects"
         filters={[
           { title: "Status",      type: "toggle", key: "status",       options: STATUS_OPTIONS },
-          { title: "Assigned To", type: "select", key: "assignedExec", options: executiveNames },
+          { title: "Assigned To", type: "select", key: "assignedTo",   options: executiveNames },
         ]}
         actions={[
           { icon: <Eye size={15} />,           tooltip: "View",     variant: "ghost",   onClick: (row) => { setViewRow(prospects.find((p) => p.id === row.id)); openModal("tl-prosp-view"); } },
@@ -78,17 +110,16 @@ export default function Prospects() {
             <ModalProfile
               name={viewRow.name}
               subtitle={`${viewRow.companyName} · ${viewRow.status}`}
-              meta={`ID: ${viewRow.id} · Assigned to ${viewRow.assignedExec}`}
+              meta={`ID: ${viewRow.id} · Assigned to ${viewRow.assignedTo}`}
             />
             <ModalGrid title="Contact" cols={2}>
               <ModalData label="Mobile" value={viewRow.mobile} />
               <ModalData label="Email"  value={viewRow.email} />
             </ModalGrid>
             <ModalGrid title="Deal" cols={2}>
-              <ModalData label="Service"        value={viewRow.service} />
-              <ModalData label="Budget"         value={viewRow.budget} />
-              <ModalData label="Expected Close" value={viewRow.expectedClose} />
+              <ModalData label="Assigned To"    value={viewRow.assignedTo} />
               <ModalData label="Status"         value={viewRow.status} />
+              <ModalData label="Created At"     value={viewRow.createdAt} />
             </ModalGrid>
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
               <Button text="Call"     variant="ghost"   size={2} onClick={() => callLead(viewRow)} />
@@ -111,8 +142,8 @@ export default function Prospects() {
               <DataField label="Service"        id="tl-prosp-service" value={editRow.service}       size={6} onChange={(e) => setEditRow((p) => ({ ...p, service: e.target.value }))} />
               <DataField label="Budget"         id="tl-prosp-budget"  value={editRow.budget}        size={6} onChange={(e) => setEditRow((p) => ({ ...p, budget: e.target.value }))} />
               <DataField label="Expected Close" id="tl-prosp-close"   value={editRow.expectedClose} size={6} type="date" onChange={(e) => setEditRow((p) => ({ ...p, expectedClose: e.target.value }))} />
-              <SelectField label="Assigned To" value={editRow.assignedExec} size={6} onChange={(e) => setEditRow((p) => ({ ...p, assignedExec: e.target.value }))}>
-                {teamExecutives.map((ex) => <Option key={ex.id} value={ex.name} label={ex.name} />)}
+              <SelectField label="Assigned To" value={editRow.assignedTo} size={6} onChange={(e) => setEditRow((p) => ({ ...p, assignedTo: e.target.value }))}>
+                {executives.map((ex) => <Option key={ex.id} value={ex.name} label={ex.name} />)}
               </SelectField>
               <SelectField label="Status" value={editRow.status} size={6} onChange={(e) => setEditRow((p) => ({ ...p, status: e.target.value }))}>
                 {STATUS_OPTIONS.map((s) => <Option key={s} value={s} label={s} />)}

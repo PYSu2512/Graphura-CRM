@@ -84,10 +84,12 @@ exports.getStatus = catchAsync(async (req, res, next) => {
 exports.getAllLeads = catchAsync(async (req, res) => {
   const { Lead, LeadAssignmentHistory } = require('../models');
   
-  const leads = await Lead.find({ 
+  const query = { 
     admin: req.admin._id,
     isDeleted: { $ne: true } 
-  })
+  };
+
+  const leads = await Lead.find(query)
   .populate({
     path: 'client',
     select: 'name email mobile companyName'
@@ -141,12 +143,14 @@ exports.getAllLeads = catchAsync(async (req, res) => {
 exports.getAssignedLeads = catchAsync(async (req, res) => {
   const { Lead, LeadAssignmentHistory } = require('../models');
 
-  const leads = await Lead.find({
+  const query = {
     admin: req.admin._id,
     isDeleted: { $ne: true },
     isDumped: { $ne: true },
     assignedTo: { $ne: null },
-  })
+  };
+
+  const leads = await Lead.find(query)
     .populate({
       path: 'client',
       select: 'name email mobile companyName',
@@ -198,8 +202,8 @@ exports.getAssignedLeads = catchAsync(async (req, res) => {
  * GET /api/sales-manager/leads/assignment-targets
  */
 exports.getAssignmentTargets = catchAsync(async (req, res) => {
-  const targetRole = req.query.role || null;
-  const result = await bulkLeadUploadService.getAssignmentTargets(req.admin._id, req.user.role, targetRole);
+  const targetRole = req.query.role ? String(req.query.role).trim() : null;
+  const result = await bulkLeadUploadService.getAssignmentTargets(req.admin._id, req.user, targetRole);
 
   res.status(200).json(
     new ApiResponse(200, result, 'Assignment targets retrieved successfully')

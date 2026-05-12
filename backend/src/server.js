@@ -21,6 +21,7 @@ const userRoutes = require('./routes/users');
 const superAdminRoutes = require('./routes/superadmin');
 const teamRoutes = require('./routes/teams');
 const salesManagerLeadRoutes = require('./routes/salesManagerLeads');
+const salesTeamLeaderLeadRoutes = require('./routes/salesTeamLeaderLeads');
 
 dotenv.config();
 
@@ -76,6 +77,8 @@ try {
   console.log('✓ /api/teams routes registered');
   app.use('/api/sales-manager/leads', salesManagerLeadRoutes);
   console.log('✓ /api/sales-manager/leads routes registered');
+  app.use('/api/sales-team-leader/leads', salesTeamLeaderLeadRoutes);
+  console.log('✓ /api/sales-team-leader/leads routes registered');
 } catch (error) {
   console.error('❌ Error registering routes:', error);
 }

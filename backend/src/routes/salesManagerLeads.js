@@ -15,9 +15,8 @@ const {
 
 // Base path: /api/sales-manager/leads
 
-router.get('/', requireUser, requireSalesManager, bulkLeadUploadController.getAllLeads);
-
-router.get('/assigned', requireUser, requireSalesManager, bulkLeadUploadController.getAssignedLeads);
+router.get('/', requireUser, requireLeadAssigner, bulkLeadUploadController.getAllLeads);
+router.get('/assigned', requireUser, requireLeadAssigner, bulkLeadUploadController.getAssignedLeads);
 
 router.get(
   '/assignment-targets',

@@ -483,7 +483,7 @@ const UserSchema = new Schema({
   tempPassword: { type: String, default: null }, // Store raw auto-generated password
   // ── Onboarding / Prerequisite flags ──
   prereqCompleted: { type: Boolean, default: false },
-  prereqStep: { type: String, enum: ['password','bank-details','completed'], default: 'password' },
+  prereqStep: { type: String, enum: ['password', 'bank-details', 'completed'], default: 'password' },
   onboardingAudit: [{ event: String, by: { type: Schema.Types.ObjectId, ref: 'User' }, ip: String, ts: { type: Date, default: Date.now }, meta: Schema.Types.Mixed, _id: false }],
   approvalStatus: { type: String, enum: APPROVAL_ST, default: 'APPROVED' },
 

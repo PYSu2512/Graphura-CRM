@@ -1,14 +1,15 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DataTable, Modal, Button, DataField, SelectField, Option,
   openModal, closeModal, Grid, ModalProfile, ModalGrid, ModalData,
 } from "../../../../components/shared/Common_Components.jsx";
 import {
-  Pencil, UserCheck, Phone, MessageCircle, Eye, AlertTriangle, Users,
+  Pencil, UserCheck, Phone, MessageCircle, Eye, AlertTriangle, Users, GitBranch, Loader2, CheckCircle,
 } from "lucide-react";
 import {
-  INITIAL_LEADS, LEAD_STATUS_OPTIONS, teamExecutives, currentTL, executiveNames,
+  LEAD_STATUS_OPTIONS,
 } from "./leadsStore";
+import apiClient from "../../../../services/apiClient";
 
 const COLS = [
   { key: "name",        label: "Name" },
@@ -23,7 +24,10 @@ const COLS = [
 const stripPhone = (m) => (m || "").replace(/\D/g, "");
 
 export default function AllLeads() {
-  const [leads, setLeads] = useState(INITIAL_LEADS);
+  const [unassignedLeads, setUnassignedLeads] = useState([]);
+  const [assignedLeads, setAssignedLeads] = useState([]);
+  const [executives, setExecutives] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   // ── View / edit state ────────────────────────────────────────────────────
   const [viewRow, setViewRow] = useState(null);
@@ -33,22 +37,37 @@ export default function AllLeads() {
   const [assignRow, setAssignRow] = useState(null);
   const [assignTo,  setAssignTo]  = useState("");
 
-  // ── Bulk reassign state ──────────────────────────────────────────────────
-  const [bulkLeads, setBulkLeads] = useState([]);
-  const [bulkExec,  setBulkExec]  = useState("");
-  const [bulkError, setBulkError] = useState("");
+  // ── Distribution state ────────────────────────────────────────────────────
+  const [distSelectedLeads, setDistSelectedLeads] = useState([]);
+  const [distRows,          setDistRows]          = useState([]);
+  const [distError,         setDistError]         = useState("");
+  const [distSuccess,       setDistSuccess]       = useState(false);
+  const [distSummary,       setDistSummary]       = useState([]);
+  const [totalToDistribute, setTotalToDistribute] = useState(0);
+  const [distLoading,       setDistLoading]       = useState(false);
 
-  const unassigned = useMemo(() => leads.filter((l) => l.assignedTo === "Unassigned"), [leads]);
-  const assigned   = useMemo(() => leads.filter((l) => l.assignedTo !== "Unassigned"), [leads]);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get("/sales-team-leader/leads/workspace");
+      if (res.data.success) {
+        const { pool, assigned, targets } = res.data.data;
+        setUnassignedLeads(pool || []);
+        setAssignedLeads(assigned || []);
+        setExecutives(targets || []);
+      }
+    } catch (error) {
+      console.error("Failed to fetch leads data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // ── Lead capacity per executive (each exec capped, mirrors TL.leadCapacity / team size) ──
-  const perExecCap = Math.floor(currentTL.leadCapacity / teamExecutives.length);
-  const loadByExec = useMemo(() => {
-    const m = {};
-    teamExecutives.forEach((e) => { m[e.name] = 0; });
-    leads.forEach((l) => { if (m[l.assignedTo] !== undefined) m[l.assignedTo]++; });
-    return m;
-  }, [leads]);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const executiveNames = useMemo(() => executives.map(e => e.name), [executives]);
 
   const today = () => new Date().toISOString().split("T")[0];
 
@@ -56,241 +75,336 @@ export default function AllLeads() {
   const callLead     = (row) => { window.location.href = `tel:${stripPhone(row.mobile)}`; };
   const whatsappLead = (row) => { window.open(`https://wa.me/${stripPhone(row.mobile)}`, "_blank", "noopener"); };
 
+  // ── Distribution Logic Helpers ──
+  function buildDistRows(total, targets = []) {
+    return targets
+      .map((ex) => ({
+        id: ex.id,
+        name: ex.name,
+        capacity: Math.max(0, ex.remaining || 0),
+        currentLeads: ex.currentAssigned || 0,
+        effectiveLimit: ex.effectiveLimit || 250,
+        assignLeads: 0,
+      }))
+      .filter((ex) => ex.capacity > 0);
+  }
+
+  const openDistModal = (selected) => {
+    const targetLeads = selected?.length ? selected : unassignedLeads;
+    setDistSelectedLeads(targetLeads);
+    setTotalToDistribute(targetLeads.length);
+    setDistRows(buildDistRows(targetLeads.length, executives));
+    setDistError("");
+    setDistSuccess(false);
+    openModal("tl-dist-modal");
+  };
+
+  const updateDistRowByIndex = (index, field, raw) => {
+    const val = Math.max(0, Number(raw) || 0);
+    setDistRows((prev) => {
+      const otherAssigned = prev
+        .filter((_, i) => i !== index)
+        .reduce((s, r) => s + (Number(r.assignLeads) || 0), 0);
+      const remaining = Math.max(0, totalToDistribute - otherAssigned);
+
+      return prev.map((r, i) => {
+        if (i !== index) return { ...r };
+        const assign = Math.min(val, r.capacity, remaining);
+        return { ...r, assignLeads: assign };
+      });
+    });
+  };
+
+  const handleTotalToDistributeChange = (raw) => {
+    const val = Math.max(0, Number(raw) || 0);
+    setTotalToDistribute(Math.min(val, distSelectedLeads.length));
+  };
+
+  const totalToAssign = useMemo(() => distRows.reduce((s, r) => s + r.assignLeads, 0), [distRows]);
+
+  const confirmDistribute = async () => {
+    setDistError("");
+    if (totalToAssign === 0) { setDistError("Please assign at least 1 lead."); return; }
+
+    const shuffled = [...distSelectedLeads].sort(() => Math.random() - 0.5);
+    let pointer = 0;
+    const assignments = [];
+
+    for (const r of distRows) {
+      if (r.assignLeads === 0) continue;
+      const slice = shuffled.slice(pointer, pointer + r.assignLeads);
+      pointer += r.assignLeads;
+      assignments.push({
+        userId: r.id,
+        leadIds: slice.map(l => l.id),
+        reason: "Distributed by Team Leader"
+      });
+    }
+
+    try {
+      setDistLoading(true);
+      const res = await apiClient.post("/sales-manager/leads/bulk/distribute", { assignments });
+      if (res.data.success) {
+        setDistSuccess(true);
+        setDistSummary(distRows.filter(r => r.assignLeads > 0));
+        await fetchData();
+      }
+    } catch (error) {
+      setDistError(error.response?.data?.message || "Failed to distribute leads");
+    } finally {
+      setDistLoading(false);
+    }
+  };
+
   // ── Single-lead reassign ─────────────────────────────────────────────────
   const openAssign = (row) => {
     setAssignRow(row);
-    setAssignTo(row.assignedTo === "Unassigned" ? "" : row.assignedTo);
+    setAssignTo("");
     openModal("tl-lead-assign");
   };
 
-  const confirmAssign = () => {
-    if (!assignTo) return;
-    setLeads((prev) =>
-      prev.map((l) =>
-        l.id === assignRow.id
-          ? { ...l, assignedTo: assignTo, assignedAt: today() }
-          : l
-      )
-    );
-    closeModal("tl-lead-assign");
-  };
+  const confirmAssign = async () => {
+    if (!assignTo || !assignRow) return;
+    const targetExec = executives.find(e => e.name === assignTo);
+    if (!targetExec) return;
 
-  // ── Bulk reassign ────────────────────────────────────────────────────────
-  const openBulkAssign = (selected) => {
-    setBulkLeads(selected);
-    setBulkExec("");
-    setBulkError("");
-    openModal("tl-lead-bulk-assign");
-  };
-
-  const confirmBulkAssign = () => {
-    if (!bulkExec) { setBulkError("Pick an executive to assign these leads to."); return; }
-    const projectedLoad = loadByExec[bulkExec] + bulkLeads.length;
-    if (projectedLoad > perExecCap) {
-      setBulkError(`${bulkExec} would exceed the per-executive cap of ${perExecCap} leads (current: ${loadByExec[bulkExec]}).`);
-      return;
+    try {
+      const res = await apiClient.post(`/sales-manager/leads/${assignRow.id}/assign`, {
+        userId: targetExec.id,
+        reason: "Manual assignment from TL"
+      });
+      if (res.data.success) {
+        await fetchData();
+        closeModal("tl-lead-assign");
+      }
+    } catch (error) {
+      alert(error.response?.data?.message || "Assignment failed");
     }
-    const ids = new Set(bulkLeads.map((b) => b.id));
-    const stamp = today();
-    setLeads((prev) => prev.map((l) => ids.has(l.id) ? { ...l, assignedTo: bulkExec, assignedAt: stamp } : l));
-    closeModal("tl-lead-bulk-assign");
   };
 
-  // ── Edit ─────────────────────────────────────────────────────────────────
-  const saveEdit = () => {
-    setLeads((prev) => prev.map((l) => l.id === editRow.id ? editRow : l));
-    closeModal("tl-lead-edit");
-  };
-
-  // ── Shared row actions ───────────────────────────────────────────────────
+  // ── Row actions ───────────────────────────────────────────────────
   const baseActions = [
     {
       icon: <Eye size={15} />, tooltip: "View", variant: "ghost",
-      onClick: (row) => { setViewRow(leads.find((l) => l.id === row.id)); openModal("tl-lead-view"); },
+      onClick: (row) => { 
+        const found = unassignedLeads.find((l) => l.id === row.id) || assignedLeads.find((l) => l.id === row.id);
+        setViewRow(found); 
+        openModal("tl-lead-view"); 
+      },
     },
-    {
-      icon: <Phone size={15} />, tooltip: "Call", variant: "ghost",
-      onClick: callLead,
-    },
-    {
-      icon: <MessageCircle size={15} />, tooltip: "WhatsApp", variant: "ghost",
-      onClick: whatsappLead,
-    },
+    { icon: <Phone size={15} />, tooltip: "Call", variant: "ghost", onClick: callLead },
+    { icon: <MessageCircle size={15} />, tooltip: "WhatsApp", variant: "ghost", onClick: whatsappLead },
     {
       icon: <Pencil size={15} />, tooltip: "Edit", variant: "ghost",
-      onClick: (row) => { setEditRow({ ...leads.find((l) => l.id === row.id) }); openModal("tl-lead-edit"); },
+      onClick: (row) => { 
+        const found = unassignedLeads.find((l) => l.id === row.id) || assignedLeads.find((l) => l.id === row.id);
+        setEditRow({ ...found }); 
+        openModal("tl-lead-edit"); 
+      },
     },
-    {
-      icon: <UserCheck size={15} />, tooltip: "Assign / Reassign", variant: "primary",
-      onClick: openAssign,
-    },
+    { icon: <UserCheck size={15} />, tooltip: "Assign", variant: "primary", onClick: openAssign },
   ];
 
-  const FILTERS = [
-    { title: "Status",      type: "toggle", key: "status",     options: LEAD_STATUS_OPTIONS },
-    { title: "Assigned To", type: "select", key: "assignedTo", options: executiveNames },
-  ];
-
-  const BULK_ACTIONS = [
-    {
-      title: "Assign / Reassign",
-      icon: <Users size={14} />,
-      onClick: (rows) => openBulkAssign(rows.map((r) => leads.find((l) => l.id === r.id)).filter(Boolean)),
-    },
-  ];
+  const capColor = (used, max) => {
+    const pct = (used / max) * 100;
+    if (pct >= 95) return "bg-rose-500";
+    if (pct >= 75) return "bg-amber-400";
+    return "bg-emerald-500";
+  };
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Unassigned leads ─────────────────────────────────────────────── */}
+      <div className="flex justify-end mb-1">
+        <button
+          onClick={() => openDistModal(unassignedLeads)}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-[#2a465a] text-white text-sm font-bold hover:bg-[#1e3a52] transition active:scale-95 shadow-sm"
+        >
+          <GitBranch size={16} /> Distribute Leads
+        </button>
+      </div>
+
       <DataTable
-        title="Unassigned Leads"
-        columns={COLS.filter((c) => c.key !== "assignedTo")}
-        rows={unassigned}
-        actions={baseActions.filter((a) => a.tooltip !== "Call" && a.tooltip !== "WhatsApp")}
+        title="Unassigned Pool"
+        columns={COLS.map(c => c.key === "assignedTo" ? { ...c, label: "Status" } : c)}
+        rows={unassignedLeads.map(l => ({ ...l, assignedTo: "Unassigned" }))}
+        actions={baseActions.filter(a => ["View", "Assign"].includes(a.tooltip))}
         size={12}
         pageSize={10}
         searchable
-        exportable
-        exportFileName="team_leads_unassigned"
         bulkAction
-        bulkActions={BULK_ACTIONS}
+        bulkActions={[{ title: "Distribute", icon: <GitBranch size={14} />, onClick: openDistModal }]}
         filters={[{ title: "Status", type: "toggle", key: "status", options: LEAD_STATUS_OPTIONS }]}
       />
 
-      {/* ── Assigned leads ───────────────────────────────────────────────── */}
       <DataTable
-        title="Assigned Leads"
+        title="Team Assignments"
         columns={COLS}
-        rows={assigned}
+        rows={assignedLeads}
         actions={baseActions}
         size={12}
         pageSize={10}
         searchable
-        exportable
-        exportFileName="team_leads_assigned"
-        bulkAction
-        bulkActions={BULK_ACTIONS}
-        filters={FILTERS}
+        filters={[
+          { title: "Status", type: "toggle", key: "status", options: LEAD_STATUS_OPTIONS },
+          { title: "Executive", type: "select", key: "assignedTo", options: executiveNames },
+        ]}
       />
 
-      {/* ── View modal ───────────────────────────────────────────────────── */}
+      {/* ── Distribution Modal ─────────────────────────────────────────────── */}
+      <Modal id="tl-dist-modal" title="Distribute Leads to Team" size="xl">
+        <div className="flex flex-col gap-5">
+          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5">
+            <div>
+              <p className="text-sm font-bold text-[#2a465a]">{distSelectedLeads.length} leads selected</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Assigned: <span className="font-bold text-emerald-600">{totalToAssign}</span> / {totalToDistribute}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-slate-400">Available</p>
+              <p className="text-lg font-black text-[#2a465a]">{Math.max(0, totalToDistribute - totalToAssign)}</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold text-slate-600">Leads to distribute</label>
+            <input
+              type="number" min={0} max={distSelectedLeads.length}
+              value={totalToDistribute}
+              onChange={(e) => handleTotalToDistributeChange(e.target.value)}
+              className="w-24 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#2a465a] font-bold"
+            />
+          </div>
+
+          {distSuccess ? (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl">
+                <CheckCircle size={18} />
+                <p className="text-sm font-semibold">Distribution successful!</p>
+              </div>
+              <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <th className="py-3 px-4 text-left font-bold text-[#2a465a]">Executive</th>
+                      <th className="py-3 px-4 text-left font-bold text-[#2a465a]">Leads Assigned</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {distSummary.map((r) => (
+                      <tr key={r.id} className="border-t border-slate-100">
+                        <td className="py-3 px-4 font-medium">{r.name}</td>
+                        <td className="py-3 px-4 font-bold text-emerald-600">+{r.assignLeads}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Button text="Close" variant="primary" size={3} onClick={() => closeModal("tl-dist-modal")} />
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {distRows.map((r, i) => {
+                  const usedAfter = r.currentLeads + r.assignLeads;
+                  const pct = Math.round((usedAfter / r.effectiveLimit) * 100);
+                  return (
+                    <div key={r.id} className="rounded-2xl border border-slate-200 p-4 bg-white shadow-sm">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <p className="text-sm font-bold text-[#2a465a]">{r.name}</p>
+                          <p className="text-[10px] text-slate-500 uppercase font-black tracking-widest mt-0.5">
+                            {r.currentLeads} / {r.effectiveLimit} Leads
+                          </p>
+                        </div>
+                        <input
+                          type="number" min={0} max={r.capacity}
+                          value={r.assignLeads}
+                          onChange={(e) => updateDistRowByIndex(i, "assignLeads", e.target.value)}
+                          className="w-16 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-center"
+                        />
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${capColor(usedAfter, r.effectiveLimit)}`}
+                          style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {distError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-4 py-3 rounded-xl flex items-center gap-2">
+                  <AlertTriangle size={14} /> {distError}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+                <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("tl-dist-modal")} />
+                <Button
+                  text={distLoading ? "Processing..." : "Confirm Distribution"}
+                  variant="primary" size={4}
+                  disabled={distLoading || totalToAssign === 0}
+                  onClick={confirmDistribute}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
+
+      {/* ── Standard Modals (View/Edit/Assign) ── */}
       <Modal id="tl-lead-view" title="Lead Details" size="md">
         {viewRow && (
           <div className="flex flex-col gap-4">
-            <ModalProfile
-              name={viewRow.name}
-              subtitle={`${viewRow.companyName} · ${viewRow.status}`}
-              meta={`ID: ${viewRow.id}`}
-            />
+            <ModalProfile name={viewRow.name} subtitle={`${viewRow.companyName} · ${viewRow.status}`} meta={`ID: ${viewRow.id}`} />
             <ModalGrid title="Contact" cols={2}>
               <ModalData label="Mobile" value={viewRow.mobile} />
               <ModalData label="Email"  value={viewRow.email} />
             </ModalGrid>
             <ModalGrid title="Assignment" cols={2}>
               <ModalData label="Assigned To"  value={viewRow.assignedTo} />
-              <ModalData label="Assigned At"  value={viewRow.assignedAt || "—"} />
-              <ModalData label="Status"       value={viewRow.status} />
               <ModalData label="Created"      value={viewRow.createdAt} />
             </ModalGrid>
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-              <Button text="Call"     variant="ghost"   size={2} onClick={() => callLead(viewRow)} />
-              <Button text="WhatsApp" variant="ghost"   size={3} onClick={() => whatsappLead(viewRow)} />
-              <Button text="Close"    variant="primary" size={3} onClick={() => closeModal("tl-lead-view")} />
+              <Button text="Call" variant="ghost" size={2} onClick={() => callLead(viewRow)} />
+              <Button text="Close" variant="primary" size={3} onClick={() => closeModal("tl-lead-view")} />
             </div>
           </div>
         )}
       </Modal>
 
-      {/* ── Edit modal ───────────────────────────────────────────────────── */}
+      <Modal id="tl-lead-assign" title="Assign Lead" size="sm">
+        {assignRow && (
+          <div className="flex flex-col gap-4">
+            <SelectField label="Select Executive" value={assignTo} onChange={(e) => setAssignTo(e.target.value)}>
+              <Option value="" label="-- Select Member --" />
+              {executives.map((ex) => <Option key={ex.id} value={ex.name} label={`${ex.name} (${ex.currentAssigned}/${ex.effectiveLimit})`} />)}
+            </SelectField>
+            <div className="flex gap-2 pt-2">
+              <Button text="Cancel" variant="secondary" size={6} onClick={() => closeModal("tl-lead-assign")} />
+              <Button text="Confirm" variant="primary" size={6} onClick={confirmAssign} disabled={!assignTo} />
+            </div>
+          </div>
+        )}
+      </Modal>
+
       <Modal id="tl-lead-edit" title="Edit Lead" size="md">
         {editRow && (
           <div className="space-y-4">
             <Grid cols={12} gap={4}>
-              <DataField label="Name"    id="tl-lead-name"    value={editRow.name}        size={6}  onChange={(e) => setEditRow((p) => ({ ...p, name: e.target.value }))} />
-              <DataField label="Company" id="tl-lead-company" value={editRow.companyName} size={6}  onChange={(e) => setEditRow((p) => ({ ...p, companyName: e.target.value }))} />
-              <DataField label="Mobile"  id="tl-lead-mobile"  value={editRow.mobile}      size={6}  onChange={(e) => setEditRow((p) => ({ ...p, mobile: e.target.value }))} />
-              <DataField label="Email"   id="tl-lead-email"   value={editRow.email}       size={6}  type="email" onChange={(e) => setEditRow((p) => ({ ...p, email: e.target.value }))} />
-              <SelectField label="Status" value={editRow.status} size={6} onChange={(e) => setEditRow((p) => ({ ...p, status: e.target.value }))}>
+              <DataField label="Name" value={editRow.name} size={6} onChange={(e) => setEditRow((p) => ({ ...p, name: e.target.value }))} />
+              <DataField label="Mobile" value={editRow.mobile} size={6} onChange={(e) => setEditRow((p) => ({ ...p, mobile: e.target.value }))} />
+              <SelectField label="Status" value={editRow.status} size={12} onChange={(e) => setEditRow((p) => ({ ...p, status: e.target.value }))}>
                 {LEAD_STATUS_OPTIONS.map((s) => <Option key={s} value={s} label={s} />)}
               </SelectField>
-              <SelectField label="Assigned To" value={editRow.assignedTo} size={6} onChange={(e) => setEditRow((p) => ({ ...p, assignedTo: e.target.value }))}>
-                <Option value="Unassigned" label="Unassigned" />
-                {teamExecutives.map((ex) => <Option key={ex.id} value={ex.name} label={ex.name} />)}
-              </SelectField>
-              <Button text="Save Changes" variant="primary"   size={6} onClick={saveEdit} />
-              <Button text="Cancel"       variant="secondary" size={6} onClick={() => closeModal("tl-lead-edit")} />
+              <Button text="Save Changes" variant="primary" size={6} onClick={() => { setAssignedLeads(p => p.map(l => l.id === editRow.id ? editRow : l)); closeModal("tl-lead-edit"); }} />
+              <Button text="Cancel" variant="secondary" size={6} onClick={() => closeModal("tl-lead-edit")} />
             </Grid>
           </div>
         )}
-      </Modal>
-
-      {/* ── Single-lead assign modal ─────────────────────────────────────── */}
-      <Modal id="tl-lead-assign" title="Assign / Reassign Lead" size="sm">
-        {assignRow && (
-          <div className="flex flex-col gap-4">
-            <ModalGrid title="Lead" cols={2}>
-              <ModalData label="Name"    value={assignRow.name} />
-              <ModalData label="Company" value={assignRow.companyName} />
-              <ModalData label="Status"  value={assignRow.status} />
-              <ModalData label="Current" value={assignRow.assignedTo} />
-            </ModalGrid>
-            <SelectField label="Assign To" value={assignTo} onChange={(e) => setAssignTo(e.target.value)}>
-              <Option value="" label="-- Pick an executive --" />
-              {teamExecutives.map((ex) => (
-                <Option
-                  key={ex.id}
-                  value={ex.name}
-                  label={`${ex.name} (${loadByExec[ex.name]}/${perExecCap})`}
-                />
-              ))}
-            </SelectField>
-            <Grid cols={12} gap={2}>
-              <Button text="Cancel"  variant="secondary" size={6} onClick={() => closeModal("tl-lead-assign")} />
-              <Button text="Confirm" variant="primary"   size={6} onClick={confirmAssign} disabled={!assignTo} />
-            </Grid>
-          </div>
-        )}
-      </Modal>
-
-      {/* ── Bulk assign modal ────────────────────────────────────────────── */}
-      <Modal id="tl-lead-bulk-assign" title="Bulk Assign Leads" size="md">
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5">
-            <div>
-              <p className="text-sm font-bold text-[#2a465a]">
-                {bulkLeads.length} lead{bulkLeads.length !== 1 ? "s" : ""} selected
-              </p>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Per-executive cap: <span className="font-bold text-[#2a465a]">{perExecCap}</span>
-              </p>
-            </div>
-          </div>
-
-          <SelectField label="Assign To" value={bulkExec} onChange={(e) => { setBulkExec(e.target.value); setBulkError(""); }}>
-            <Option value="" label="-- Pick an executive --" />
-            {teamExecutives.map((ex) => {
-              const room = perExecCap - loadByExec[ex.name];
-              return (
-                <Option
-                  key={ex.id}
-                  value={ex.name}
-                  label={`${ex.name} — ${loadByExec[ex.name]}/${perExecCap} (room: ${room})`}
-                />
-              );
-            })}
-          </SelectField>
-
-          {bulkError && (
-            <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-xl">
-              <AlertTriangle size={15} className="flex-shrink-0" /> {bulkError}
-            </div>
-          )}
-
-          <Grid cols={12} gap={2}>
-            <Button text="Cancel"        variant="secondary" size={6} onClick={() => closeModal("tl-lead-bulk-assign")} />
-            <Button text="Confirm Assign" variant="primary"  size={6} onClick={confirmBulkAssign} disabled={!bulkExec || bulkLeads.length === 0} />
-          </Grid>
-        </div>
       </Modal>
     </div>
   );

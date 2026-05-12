@@ -189,7 +189,9 @@ exports.loginUser = catchAsync(async (req, res, next) => {
     return next(new AppError('Too many failed attempts. Please try again later.', 429));
   }
 
-  const user = await User.findOne({ email: normalizedEmail, isDeleted: false }).populate('admin', 'isActive company name');
+  const user = await User.findOne({ email: normalizedEmail, isDeleted: false })
+    .sort({ createdAt: -1 })
+    .populate('admin', 'isActive company name');
 
   if (!user) {
     await LoginAttempt.findOneAndUpdate(
