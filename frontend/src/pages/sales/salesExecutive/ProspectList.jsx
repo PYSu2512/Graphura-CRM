@@ -4,11 +4,11 @@ import {
   Edit, Loader2, Users, Target, Activity, CheckCircle2,
   Trash2, XCircle, TrendingUp, Search, Phone, Mail,
   Building, MapPin, IndianRupee, Calendar, Clock, Bell,
-  PhoneCall, MessageCircle, RefreshCw, FileText, AlertCircle,
+  PhoneCall, MessageCircle, RefreshCw, FileText, AlertCircle, Eye,
 } from "lucide-react";
 import {
   Heading, Modal, ModalData, ModalGrid, openModal, closeModal, Button,
-  EnhancedDashCard, DashGrid,
+  EnhancedDashCard, DashGrid, DataTable,
 } from "../../../components/shared/Common_Components";
 
 const MOCK_PROSPECTS = [
@@ -67,20 +67,20 @@ const MOCK_PROSPECTS = [
   },
   {
     id: "6", name: "Sunita Rao", phone: "9876511111", email: "sunita.r@example.com",
-    company: "Rao Enterprises", city: "Chennai", source: "Referral", status: "Won",
+    company: "Rao Enterprises", city: "Chennai", source: "Referral", status: "Interested",
     priority: "High", dealValue: "5,00,000", followUpDate: "2026-05-01", followUpTime: "10:00",
     assignedTo: "John Doe (You)",
     activities: [
-      { id: 1, icon: "check", color: "text-emerald-600", bg: "bg-emerald-100", title: "Deal Won!", desc: "Client signed the contract.", date: "Today, 10:00 AM" }
+      { id: 1, icon: "target", color: "text-purple-600", bg: "bg-purple-100", title: "Status changed to Interested", desc: "Client showed strong interest after demo.", date: "Today, 10:00 AM" }
     ],
   },
   {
     id: "7", name: "Rahul Verma", phone: "9876522222", email: "rahul.v@example.com",
-    company: "Verma Logistics", city: "Kolkata", source: "Website", status: "Lost",
+    company: "Verma Logistics", city: "Kolkata", source: "Website", status: "Not Interested",
     priority: "Medium", dealValue: "75,000", followUpDate: "2026-04-28", followUpTime: "14:00",
     assignedTo: "John Doe (You)",
     activities: [
-      { id: 1, icon: "alert", color: "text-red-600", bg: "bg-red-100", title: "Deal Lost", desc: "Went with competitor.", date: "2 days ago" }
+      { id: 1, icon: "alert", color: "text-rose-600", bg: "bg-rose-100", title: "Marked Not Interested", desc: "Prospect declined after pricing discussion.", date: "2 days ago" }
     ],
   }
 ];
@@ -88,10 +88,9 @@ const MOCK_PROSPECTS = [
 const STATUS_COLORS = {
   Interested:             "bg-purple-100 text-purple-700",
   "Not Talk (Untouched)": "bg-slate-100 text-slate-600",
+  "Untouched":            "bg-slate-100 text-slate-500",
   Talk:                   "bg-blue-100 text-blue-700",
   "Not Interested":       "bg-rose-100 text-rose-700",
-  Won:                    "bg-emerald-100 text-emerald-700",
-  Lost:                   "bg-red-100 text-red-700",
 };
 
 const PRIORITY_DOT = {
@@ -119,14 +118,31 @@ const fmtTime = (t) => {
   return `${h % 12 || 12}:${String(m).padStart(2, "0")} ${ampm}`;
 };
 
-// ── Status config — colors for card accent, avatar bg, strip ─────────────────
+// ── Untouched Data logic ──────────────────────────────────────────────────────
+// A prospect is "Untouched" if their only activity is "Lead Created"
+// (no calls, notes, follow-ups, or status changes have been made).
+const isUntouched = (prospect) => {
+  const acts = prospect.activities || [];
+  const realActivity = acts.filter(a =>
+    !["check"].includes(a.icon) // "check" = Lead Created only
+  );
+  return realActivity.length === 0;
+};
+
+// Apply untouched logic to mock data
+const applyUntouchedLogic = (prospects) =>
+  prospects.map(p => {
+    if (isUntouched(p) && !["Interested", "Not Interested"].includes(p.status)) {
+      return { ...p, status: "Untouched" };
+    }
+    return p;
+  });
 const STATUS_CARD_CFG = {
   Interested:             { strip: "bg-purple-500",  avatar: "bg-purple-100 text-purple-700",  ring: "hover:border-purple-300" },
   Talk:                   { strip: "bg-blue-500",    avatar: "bg-blue-100 text-blue-700",      ring: "hover:border-blue-300"   },
   "Not Interested":       { strip: "bg-rose-400",    avatar: "bg-rose-100 text-rose-700",      ring: "hover:border-rose-300"   },
   "Not Talk (Untouched)": { strip: "bg-slate-400",   avatar: "bg-slate-100 text-slate-600",    ring: "hover:border-slate-300"  },
-  Won:                    { strip: "bg-emerald-500", avatar: "bg-emerald-100 text-emerald-700",ring: "hover:border-emerald-300"},
-  Lost:                   { strip: "bg-red-400",     avatar: "bg-red-100 text-red-700",        ring: "hover:border-red-300"    },
+  "Untouched":            { strip: "bg-slate-400",   avatar: "bg-slate-100 text-slate-500",    ring: "hover:border-slate-300"  },
 };
 
 // ── Prospect Card ─────────────────────────────────────────────────────────────
@@ -176,27 +192,31 @@ const ProspectCard = ({ prospect, onView, onEdit, index }) => {
             <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Deal Value</p>
             <p className="text-sm font-black text-[#1a2e3f]">{prospect.dealValue && prospect.dealValue !== "0" ? `₹ ${prospect.dealValue}` : "-"}</p>
           </div>
-          <div className="text-right">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Follow-up</p>
-            <p className="text-xs font-semibold text-amber-600">{prospect.followUpDate}</p>
-          </div>
+          {prospect.status !== "Untouched" && (
+            <div className="text-right">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Follow-up</p>
+              <p className="text-xs font-semibold text-amber-600">{prospect.followUpDate}</p>
+            </div>
+          )}
         </div>
 
         {/* Row 4: Action buttons */}
         <div className="flex gap-2 mt-3 pt-3 border-t border-slate-100">
           <button
             onClick={e => { e.stopPropagation(); onView(prospect); }}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-white text-xs font-bold transition-colors ${cfg.strip.replace("bg-", "bg-").replace("-500", "-600").replace("-400", "-500")} hover:opacity-90`}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-white text-xs font-bold transition-colors hover:opacity-90`}
             style={{ background: cfg.strip.includes("purple") ? "#9333ea" : cfg.strip.includes("blue") ? "#2563eb" : cfg.strip.includes("emerald") ? "#059669" : cfg.strip.includes("rose") ? "#e11d48" : cfg.strip.includes("red") ? "#dc2626" : "#475569" }}
           >
             View Details
           </button>
-          <button
-            onClick={e => { e.stopPropagation(); onEdit(prospect); }}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors"
-          >
-            <Edit size={13} /> Edit
-          </button>
+          {prospect.status !== "Untouched" && (
+            <button
+              onClick={e => { e.stopPropagation(); onEdit(prospect); }}
+              className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors"
+            >
+              <Edit size={13} /> Edit
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -211,12 +231,22 @@ const ProspectList = () => {
   const [selectedProspect, setSelectedProspect] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
+  const [viewMode, setViewMode] = useState("table"); // "table" | "cards"
 
   useEffect(() => {
-    setTimeout(() => { setProspects(MOCK_PROSPECTS); setLoading(false); }, 300);
+    setTimeout(() => {
+      // Apply untouched logic: leads with only "Lead Created" activity → "Untouched Data"
+      setProspects(applyUntouchedLogic(MOCK_PROSPECTS));
+      setLoading(false);
+    }, 300);
   }, []);
 
-  const handleView = (row) => { setSelectedProspect(row); openModal("prospect-view"); };
+  // Fix: always look up by id from state to get the correct, latest record
+  const handleView = (row) => {
+    const prospect = prospects.find(p => p.id === row.id) || row;
+    setSelectedProspect(prospect);
+    openModal("prospect-view");
+  };
   const handleDump = (prospect) => {
     if (window.confirm(`Move "${prospect.name}" to Dump Data?`)) {
       setProspects(prev => prev.filter(p => p.id !== prospect.id));
@@ -228,7 +258,7 @@ const ProspectList = () => {
   const total         = prospects.length;
   const inProgress    = prospects.filter(p => ["Talk", "Interested"].includes(p.status)).length;
   const notInterested = prospects.filter(p => p.status === "Not Interested").length;
-  const won           = prospects.filter(p => p.status === "Won").length;
+  const untouched     = prospects.filter(p => p.status === "Untouched").length;
 
   const STATUS_TABS = ["All", "Talk", "Not Talk (Untouched)", "Interested", "Not Interested"];
   const filtered = prospects.filter(p => {
@@ -241,56 +271,113 @@ const ProspectList = () => {
   return (
     <div className="mx-auto max-w-7xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
-      <Heading primaryText="Prospect Management" />
+      <Heading primaryText="Prospect" secondaryText="Management" />
 
       {/* ── Summary Cards — EnhancedDashCard with wave animation ── */}
       <DashGrid cols={12} gap={4}>
-        <EnhancedDashCard title="TOTAL PROSPECTS" value={String(total)}      icon={<Users size={20} />}        accentColor="#38bdf8" size={3} />
-        <EnhancedDashCard title="IN PROGRESS"     value={String(inProgress)} icon={<TrendingUp size={20} />}   accentColor="#f59e0b" size={3} />
-        <EnhancedDashCard title="WON"             value={String(won)}        icon={<CheckCircle2 size={20} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="TOTAL PROSPECTS" value={String(total)}         icon={<Users size={20} />}        accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="IN PROGRESS"     value={String(inProgress)}    icon={<TrendingUp size={20} />}   accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="UNTOUCHED"        value={String(untouched)}     icon={<XCircle size={20} />}      accentColor="#94a3b8" size={3} />
         <EnhancedDashCard title="NOT INTERESTED"  value={String(notInterested)} icon={<AlertCircle size={20} />} accentColor="#f43f5e" size={3} />
       </DashGrid>
 
-      <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-center w-full">
-        <div className="relative flex-1 max-w-sm w-full">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="Search name, phone, company..." value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-[13px] font-medium rounded-full border border-slate-200 bg-slate-50/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1a2e3f]/20 focus:border-[#1a2e3f]/40 transition text-[#1a2e3f] placeholder:text-slate-400" />
-        </div>
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mb-1 xl:pb-0 xl:mb-0 max-w-full">
-          {STATUS_TABS.map(s => (
-            <button key={s} onClick={() => setStatusFilter(s)}
-              className={`px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap transition-all flex-shrink-0 ${
-                statusFilter === s 
-                  ? "bg-[#1a2e3f] text-white shadow-md border-transparent" 
-                  : "bg-white border border-slate-200 text-slate-500 hover:border-slate-300 hover:text-slate-700 hover:bg-slate-50"
-              }`}>
-              {s}
-            </button>
-          ))}
+      {/* ── Table / Cards toggle ── */}
+      <div className="flex items-center justify-end">
+        <div className="flex items-center bg-white border border-slate-200 rounded-2xl p-1 shadow-sm gap-1">
+          <button
+            onClick={() => setViewMode("table")}
+            className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
+              viewMode === "table"
+                ? "bg-[#1a2e3f] text-white shadow-sm"
+                : "text-slate-500 hover:text-[#1a2e3f]"
+            }`}>
+            Table
+          </button>
+          <button
+            onClick={() => setViewMode("cards")}
+            className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
+              viewMode === "cards"
+                ? "bg-[#1a2e3f] text-white shadow-sm"
+                : "text-slate-500 hover:text-[#1a2e3f]"
+            }`}>
+            Cards
+          </button>
         </div>
       </div>
 
-      {/* ── Prospect Cards Grid ── */}
+      {/* ── All Prospects — DataTable with filters ── */}
       {loading ? (
         <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-slate-200 shadow-sm">
           <Loader2 size={36} className="animate-spin text-[#2a465a] mb-3" />
           <p className="text-slate-400 font-semibold text-sm">Loading prospects…</p>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <Target size={36} className="text-slate-300 mb-3" />
-          <p className="text-slate-400 font-semibold text-sm">No prospects found</p>
-        </div>
+      ) : viewMode === "table" ? (
+        <DataTable
+          title="All Prospects"
+          columns={[
+            { key: "name",    label: "Name"   },
+            { key: "status",  label: "Status" },
+            { key: "phone",   label: "Phone"  },
+            { key: "city",    label: "City"   },
+            { key: "dealValue",    label: "Deal Value"  },
+            { key: "followUpDate", label: "Follow-up"   },
+          ]}
+          rows={prospects.map(p => ({
+            ...p,
+            _id:     p.id,      // dedicated lookup key — never overwritten
+            _status: p.status,  // dedicated status key for action.show
+            name:         p.name,
+            dealValue:    p.dealValue && p.dealValue !== "0" ? `₹ ${p.dealValue}` : "—",
+            followUpDate: p.status === "Untouched" ? "—" : (p.followUpDate || "—"),
+          }))}
+          searchable={true}
+          pageSize={10}
+          size={12}
+          filters={[
+            { title: "Status",   type: "toggle", key: "status",   options: ["Talk", "Untouched", "Interested", "Not Interested"] },
+            { title: "Priority", type: "toggle", key: "priority", options: ["High", "Medium", "Low"] },
+            { title: "Source",   type: "select", key: "source",   options: ["Website", "Facebook", "Referral", "LinkedIn", "Other"] },
+          ]}
+          exportable
+          exportFileName="prospects"
+          actions={[
+            {
+              icon: <Eye size={15} />,
+              tooltip: "View Details",
+              variant: "ghost",
+              onClick: (row) => {
+                const prospect = prospects.find(p => String(p.id) === String(row._id));
+                if (prospect) { setSelectedProspect(prospect); openModal("prospect-view"); }
+              },
+            },
+            {
+              icon: <Edit size={15} />,
+              tooltip: "Edit Prospect",
+              variant: "ghost",
+              show: (row) => row._status !== "Untouched",
+              onClick: (row) => {
+                const prospect = prospects.find(p => String(p.id) === String(row._id));
+                if (prospect) navigate(`/sales-executive/edit-prospect/${prospect.id}`);
+              },
+            },
+          ]}
+        />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((p, i) => (
-            <ProspectCard key={p.id} prospect={p} index={i}
-              onView={handleView}
-              onEdit={(p) => navigate(`/sales-executive/edit-prospect/${p.id}`)} />
-          ))}
-        </div>
+        /* Cards view */
+        prospects.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <Target size={36} className="text-slate-300 mb-3" />
+            <p className="text-slate-400 font-semibold text-sm">No prospects found</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {prospects.map((p, i) => (
+              <ProspectCard key={p.id} prospect={p} index={i}
+                onView={handleView}
+                onEdit={(p) => navigate(`/sales-executive/edit-prospect/${p.id}`)} />
+            ))}
+          </div>
+        )
       )}
 
       {/* ── View Prospect Modal ── */}
@@ -366,7 +453,8 @@ const ProspectList = () => {
                 <ModalData label="Deal Value"  value={selectedProspect.dealValue && selectedProspect.dealValue !== "0" ? `₹ ${selectedProspect.dealValue}` : "-"} />
               </ModalGrid>
 
-              {/* Follow-up */}
+              {/* Follow-up — hidden for Untouch records */}
+              {selectedProspect.status !== "Untouched" && (
               <div className="flex items-center gap-3 p-3.5 rounded-xl bg-amber-50 border border-amber-200">
                 <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
                   <Calendar size={16} className="text-amber-600" />
@@ -382,6 +470,7 @@ const ProspectList = () => {
                 </div>
                 <Bell size={16} className="text-amber-400 animate-pulse flex-shrink-0" />
               </div>
+              )}
 
               {/* Activity Timeline */}
               <div className="rounded-xl border border-slate-100 overflow-hidden">
@@ -415,16 +504,16 @@ const ProspectList = () => {
 
               {/* Actions */}
               <div className="grid grid-cols-2 gap-3">
-                <a href={`tel:+91${selectedProspect.phone.replace(/\D/g,"")}`}
-                  className="flex items-center justify-center gap-2 bg-[#2a465a] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1e3a52] transition-all active:scale-95 shadow-sm">
-                  <PhoneCall size={16} /> Call
-                </a>
                 <button onClick={() => window.open(`https://wa.me/91${selectedProspect.phone.replace(/\D/g,"")}`, "_blank")}
-                  className="flex items-center justify-center gap-2 bg-[#25D366] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1DA851] transition-all active:scale-95 shadow-sm">
+                  className="col-span-2 flex items-center justify-center gap-2 bg-[#25D366] text-white py-3 rounded-xl font-bold text-sm hover:bg-[#1DA851] transition-all active:scale-95 shadow-sm">
                   <MessageCircle size={16} /> WhatsApp
                 </button>
                 <button onClick={() => { closeModal("prospect-view"); navigate(`/sales-executive/edit-prospect/${selectedProspect.id}`); }}
-                  className="flex items-center justify-center gap-2 bg-white border border-slate-200 text-[#2a465a] py-3 rounded-xl font-bold text-sm hover:bg-slate-50 transition-all active:scale-95">
+                  className={`flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all active:scale-95
+                    ${selectedProspect.status === "Untouched"
+                      ? "bg-slate-50 border border-slate-200 text-slate-300 cursor-not-allowed"
+                      : "bg-white border border-slate-200 text-[#2a465a] hover:bg-slate-50"}`}
+                  disabled={selectedProspect.status === "Untouch"}>
                   <Edit size={16} /> Edit
                 </button>
                 <button onClick={() => handleDump(selectedProspect)}

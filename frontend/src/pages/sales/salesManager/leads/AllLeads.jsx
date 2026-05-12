@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DataTable, Modal, Button, DataField, SelectField, Option,
   openModal, closeModal, Grid,
@@ -10,36 +10,60 @@ import {
 import { useLeads } from "./LeadsContext";
 
 export default function AllLeads() {
-  const { leads, updateLead, moveToDump, assignLead, addLeads, teamLeaders, MAX_LEADS, loading } = useLeads();
+  const {
+    leads,
+    assignedLeads,
+    updateLead,
+    moveToDump,
+    assignLead,
+    addLeads,
+    teamLeaders,
+    MAX_LEADS,
+    loading,
+    fetchLeads,
+    fetchAssignedLeads,
+    fetchAssignmentTargets,
+    distributeLeads,
+  } = useLeads();
 
   // ─── Even distribution builder ────────────────────────────────────────────────
-  function buildDistRows(totalLeads) {
-    const eligible = teamLeaders
-      .map((tl) => ({ ...tl, id: tl._id, capacity: MAX_LEADS - tl.currentLeads }))
+  const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+  const resolveLeadId = (lead) => String(lead?.id || lead?._id || "").trim();
+
+  function buildDistRows(totalLeads, leaders = []) {
+    // Build eligible leaders with remaining capacity
+    const eligible = leaders
+      .map((tl) => ({
+        ...tl,
+        tlId: tl._id || tl.id,
+        capacity: Math.max(0, Number(tl.capacity ?? tl.remaining ?? 0)),
+        currentLeads: Number(tl.currentLeads ?? 0),
+        effectiveLimit: Number(tl.effectiveLimit ?? tl.limit ?? MAX_LEADS),
+      }))
       .filter((tl) => tl.capacity > 0);
 
     if (eligible.length === 0) return [];
 
-    const base      = Math.floor(totalLeads / eligible.length);
-    const remainder = totalLeads % eligible.length;
-
-    return eligible.map((tl, i) => {
-      const share  = base + (i < remainder ? 1 : 0);
-      const assign = Math.min(share, tl.capacity);
-      return {
-        tlId:         tl.id || tl._id,
-        tlName:       tl.name,
-        currentLeads: tl.currentLeads,
-        capacity:     tl.capacity,
-        assignLeads:  assign,
-        target:       Math.round(assign * 0.8),
-      };
-    });
+    // Default assignment is 0 for manual distribution control.
+    return eligible.map((tl) => ({
+      tlId: tl.tlId,
+      tlName: tl.name,
+      currentLeads: tl.currentLeads,
+      capacity: tl.capacity,
+      assignLeads: 0,
+      target: 0,
+    }));
   }
 
   // Split leads into two lists
-  const unassignedLeads = useMemo(() => leads.filter((l) => l.assignedTo === "Unassigned"), [leads]);
-  const assignedLeads   = useMemo(() => leads.filter((l) => l.assignedTo !== "Unassigned"),  [leads]);
+  const unassignedLeads = useMemo(
+    () => leads.filter((l) => l.assignedTo === "Unassigned" && !l.isDumped),
+    [leads]
+  );
+  const assignedLeadsVisible = useMemo(
+    () => assignedLeads.filter((l) => !l.isDumped),
+    [assignedLeads]
+  );
 
   // ── Edit modal ────────────────────────────────────────────────────────────
   const [editLead, setEditLead] = useState(null);
@@ -82,18 +106,32 @@ export default function AllLeads() {
   const [distError,         setDistError]         = useState("");
   const [distSuccess,       setDistSuccess]       = useState(false);
   const [distSummary,       setDistSummary]       = useState([]);
+  const [totalToDistribute, setTotalToDistribute] = useState(0);
+  const [distLoading,       setDistLoading]       = useState(false);
+
+  useEffect(() => {
+    fetchAssignmentTargets("SALES_TL");
+  }, [fetchAssignmentTargets]);
 
   const totalToAssign = useMemo(
     () => distRows.reduce((s, r) => s + r.assignLeads, 0),
     [distRows]
   );
 
-  const openDistModal = (selected) => {
-    setDistSelectedLeads(selected);
-    setDistRows(buildDistRows(selected.length));
+  const openDistModal = async (selected) => {
+    const targetLeads = (selected?.length ? selected : unassignedLeads).filter((lead) => !lead.isDumped);
+    setDistSelectedLeads(targetLeads);
+    const total = targetLeads.length;
+    setTotalToDistribute(total);
     setDistError("");
     setDistSuccess(false);
     setDistSummary([]);
+    setDistLoading(true);
+
+    const response = await fetchAssignmentTargets("SALES_TL");
+    const liveTargets = response?.targets?.length ? response.targets : teamLeaders;
+    setDistRows(buildDistRows(total, liveTargets));
+    setDistLoading(false);
     openModal("al-dist-modal");
   };
 
@@ -102,29 +140,84 @@ export default function AllLeads() {
     setDistRows((prev) => {
       const otherAssigned = prev
         .filter((r) => r.tlId !== tlId)
-        .reduce((s, r) => s + r.assignLeads, 0);
-      const remaining = distSelectedLeads.length - otherAssigned;
+        .reduce((s, r) => s + (Number(r.assignLeads) || 0), 0);
+      const remaining = Math.max(0, totalToDistribute - otherAssigned);
 
       return prev.map((r) => {
-        if (r.tlId !== tlId) return r;
-        if (field === "assignLeads") {
-          const assign = Math.min(val, r.capacity, remaining);
-          return { ...r, assignLeads: assign, target: Math.round(assign * 0.8) };
+        // always return a new object to avoid retaining shared references
+        if (r.tlId === tlId) {
+          if (field === "assignLeads") {
+            const assign = Math.min(val, r.capacity, remaining);
+            return { ...r, assignLeads: assign, target: Math.min(Math.round(assign * 0.8), assign) };
+          }
+          if (field === "target") {
+            const tgt = Math.min(val, r.assignLeads || 0);
+            return { ...r, target: tgt };
+          }
         }
-        if (field === "target") {
-          return { ...r, target: Math.min(val, r.assignLeads) };
-        }
-        return r;
+        return { ...r };
       });
     });
     setDistError("");
   };
 
-  const confirmDistribute = () => {
+  // Index-based updater to avoid any id/key collisions causing mirrored updates
+  const updateDistRowByIndex = (index, field, raw) => {
+    const val = Math.max(0, Number(raw) || 0);
+    setDistRows((prev) => {
+      const otherAssigned = prev
+        .filter((_, i) => i !== index)
+        .reduce((s, r) => s + (Number(r.assignLeads) || 0), 0);
+      const remaining = Math.max(0, totalToDistribute - otherAssigned);
+
+      return prev.map((r, i) => {
+        if (i !== index) return { ...r };
+        if (field === "assignLeads") {
+          const assign = Math.min(val, r.capacity, remaining);
+          return { ...r, assignLeads: assign, target: Math.min(Math.round(assign * 0.8), assign) };
+        }
+        if (field === "target") {
+          const tgt = Math.min(val, r.assignLeads || 0);
+          return { ...r, target: tgt };
+        }
+        return { ...r };
+      });
+    });
+    setDistError("");
+  };
+
+  const handleTotalToDistributeChange = (raw) => {
+    const val = Math.max(0, Number(raw) || 0);
+    setTotalToDistribute(val);
+    setDistRows((prev) => {
+      const currentTotal = prev.reduce((s, r) => s + r.assignLeads, 0);
+      if (val === currentTotal) return prev;
+      if (val > currentTotal) return prev; // don't auto-increase assignments
+
+      // Need to reduce assignments to match new total. Reduce from end to front.
+      let needReduce = currentTotal - val;
+      const next = prev.map((r) => ({ ...r }));
+      for (let i = next.length - 1; i >= 0 && needReduce > 0; i--) {
+        const take = Math.min(next[i].assignLeads, needReduce);
+        if (take > 0) {
+          next[i].assignLeads -= take;
+          next[i].target = Math.min(next[i].target, next[i].assignLeads);
+          needReduce -= take;
+        }
+      }
+      return next;
+    });
+  };
+
+  const confirmDistribute = async () => {
     setDistError("");
     if (totalToAssign === 0) { setDistError("Please assign at least 1 lead."); return; }
+    if (totalToAssign > totalToDistribute) {
+      setDistError(`Total assigned (${totalToAssign}) exceeds leads to distribute (${totalToDistribute}).`);
+      return;
+    }
     if (totalToAssign > distSelectedLeads.length) {
-      setDistError(`Total assigned (${totalToAssign}) exceeds selected leads (${distSelectedLeads.length}).`);
+      setDistError(`Not enough active unassigned leads selected (${distSelectedLeads.length}) for the assigned total (${totalToAssign}).`);
       return;
     }
     for (const r of distRows) {
@@ -132,9 +225,15 @@ export default function AllLeads() {
       if (r.target > r.assignLeads)   { setDistError(`Target for ${r.tlName} cannot exceed assigned leads.`); return; }
     }
 
-    const shuffled = [...distSelectedLeads].sort(() => Math.random() - 0.5);
+    const activeLeads = distSelectedLeads.filter((lead) => !lead.isDumped);
+    if (activeLeads.length === 0) {
+      setDistError('No active leads available for distribution.');
+      return;
+    }
+
+    const shuffled = [...activeLeads].sort(() => Math.random() - 0.5);
     let pointer = 0;
-    const updates = {};
+    const assignments = [];
     const summary = [];
     const today   = new Date().toISOString().split("T")[0];
 
@@ -142,17 +241,64 @@ export default function AllLeads() {
       if (r.assignLeads === 0) continue;
       const slice = shuffled.slice(pointer, pointer + r.assignLeads);
       pointer += r.assignLeads;
-      slice.forEach((l) => { updates[l.id] = { tlName: r.tlName, date: today }; });
-      summary.push({ tlName: r.tlName, count: slice.length, target: r.target });
+
+      const leadIds = slice
+        .map((lead) => resolveLeadId(lead))
+        .filter((id) => objectIdPattern.test(id));
+
+      if (leadIds.length === 0) {
+        continue;
+      }
+
+      assignments.push({
+        userId: r.tlId,
+        leadIds,
+        reason: `Distributed by Sales Manager on ${today}`,
+      });
+      summary.push({ tlId: r.tlId, tlName: r.tlName, count: leadIds.length, target: r.target });
     }
 
-    Object.entries(updates).forEach(([id, { tlName, date }]) => {
-      const lead = leads.find((l) => l.id === id);
-      if (lead) updateLead({ ...lead, assignedTo: tlName, assignedAt: date });
-    });
+    if (assignments.length === 0) {
+      setDistError("No valid persisted lead IDs were found in your selection. Refresh leads and try again.");
+      return;
+    }
 
+    const response = await distributeLeads(assignments);
+    if (!response?.success) {
+      await fetchLeads();
+      await fetchAssignedLeads();
+      await fetchAssignmentTargets("SALES_TL");
+      const serverMessage = response?.data?.message || response?.data?.error?.message || response?.error;
+      setDistError(serverMessage || "Failed to distribute leads.");
+      return;
+    }
+
+    const result = response?.data || {};
+    const persistedAssignedCount = Number(result.assignedCount || 0);
+    const persistedGroups = Array.isArray(result.groups) ? result.groups : [];
+
+    if (persistedAssignedCount <= 0) {
+      await fetchLeads();
+      await fetchAssignedLeads();
+      await fetchAssignmentTargets("SALES_TL");
+      setDistError("No leads were assigned in database. Please check lead selection and try again.");
+      return;
+    }
+
+    const summaryTargetByTlId = new Map(summary.map((item) => [String(item.tlId), item.target]));
+    const persistedSummary = persistedGroups
+      .filter((group) => Number(group.assignedCount || 0) > 0)
+      .map((group) => ({
+        tlName: group?.targetUser?.name || "Unknown",
+        count: Number(group.assignedCount || 0),
+        target: summaryTargetByTlId.get(String(group?.targetUser?.id || "")) || 0,
+      }));
+
+    await fetchLeads();
+    await fetchAssignedLeads();
+    await fetchAssignmentTargets("SALES_TL");
     setDistSuccess(true);
-    setDistSummary(summary);
+    setDistSummary(persistedSummary);
   };
 
   const capColor = (used, max) => {
@@ -179,13 +325,22 @@ export default function AllLeads() {
     <>
       {/* ── Add Lead button ───────────────────────────────────────────────── */}
       <div className="flex justify-end mb-3">
-        <button
-          type="button"
-          onClick={openAddModal}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#2a465a] text-white text-sm font-bold hover:bg-[#1e3a52] transition active:scale-95"
-        >
-          <Plus size={16} /> Add Lead
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => openDistModal(unassignedLeads)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#274859] text-white text-sm font-bold hover:bg-[#1d3d47] transition active:scale-95"
+          >
+            <GitBranch size={16} /> Distribute Leads
+          </button>
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#2a465a] text-white text-sm font-bold hover:bg-[#1e3a52] transition active:scale-95"
+          >
+            <Plus size={16} /> Add Lead
+          </button>
+        </div>
       </div>
 
       {/* ══ UNASSIGNED LEADS ══════════════════════════════════════════════════ */}
@@ -207,10 +362,7 @@ export default function AllLeads() {
           {
             title: "Distribute Leads",
             icon: <GitBranch size={14} />,
-            onClick: (selected) => {
-              const objs = selected.map((r) => leads.find((l) => l.id === r.id)).filter(Boolean);
-              openDistModal(objs);
-            },
+            onClick: (selected) => openDistModal(selected),
           },
         ]}
         filters={[
@@ -232,9 +384,12 @@ export default function AllLeads() {
             { key: "companyName", label: "Company" },
             { key: "status",     label: "Status" },
             { key: "assignedTo", label: "Assigned To" },
+            { key: "assignedBy", label: "Assigned By" },
+            { key: "team",       label: "Team" },
             { key: "assignedAt", label: "Assigned At" },
+            { key: "assignmentReason", label: "Reason" },
           ]}
-          rows={assignedLeads}
+          rows={assignedLeadsVisible}
           searchable
           date={true}
           bulkAction
@@ -272,6 +427,12 @@ export default function AllLeads() {
       {/* ── Distribution Modal ─────────────────────────────────────────────── */}
       <Modal id="al-dist-modal" title="Distribute Leads" size="xl">
         <div className="flex flex-col gap-5">
+          {distLoading && (
+            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              <Loader2 size={16} className="animate-spin" />
+              Loading live sales team leaders...
+            </div>
+          )}
 
           {/* Summary banner */}
           <div className="flex items-center justify-between bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5">
@@ -280,20 +441,33 @@ export default function AllLeads() {
                 {distSelectedLeads.length} lead{distSelectedLeads.length !== 1 ? "s" : ""} selected for distribution
               </p>
               <p className="text-xs text-slate-500 mt-0.5">
-                Assigned so far:{" "}
-                <span className={`font-bold ${totalToAssign > distSelectedLeads.length ? "text-rose-500" : "text-emerald-600"}`}>
+                Assigned so far: {" "}
+                <span className={`font-bold ${totalToAssign > totalToDistribute ? "text-rose-500" : "text-emerald-600"}`}>
                   {totalToAssign}
                 </span>
-                {" / "}{distSelectedLeads.length}
+                {" / "}{totalToDistribute}
               </p>
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-400">Remaining</p>
-              <p className="text-lg font-black text-[#2a465a]">{distSelectedLeads.length - totalToAssign}</p>
+              <p className="text-lg font-black text-[#2a465a]">{Math.max(0, totalToDistribute - totalToAssign)}</p>
             </div>
           </div>
 
-          {distRows.length === 0 && (
+          {/* Total control */}
+          <div className="flex items-center gap-3">
+            <label className="text-sm font-semibold text-slate-600">Leads to distribute</label>
+            <input
+              type="number"
+              min={0}
+              value={totalToDistribute}
+              onChange={(e) => handleTotalToDistributeChange(e.target.value)}
+              className="w-28 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-[#2a465a] font-semibold focus:outline-none"
+            />
+            <p className="text-xs text-slate-400">Available: {distSelectedLeads.length}</p>
+          </div>
+
+              {distRows.length === 0 && !distLoading && (
             <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-700 px-4 py-3 rounded-xl text-sm">
               <AlertTriangle size={16} className="flex-shrink-0" />
               All team leaders have reached their maximum capacity of {MAX_LEADS} leads.
@@ -344,13 +518,14 @@ export default function AllLeads() {
             <>
               {distRows.length > 0 && (
                 <div className="flex flex-col gap-3">
-                  {distRows.map((r) => {
+                  {distRows.map((r, i) => {
+                    const limit     = r.effectiveLimit || MAX_LEADS;
                     const usedAfter = r.currentLeads + r.assignLeads;
-                    const pct       = Math.round((usedAfter / MAX_LEADS) * 100);
+                    const pct       = Math.round((usedAfter / limit) * 100);
                     const isFull    = r.capacity === 0;
                     const maxAssign = Math.min(
                       r.capacity,
-                      distSelectedLeads.length - distRows.filter(x => x.tlId !== r.tlId).reduce((s, x) => s + x.assignLeads, 0)
+                      Math.max(0, totalToDistribute - distRows.filter(x => x.tlId !== r.tlId).reduce((s, x) => s + x.assignLeads, 0))
                     );
 
                     return (
@@ -359,7 +534,7 @@ export default function AllLeads() {
                           <div className="flex-1 min-w-[160px]">
                             <p className="text-sm font-bold text-[#2a465a]">{r.tlName}</p>
                             <p className="text-xs text-slate-500 mt-0.5">
-                              {r.currentLeads} / {MAX_LEADS} leads
+                              {r.currentLeads} / {limit} leads
                               {isFull && <span className="ml-1.5 text-rose-500 font-semibold">· Full</span>}
                             </p>
                             <div className="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -378,7 +553,7 @@ export default function AllLeads() {
                             <input
                               type="number" min={0} max={maxAssign}
                               value={r.assignLeads} disabled={isFull}
-                              onChange={(e) => updateDistRow(r.tlId, "assignLeads", e.target.value)}
+                              onChange={(e) => updateDistRowByIndex(i, "assignLeads", e.target.value)}
                               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-[#2a465a] font-semibold focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 disabled:opacity-40 disabled:cursor-not-allowed"
                             />
                             <p className="text-[10px] text-slate-400">Max: {maxAssign}</p>
@@ -389,7 +564,7 @@ export default function AllLeads() {
                             <input
                               type="number" min={0} max={r.assignLeads}
                               value={r.target} disabled={isFull}
-                              onChange={(e) => updateDistRow(r.tlId, "target", e.target.value)}
+                              onChange={(e) => updateDistRowByIndex(i, "target", e.target.value)}
                               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-[#2a465a] font-semibold focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 disabled:opacity-40 disabled:cursor-not-allowed"
                             />
                             <p className="text-[10px] text-slate-400">Max: {r.assignLeads}</p>

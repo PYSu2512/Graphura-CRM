@@ -15,11 +15,7 @@ import {
   GPieChart,
   GRadarChart,
   GAreaChart,
-<<<<<<< Updated upstream
-} from "./Common_Components";
-=======
 } from "../shared/Common_Components";
->>>>>>> Stashed changes
 import { TrendingDown, Users } from "lucide-react";
 
 const Page = () => {

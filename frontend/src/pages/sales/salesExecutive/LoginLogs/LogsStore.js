@@ -18,7 +18,7 @@ export const myLogRows = [
     ip: "192.168.1.15", 
     latitude: "28.6139° N", 
     longitude: "77.2090° E", 
-    status: "Success",   
+    status: "Active",   
     device: "Chrome / macOS" 
   },
   { 
@@ -30,7 +30,7 @@ export const myLogRows = [
     ip: "192.168.1.15", 
     latitude: "28.6139° N", 
     longitude: "77.2090° E", 
-    status: "Success",   
+    status: "Active",   
     device: "Chrome / macOS" 
   },
   { 
@@ -42,7 +42,7 @@ export const myLogRows = [
     ip: "192.168.1.15", 
     latitude: "28.6139° N", 
     longitude: "77.2090° E", 
-    status: "Logged Out",   
+    status: "Active",   
     device: "Chrome / macOS" 
   },
   { 
@@ -54,7 +54,7 @@ export const myLogRows = [
     ip: "103.45.72.12", 
     latitude: "19.0760° N", 
     longitude: "72.8777° E", 
-    status: "Failed",   
+    status: "Active",   
     device: "Safari / iPhone" 
   },
   { 
@@ -66,7 +66,7 @@ export const myLogRows = [
     ip: "192.168.1.15", 
     latitude: "28.6139° N", 
     longitude: "77.2090° E", 
-    status: "Success",   
+    status: "Active",   
     device: "Chrome / macOS" 
   },
 ];

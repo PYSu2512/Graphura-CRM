@@ -222,9 +222,11 @@ export default function PaymentsPage() {
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <Heading primaryText="Payments Management" />
+      {/* ── Header — full-width banner matching Prospect Management style ── */}
+      <Heading primaryText="Payments Management" showAnimations />
+
+      {/* ── Refresh button ── */}
+      <div className="flex justify-end">
         <button
           onClick={() => { fetchPayments(); fetchMeta(); addToast("Refreshed.", "success"); }}
           className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-[#1a2e3f] bg-white border border-slate-200 px-3 py-2 rounded-xl hover:border-slate-300 transition-colors">

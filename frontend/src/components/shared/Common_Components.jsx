@@ -1270,12 +1270,11 @@ export const DataTable = ({
 
         {/* Single date picker — shown only when onDateFilter={true} */}
         {onDateFilter && (
-          <div className="flex-1 min-w-0 sm:flex-none">
-            <input
-              type="date"
+          <div className="flex-1 min-w-0 sm:flex-none sm:w-48">
+            <DatePicker
               value={singleDate}
-              onChange={(e) => { setSingleDate(e.target.value); setPage(1); }}
-              className="w-full rounded-2xl border border-slate-200 bg-white py-3 px-4 text-sm text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 transition cursor-pointer"
+              onChange={(val) => { setSingleDate(val); setPage(1); }}
+              placeholder="Filter by date"
             />
           </div>
         )}
@@ -1380,29 +1379,20 @@ export const DataTable = ({
                     Date Range
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        From
-                      </label>
-                      <input
-                        type="date"
-                        value={dateFrom}
-                        onChange={(e) => setDateFrom(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50/90 py-2.5 px-3 text-sm text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 transition"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                        To
-                      </label>
-                      <input
-                        type="date"
-                        value={dateTo}
-                        onChange={(e) => setDateTo(e.target.value)}
-                        min={dateFrom || undefined}
-                        className="w-full rounded-xl border border-slate-200 bg-slate-50/90 py-2.5 px-3 text-sm text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 transition"
-                      />
-                    </div>
+                    <DatePicker
+                      label="From"
+                      value={dateFrom}
+                      onChange={(val) => setDateFrom(val)}
+                      placeholder="From date"
+                      maxDate={dateTo || undefined}
+                    />
+                    <DatePicker
+                      label="To"
+                      value={dateTo}
+                      onChange={(val) => setDateTo(val)}
+                      placeholder="To date"
+                      minDate={dateFrom || undefined}
+                    />
                   </div>
                 </div>
               )}
@@ -1474,15 +1464,14 @@ export const DataTable = ({
                     </Select>
                   )}
 
-                  {/* ── DATE: input ── */}
+                  {/* ── DATE: DatePicker ── */}
                   {f.type === "date" && (
-                    <input
-                      type="date"
-                      className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 transition-all text-slate-500"
+                    <DatePicker
                       value={filterValues[f.title] ?? ""}
-                      onChange={(e) =>
-                        setFilterValues((prev) => ({ ...prev, [f.title]: e.target.value }))
+                      onChange={(val) =>
+                        setFilterValues((prev) => ({ ...prev, [f.title]: val }))
                       }
+                      placeholder={`Filter by ${f.title}…`}
                     />
                   )}
 
@@ -1702,6 +1691,7 @@ export const DataTable = ({
                           UNTOUCHED: ["bg-blue-100", "text-blue-700"],
                           Talk: ["bg-blue-100", "text-blue-700"],
                           Contacted: ["bg-blue-100", "text-blue-700"],
+                          "Half Day": ["bg-blue-100", "text-blue-700"],
                           // ── Purple (prospect / qualified / interested) ──
                           Prospect: ["bg-purple-100", "text-purple-700"],
                           Qualified: ["bg-purple-100", "text-purple-700"],
@@ -1726,13 +1716,9 @@ export const DataTable = ({
                           "Not Clocked In": ["bg-slate-200", "text-slate-600"],
                           "Not Talk": ["bg-slate-200", "text-slate-600"],
                           "Not Talk (Untouched)": ["bg-slate-200", "text-slate-600"],
-                          // ── Orange (expired / delayed / overdue / warning) ──
-                          Expired: ["bg-orange-100", "text-orange-700"],
-                          Warning: ["bg-orange-100", "text-orange-700"],
-                          Delayed: ["bg-orange-100", "text-orange-700"],
-                          Overdue: ["bg-orange-100", "text-orange-700"],
-                          overdue: ["bg-orange-100", "text-orange-700"],
-                          // ── Rose (failed / rejected / escalated / inactive / absent / dump / not-interested) ──
+                          // ── Rose (failed / rejected / escalated / inactive / absent / dump / not-interested / expired) ──
+                          Expired: ["bg-rose-100", "text-rose-700"],
+                          expired: ["bg-rose-100", "text-rose-700"],
                           Failed: ["bg-rose-100", "text-rose-700"],
                           Cancelled: ["bg-rose-100", "text-rose-700"],
                           Canceled: ["bg-rose-100", "text-rose-700"],

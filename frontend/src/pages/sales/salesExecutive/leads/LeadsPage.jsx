@@ -1,23 +1,16 @@
-// View assigned leads
-// Filter (Talk / Not Talk / Untouched / Interested)
-// Call / WhatsApp
-// Add comments
-// Set reminders
-// Update status
-// Fill prospect form
-// Move to dump
-
 import { useMemo } from "react";
 import {
-  DashCard,
   DashGrid,
+  EnhancedDashCard,
+  Heading,
 } from "../../../../components/shared/Common_Components";
-import { Archive, Flame, PhoneCall, Users } from "lucide-react";
+import { Archive, Flame, PhoneCall, Users, Loader2, AlertTriangle } from "lucide-react";
 import { ClientLeadsTable } from "./components/ClientLeadsTable";
 import { ClientLeadDetailsModal } from "./components/ClientLeadDetailsModal";
 import { CommentModal } from "./components/CommentModal";
 import { ProspectFormModal } from "./components/ProspectFormModal";
 import { ReminderModal } from "./components/ReminderModal";
+import { ActionModal } from "./components/ActionModal";
 import { useClientLeads } from "./hooks/useClientLeads";
 
 export default function LeadsPage() {
@@ -26,68 +19,94 @@ export default function LeadsPage() {
     selectedLead,
     draftStatus,
     setDraftStatus,
+    loading,
+    error,
+    stats,
+    loadLeads,
+
     commentLead,
     commentText,
     setCommentText,
+
     reminderDate,
     setReminderDate,
     followUpForm,
     setFollowUpForm,
+
     prospectLead,
     prospectForm,
     setProspectForm,
+
     openLeadDetails,
     saveStatus,
     moveToDump,
-    openCommentModal,
+
     saveComment,
-    openReminderModal,
     saveReminder,
-    openProspectForm,
     saveProspect,
-    handleCallLead,
-    handleWhatsAppLead,
+
+    // Action modal
+    actionLead,
+    actionValue,
+    setActionValue,
+    openActionModal,
+    saveLeadAction,
   } = useClientLeads();
 
-  const stats = useMemo(() => {
-    const countByStatus = (status) =>
-      clientLeads.filter((lead) => lead.status === status).length;
-
-    return [
+  const dashboardStats = useMemo(
+    () => [
       {
         title: "Total Leads",
-        value: String(clientLeads.length),
+        value: String(stats.totalLeads || 0),
         icon: <Users size={22} />,
         accentColor: "#38bdf8",
       },
       {
         title: "Talk",
-        value: String(countByStatus("Talk")),
+        value: String(stats.talk || 0),
         icon: <PhoneCall size={22} />,
         accentColor: "#22c55e",
       },
       {
         title: "Interested",
-        value: String(countByStatus("Interested")),
+        value: String(stats.interested || 0),
         icon: <Flame size={22} />,
         accentColor: "#f59e0b",
       },
       {
         title: "Dumped",
-        value: String(countByStatus("Dumped")),
+        value: String(stats.dumped || 0),
         icon: <Archive size={22} />,
         accentColor: "#f43f5e",
       },
-    ];
-  }, [clientLeads]);
+    ],
+    [stats]
+  );
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-7xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <Heading primaryText="All Leads" />
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertTriangle size={20} className="text-red-600" />
+            <span className="text-red-800 font-medium">{error}</span>
+          </div>
+          <button
+            onClick={loadLeads}
+            className="px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded text-sm font-medium transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       <DashGrid cols={12} gap={4}>
-        {stats.map((item) => (
-          <DashCard
+        {dashboardStats.map((item) => (
+          <EnhancedDashCard
             key={item.title}
-            title={item.title}
+            title={item.title.toUpperCase()}
             value={item.value}
             icon={item.icon}
             accentColor={item.accentColor}
@@ -96,22 +115,38 @@ export default function LeadsPage() {
         ))}
       </DashGrid>
 
-      <ClientLeadsTable
-        leads={clientLeads}
-        onOpenLead={openLeadDetails}
-        onCallLead={handleCallLead}
-        onWhatsAppLead={handleWhatsAppLead}
-        onOpenComment={openCommentModal}
-        onOpenReminder={openReminderModal}
-        onOpenProspectForm={openProspectForm}
-        onMoveToDump={moveToDump}
-      />
+      {loading ? (
+        <div className="p-8 bg-slate-50 rounded-lg flex flex-col items-center justify-center gap-3">
+          <Loader2 size={32} className="text-blue-500 animate-spin" />
+          <p className="text-slate-600 font-medium">Loading your leads...</p>
+        </div>
+      ) : (
+        <ClientLeadsTable
+          leads={clientLeads}
+          onOpenLead={openLeadDetails}
+          onMoveToDump={moveToDump}
+          onOpenActionModal={openActionModal}
+        />
+      )}
 
       <ClientLeadDetailsModal
         selectedLead={selectedLead}
         draftStatus={draftStatus}
         setDraftStatus={setDraftStatus}
         saveStatus={saveStatus}
+      />
+
+      <ActionModal
+        selectedLead={actionLead}
+        actionValue={actionValue}
+        setActionValue={setActionValue}
+        commentText={commentText}
+        setCommentText={setCommentText}
+        followUpForm={followUpForm}
+        setFollowUpForm={setFollowUpForm}
+        prospectForm={prospectForm}
+        setProspectForm={setProspectForm}
+        onSave={saveLeadAction}
       />
 
       <CommentModal

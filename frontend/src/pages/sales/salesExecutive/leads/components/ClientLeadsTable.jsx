@@ -1,24 +1,12 @@
 import { DataTable } from "../../../../../components/shared/Common_Components";
-import {
-  Eye,
-  Phone,
-  MessageCircle,
-  MessageSquare,
-  Clock,
-  Archive,
-  ClipboardList,
-} from "lucide-react";
+import { Eye, MessageSquare, Archive } from "lucide-react";
 import { CLIENT_LEAD_COLUMNS, STATUS_OPTIONS } from "../utils/leadConstants";
 
 export function ClientLeadsTable({
   leads,
   onOpenLead,
-  onCallLead,
-  onWhatsAppLead,
-  onOpenComment,
-  onOpenReminder,
-  onOpenProspectForm,
   onMoveToDump,
+  onOpenActionModal,
 }) {
   return (
     <DataTable
@@ -39,33 +27,13 @@ export function ClientLeadsTable({
       actions={[
         {
           icon: <Eye size={15} />,
-          tooltip: "View",
+          tooltip: "View Lead",
           onClick: onOpenLead,
         },
         {
-          icon: <Phone size={15} />,
-          tooltip: "Call",
-          onClick: onCallLead,
-        },
-        {
-          icon: <MessageCircle size={15} />,
-          tooltip: "WhatsApp",
-          onClick: onWhatsAppLead,
-        },
-        {
           icon: <MessageSquare size={15} />,
-          tooltip: "Add Comment",
-          onClick: onOpenComment,
-        },
-        {
-          icon: <Clock size={15} />,
-          tooltip: "Add Follow-up",
-          onClick: onOpenReminder,
-        },
-        {
-          icon: <ClipboardList size={15} />,
-          tooltip: "Prospect Form",
-          onClick: onOpenProspectForm,
+          tooltip: "Action",
+          onClick: onOpenActionModal,
         },
         {
           icon: <Archive size={15} />,

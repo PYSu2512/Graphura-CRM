@@ -2,13 +2,16 @@
 // Replace delay() + mock data with real fetch() calls when backend is ready.
 
 export const MOCK_ATTENDANCE = [
-  { date: "2026-05-01", day: "Fri", checkIn: "09:02", checkOut: "18:05", hours: "9h 03m", status: "Present" },
-  { date: "2026-05-04", day: "Mon", checkIn: "09:45", checkOut: "18:10", hours: "8h 25m", status: "Late"    },
-  { date: "2026-05-05", day: "Tue", checkIn: "08:58", checkOut: "18:00", hours: "9h 02m", status: "Present" },
-  { date: "2026-05-06", day: "Wed", checkIn: "09:01", checkOut: "18:03", hours: "9h 02m", status: "Present" },
-  { date: "2026-05-07", day: "Thu", checkIn: "-",     checkOut: "-",     hours: "-",      status: "Absent"  },
-  { date: "2026-05-08", day: "Fri", checkIn: "09:00", checkOut: "18:00", hours: "9h 00m", status: "Present" },
-  { date: "2026-05-13", day: "Wed", checkIn: "-",     checkOut: "-",     hours: "-",      status: "Leave"   },
+  { id: "AV", employee: "Ankit Verma", role: "Team Leader", teamLeader: "Self", date: "2026-05-03", day: "Sun", checkIn: "08:55", checkOut: "—", hours: "4h 45m", status: "Present", attendancePct: "97%" },
+  { id: "AK", employee: "Arjun Kapoor", role: "Executive", teamLeader: "Ankit Verma", date: "2026-05-03", day: "Sun", checkIn: "09:45", checkOut: "—", hours: "6h 30m", status: "Late", attendancePct: "76%" },
+  { id: "DN", employee: "Divya Nair", role: "Executive", teamLeader: "Ankit Verma", date: "2026-05-03", day: "Sun", checkIn: "—", checkOut: "—", hours: "—", status: "Absent", attendancePct: "55%" },
+  { id: "KP", employee: "Kavya Patel", role: "Executive", teamLeader: "Ankit Verma", date: "2026-05-03", day: "Sun", checkIn: "10:00", checkOut: "—", hours: "3h 20m", status: "Late", attendancePct: "58%" },
+  { id: "MJ", employee: "Mohit Joshi", role: "Executive", teamLeader: "Ankit Verma", date: "2026-05-03", day: "Sun", checkIn: "09:30", checkOut: "18:30", hours: "9h 00m", status: "Present", attendancePct: "90%" },
+  { id: "NP", employee: "Nisha Patel", role: "Team Leader", teamLeader: "Self", date: "2026-05-03", day: "Sun", checkIn: "08:50", checkOut: "—", hours: "5h 10m", status: "Present", attendancePct: "93%" },
+  { id: "PM", employee: "Priya Mehta", role: "Executive", teamLeader: "Nisha Patel", date: "2026-05-03", day: "Sun", checkIn: "09:15", checkOut: "18:00", hours: "8h 45m", status: "Present", attendancePct: "88%" },
+  { id: "RS", employee: "Rahul Sharma", role: "Executive", teamLeader: "Nisha Patel", date: "2026-05-03", day: "Sun", checkIn: "09:02", checkOut: "18:05", hours: "9h 03m", status: "Present", attendancePct: "94%" },
+  { id: "SR", employee: "Sneha Rajput", role: "Executive", teamLeader: "Nisha Patel", date: "2026-05-03", day: "Sun", checkIn: "—", checkOut: "—", hours: "—", status: "Absent", attendancePct: "62%" },
+  { id: "SG", employee: "Sonal Gupta", role: "Team Leader", teamLeader: "Self", date: "2026-05-03", day: "Sun", checkIn: "09:00", checkOut: "18:00", hours: "9h 00m", status: "Present", attendancePct: "95%" },
 ];
 
 export const MOCK_LEAVES_INIT = [

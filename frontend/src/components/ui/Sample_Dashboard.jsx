@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Users,
   DollarSign,
@@ -20,14 +20,13 @@ import {
   GDoughnutChart,
   DataTable,
   Button,
-<<<<<<< Updated upstream
   Modal,
   openModal,
   closeModal,
   DataField,
   ModalData,
   P,
-} from "./Common_Components";
+} from "../shared/Common_Components";
 
 export default function Dashboard() {
   const [timeRange, setTimeRange] = useState("This Year");
@@ -42,12 +41,6 @@ export default function Dashboard() {
     setSelectedTx({ ...row, originalId: row.id });
     openModal("edit-modal");
   };
-
-=======
-} from "../shared/Common_Components";
-
-export default function Dashboard() {
->>>>>>> Stashed changes
   // ─── Mock Data ─────────────────────────────────────────────────────────────
 
   const revenueData = [

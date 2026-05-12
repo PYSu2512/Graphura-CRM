@@ -95,6 +95,15 @@ You never go directly to the Frontend Lead. You never edit shared files. You giv
 | **No backend yet** | Everything is dummy. Do not write `fetch`, `axios`, or API services. |
 | **No comments unless non-obvious** | The shared components are self-explanatory. Don't add prop descriptions. |
 
+### DataTable column gotchas
+
+A few things about `<DataTable columns={...} />` that aren't obvious from the prop list:
+
+- **No custom `render` callback support.** Column entries are `{ key, label }` only. If you write `{ key: "foo", render: (row) => <Badge>{row.foo}</Badge> }`, the `render` is silently ignored and the cell falls back to `row[col.key]`. Don't waste time on render functions — they look like they work in your editor but the table won't call them.
+- **`status` key auto-renders as a colored badge.** Whatever value sits in `row.status` gets matched against a built-in `STATUS_MAP` in `Common_Components.jsx` (Present/Active/Approved → emerald, Pending/Warm/Late → amber, Overdue → orange, Rejected/Failed/Absent → rose, etc.). Use Title-Case status values that match the map so colors apply automatically.
+- **If you want a colored badge on a field that isn't `status`** — copy the field into a `status` column, OR ask Pranjal to add the field to `STATUS_MAP`. Don't roll your own pill component inside the table.
+- **`userProfile="name"`** prop renders an avatar prefix on the column matching that key. Use it on tables where rows are people.
+
 ---
 
 ## 5. The 4 universal rules when copying from Sales Manager
@@ -129,7 +138,10 @@ src/pages/sales/salesTeamLeader/
 ├── SalesTeamLeaderTargets.jsx            [DONE]  View + update-progress only
 ├── targetsStore.js                       [DONE]
 │
-├── SalesTeamLeaderTickets.jsx            [DONE earlier — reference for in-folder import style]
+├── SalesTeamLeaderTickets.jsx            [DONE]  9-line wrapper holding state + rendering AllTickets (mirrors Manager's SupportLayout)
+├── ticketsStore.js                       [DONE]  initialTickets (Team) + MY_TICKETS_SEED (TL→Manager) + role constants
+├── tickets/
+│   └── AllTickets.jsx                    [DONE]  KPIs + Create + My Tickets + Team Tickets + chat-modals (mirrors Manager AllTickets)
 │
 │   ── Packet 2 — Leads workspace ──
 ├── SalesTeamLeaderLeads.jsx              [TODO] becomes <Outlet/> layout w/ tabs
@@ -140,12 +152,12 @@ src/pages/sales/salesTeamLeader/
 │   └── leadsStore.js                     [TODO]
 │
 │   ── Packet 3 — My Team workspace ──
-├── SalesTeamLeaderMyTeam.jsx             [TODO] becomes <Outlet/> layout w/ tabs
+├── SalesTeamLeaderMyTeam.jsx             [TODO] thin Outlet layout — only Team Members tab remains
 ├── myTeam/
-│   ├── TeamMembers.jsx                   [TODO]
-│   ├── Attendance.jsx                    [TODO]
-│   ├── LeaveApprovals.jsx                [TODO]
-│   └── teamStore.js                      [TODO]  imports teamExecutives from root store
+│   ├── TeamMembers.jsx                   [TODO]  the only live page in this packet
+│   ├── Attendance.jsx                    [DEPRECATED] redirects to /hrm — attendance moved to Packet 5
+│   ├── LeaveApprovals.jsx                [DEPRECATED] redirects to /hrm — leave approval moved to Packet 5
+│   └── teamStore.js                      [TODO]  shared with Packet 5 (HRM imports from here)
 │
 │   ── Packet 4 — Reports + Announcements ──
 ├── SalesTeamLeaderReports.jsx            [TODO] becomes <Outlet/> layout w/ tabs
@@ -159,13 +171,14 @@ src/pages/sales/salesTeamLeader/
 │
 │   ── Packet 5 — HRM + LoginLogs + PaymentAlerts ──
 ├── hrm/
-│   ├── HRMPage.jsx                       [TODO] self apply leave + clock in/out + attendance
-│   ├── LeaveForm.jsx                     [TODO]
-│   └── AttendanceTable.jsx               [TODO]
+│   ├── HRMPage.jsx                       [TODO] tab layout (Attendance | Leaves) — mirrors Manager's HrmLayout
+│   ├── Attendance.jsx                    [TODO] KPIs + SessionTimer (My Attendance, shared with Navbar) + executives-only attendance table
+│   └── Leaves.jsx                        [TODO] My Leaves + Pending Leaves (Approve/Reject execs) + Leave History
 ├── loginLogs/
 │   └── LoginLogs.jsx                     [TODO] self + team executives
 └── payments/
     └── PaymentAlerts.jsx                 [TODO] failed/successful (self + team)
+│
 ```
 
 > **Note:** routes and sidebar entries for every packet are added by Pranjal (see Section 2). You only build the page; you ship a route snippet to Pranjal when your page is ready.
@@ -189,7 +202,8 @@ For copy-paste sources (one level up in `salesManager/`):
 | Packet 3 (My Team) | `src/pages/sales/salesManager/Employees/Employees.jsx` + `salesManager/HRM/{Attendance,Leaves}.jsx` |
 | Packet 4 (Reports) | `src/pages/sales/salesManager/Reports/*` |
 | Packet 4 (Announcements) | `src/pages/sales/salesManager/Announcements/*` |
-| Packet 5 (HRM) | `src/pages/sales/salesExecutive/hrm/*` (NOT Manager — Executive is the right shape for self-HRM) |
+| Packet 5 (HRM) | `src/pages/sales/salesManager/HRM/{HrmLayout,Attendance,Leaves}.jsx` — keep Manager's structure intact (team-wide Attendance log + Leaves with My Leaves / Pending / History tables and Approve-Reject for executives). Only change is the data scope: TL's own self + the 6 executives in `currentTL.team` (no other teams, no other TLs). |
+| Packet 6 (Tickets refactor) | **DONE.** Mirrors `salesManager/Support/{SupportLayout,AllTickets,TicketStore}` end-to-end. Only data + role strings + modal IDs changed (`tl-ticket-create`, `tl-ticket-view`, `tl-myticket-view`). |
 | Packet 5 (Login Logs) | `src/pages/sales/salesManager/LoginLogs/LoginLogs.jsx` |
 | Packet 5 (Payment Alerts) | `src/pages/sales/salesExecutive/payments/PaymentsPage.jsx` |
 
@@ -229,18 +243,20 @@ For copy-paste sources (one level up in `salesManager/`):
 
 **Pages to build:**
 
-- `SalesTeamLeaderMyTeam.jsx` — layout with tabs
-- `myTeam/TeamMembers.jsx` — list of executives, basic profile cards, contact info
-- `myTeam/Attendance.jsx` — team attendance grid (per-exec attendance status)
-- `myTeam/LeaveApprovals.jsx` — pending leave requests with Approve/Reject actions
-- `myTeam/teamStore.js`
+- `SalesTeamLeaderMyTeam.jsx` — thin Outlet layout (no tab nav anymore; only one child page)
+- `myTeam/TeamMembers.jsx` — list of executives, profile cards, contact info, performance summary
+- `myTeam/teamStore.js` — shared with Packet 5 (HRM imports `attendanceRecords`, `todayAttendance`, `leaveRequests` from here)
+
+**Deprecated (kept as redirect stubs only):**
+
+- `myTeam/Attendance.jsx` — was a per-exec attendance grid. **Moved to HRM (Packet 5)** because HRM is the canonical attendance home and having both was confusing. Now this file just `<Navigate to="/sales-team-leader/hrm" replace />`s. Once Pranjal removes the `/my-team/attendance` nested route, the file can be deleted.
+- `myTeam/LeaveApprovals.jsx` — was the Approve/Reject pending leaves page. **Moved to HRM → Leaves tab (Packet 5)**, sharing the same `leaveRequests` data. Same redirect-stub pattern; same eventual deletion.
 
 **Spec features (from Brief Section 7):**
 
 - View team members
-- Track attendance
-- View leave requests + approve team leaves
 - Performance per executive (link to Dashboard for full leaderboard — keep this page focused on team admin)
+- (Attendance + leave approval features are spec'd here but live in Packet 5 — see the duplication note in Packet 5 below)
 
 **What to drop / change from Manager copy:**
 
@@ -248,7 +264,7 @@ For copy-paste sources (one level up in `salesManager/`):
 - Drop "Add team member" / "Move between teams" actions (Manager-only)
 - Use `teamExecutives` from `teamLeaderStore.js` — do not redefine
 
-**Routing:** parent route `/sales-team-leader/my-team` exists. Send Pranjal the nested-route snippet for sub-pages.
+**Routing:** parent route `/sales-team-leader/my-team` exists. Once Attendance/LeaveApprovals are fully retired, send Pranjal a route diff to drop the `attendance` and `leave-approvals` child routes.
 
 ---
 
@@ -283,13 +299,19 @@ For copy-paste sources (one level up in `salesManager/`):
 
 **Pages to build:**
 
-- `hrm/HRMPage.jsx` — self apply leave + clock in/out + attendance
-- `hrm/LeaveForm.jsx`
-- `hrm/AttendanceTable.jsx`
+- `hrm/HRMPage.jsx` — top-level tab layout (Attendance | Leaves), mirrors Manager's `HrmLayout.jsx`
+- `hrm/Attendance.jsx` — KPIs (Present Today, On Time, Absent Today, On Leave) + **`<SessionTimer>` from `components/shared` driven by `useAttendance()`** for self clock-in/out (matches Manager exactly, shares state with the Navbar timer) + **executives-only attendance table** (sourced from `myTeam/teamStore.js → attendanceRecords`, no TL self rows in the table — those live in the SessionTimer)
+- `hrm/Leaves.jsx` — KPIs + Apply Leave button + **three tables**: My Leaves (TL's own — from `MOCK_LEAVES_INIT`), Pending Leaves (executives' pending — from `teamStore.leaveRequests`, with Approve/Reject row actions), Leave History (executives' actioned)
 - `loginLogs/LoginLogs.jsx` — logs for self + team executives (username, date/time, IP, lat/long)
 - `payments/PaymentAlerts.jsx` — failed/successful payment feed for self + team
 
-**Spec source for self-HRM:** copy from `salesExecutive/hrm/*`, NOT from Manager. Manager's HRM is a control panel; the TL's *personal* HRM looks like the Executive's.
+**Spec source for HRM:** copy from `salesManager/HRM/{HrmLayout,Attendance,Leaves}.jsx`. **Keep Manager's full structure** including Pending Leaves + Leave History with Approve/Reject — don't trim. Changes for TL:
+- **Scope:** TL's HRM shows only the TL + the 6 executives in `currentTL.team`. No other TLs, no other teams.
+- **Clock widget:** use `<SessionTimer>` from `components/shared/SessionTimer` driven by `useAttendance()` from `context/AttendanceContext` (the `AttendanceProvider` is already wired in `MainLayout`). Don't roll a custom clock.
+- **Attendance table:** executives only (the TL's own attendance is the SessionTimer above; putting the TL in the table makes other TLs' rows look reachable, which they're not).
+- **Leave data:** import `leaveRequests` from `myTeam/teamStore.js` — Packet 3's old `LeaveApprovals.jsx` and Packet 5's `Leaves.jsx` share that data source.
+
+> **Note on Packet 3 retirement:** the old `myTeam/Attendance.jsx` and `myTeam/LeaveApprovals.jsx` pages were retired — both attendance and leave-approval workflows now live in Packet 5's HRM. The deprecated files redirect to `/hrm`. Don't add new pages that reach for those URLs.
 
 **Routing — these are NEW routes that don't exist yet.** When your pages are ready, send Pranjal the following snippet (or your final version of it):
 
@@ -300,6 +322,30 @@ For copy-paste sources (one level up in `salesManager/`):
 ```
 
 Pranjal will add it to `salesTeamLeaderRoutes.jsx` and request the matching sidebar entries from the Frontend Lead.
+
+---
+
+### Packet 6 — Tickets refactor (DONE)
+
+**Files shipped:**
+- `SalesTeamLeaderTickets.jsx` — 9-line wrapper holding `tickets` state, renders `<AllTickets />`. Mirrors Manager's `SupportLayout.jsx`.
+- `tickets/AllTickets.jsx` — KPI cards + Create button + My Tickets table + Team Tickets table + chat-modals. Mirrors Manager's `AllTickets.jsx` end-to-end.
+- `ticketsStore.js` — `initialTickets` (Team Tickets — Executives → TL), `MY_TICKETS_SEED` (TL → Manager), `kpiTickets`, role constants.
+
+**What changed vs Manager source (data only):**
+- Dummy tickets reflect TL's actual workflow (raise to Manager, receive from Executives).
+- "All Tickets" → "Team Tickets" terminology.
+- Modal IDs prefixed `tl-` (`tl-ticket-create`, `tl-ticket-view`, `tl-myticket-view`).
+- `<UserChat currentUser>` set to `"Sales Team Leader"`.
+- Create-ticket form's "Send To" defaults to `"Sales Manager"`.
+- Escalate action sets `raisedTo: "Sales Manager"` (Brief Section 7: TL escalates to Sales Manager).
+
+**What stayed identical:**
+- Page structure (KPIs → Create button → My Tickets table → Team Tickets table)
+- Conversation thread component (`<UserChat />`)
+- Ticket field shape (`id`, `title`, `raisedBy`, `role`, `priority`, `status`, `createdDate`, `lastReply`, `description`, `conversation`, `attachments`)
+- Create-ticket form (Title, Category, Priority, Send To, Description, Attachments)
+- Action variants (View & Reply / Escalate / Mark Resolved / Delete)
 
 ---
 
@@ -344,6 +390,7 @@ Pranjal will add it to `salesTeamLeaderRoutes.jsx` and request the matching side
 - **Cross-team data.** `teamExecutives` lists 6 people. Do not add executives from outside the TL's team.
 - **Adding API calls.** Backend isn't ready. Keep everything in component state.
 - **Adding a new shared component on your own.** Either create it inside your packet folder, or request it via Pranjal — never modify `Common_Components.jsx`.
+- **Writing a `render` callback on a `<DataTable>` column.** Silently ignored — the table only reads `{ key, label }`. The `status` key auto-styles via the built-in `STATUS_MAP`; for everything else, render plain text or restructure the data. See Section 4 for details.
 
 ---
 

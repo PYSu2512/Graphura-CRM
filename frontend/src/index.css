@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -15,6 +15,31 @@
     @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200 hover:shadow-md;
   }
 
+  /* leads utility classes */
+  .menu-item {
+    @apply w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 transition;
+  }
+  .crm-info-card {
+    @apply rounded-2xl border border-slate-200 bg-slate-50 p-4;
+  }
+
+  .crm-info-label {
+    @apply text-xs font-black uppercase tracking-wider text-slate-400;
+  }
+
+  .crm-info-value {
+    @apply mt-2 text-sm font-bold text-[#2a465a];
+  }
+
+  .crm-action-btn {
+    @apply flex-1 h-12 rounded-2xl text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 transition;
+  }
+
+  .timeline-item {
+    @apply flex gap-3 p-4 rounded-2xl border border-slate-200 bg-slate-50;
+  }
+
+  /* ------- */
   .btn-primary {
     @apply bg-primary-dark text-white px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity focus:ring-4 focus:ring-primary-light focus:outline-none flex items-center justify-center gap-2;
   }
@@ -79,7 +104,8 @@
 }
 
 @keyframes floatY {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -88,7 +114,8 @@
 }
 
 @keyframes floatYAlt {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -98,7 +125,7 @@
 
 button,
 a {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .custom-select {
@@ -163,16 +190,28 @@ html {
    - Cursor-reactive via CSS custom properties (--mx, --my)
    ═══════════════════════════════════════════════════════════════ */
 @keyframes waveRotate1 {
-  0%   { transform: translate(var(--wx1, -30%), var(--wy1, -40%)) rotate(0deg); }
-  100% { transform: translate(var(--wx1, -30%), var(--wy1, -40%)) rotate(360deg); }
+  0% {
+    transform: translate(var(--wx1, -30%), var(--wy1, -40%)) rotate(0deg);
+  }
+  100% {
+    transform: translate(var(--wx1, -30%), var(--wy1, -40%)) rotate(360deg);
+  }
 }
 @keyframes waveRotate2 {
-  0%   { transform: translate(var(--wx2, -20%), var(--wy2, -30%)) rotate(0deg); }
-  100% { transform: translate(var(--wx2, -20%), var(--wy2, -30%)) rotate(-360deg); }
+  0% {
+    transform: translate(var(--wx2, -20%), var(--wy2, -30%)) rotate(0deg);
+  }
+  100% {
+    transform: translate(var(--wx2, -20%), var(--wy2, -30%)) rotate(-360deg);
+  }
 }
 @keyframes waveRotate3 {
-  0%   { transform: translate(var(--wx3, -40%), var(--wy3, -25%)) rotate(0deg); }
-  100% { transform: translate(var(--wx3, -40%), var(--wy3, -25%)) rotate(360deg); }
+  0% {
+    transform: translate(var(--wx3, -40%), var(--wy3, -25%)) rotate(0deg);
+  }
+  100% {
+    transform: translate(var(--wx3, -40%), var(--wy3, -25%)) rotate(360deg);
+  }
 }
 
 .wave-card {
@@ -256,12 +295,17 @@ html {
   z-index: 20;
   pointer-events: none;
 }
-.shiny-sweep:hover::after, .shiny-sweep:active::after {
+.shiny-sweep:hover::after,
+.shiny-sweep:active::after {
   animation: shinySweepAnim 0.7s ease-out;
 }
 @keyframes shinySweepAnim {
-  0% { left: -100%; }
-  100% { left: 200%; }
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
 }
 
 .silver-shiny-border {
@@ -274,9 +318,16 @@ html {
 .silver-shiny-border::before {
   content: "";
   position: absolute;
-  top: -50%; left: -50%;
-  width: 200%; height: 200%;
-  background: conic-gradient(from 0deg, transparent 70%, rgba(200, 215, 230, 0.8) 85%, #fff 100%);
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 70%,
+    rgba(200, 215, 230, 0.8) 85%,
+    #fff 100%
+  );
   animation: borderRotate 3s linear infinite;
   z-index: -2;
   pointer-events: none;
@@ -289,11 +340,15 @@ html {
   border-radius: calc(1.5rem - 2px); /* matches rounded-3xl */
   z-index: -1;
   pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.05);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 @keyframes borderRotate {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .dark-shiny-border {
@@ -306,9 +361,16 @@ html {
 .dark-shiny-border::before {
   content: "";
   position: absolute;
-  top: -50%; left: -50%;
-  width: 200%; height: 200%;
-  background: conic-gradient(from 0deg, transparent 70%, rgba(90, 140, 175, 0.5) 85%, rgba(120, 170, 206, 0.6) 100%);
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 70%,
+    rgba(90, 140, 175, 0.5) 85%,
+    rgba(120, 170, 206, 0.6) 100%
+  );
   animation: borderRotate 3s linear infinite;
   z-index: -2;
   pointer-events: none;
@@ -321,7 +383,7 @@ html {
   border-radius: calc(2.5rem - 2px);
   z-index: -1;
   pointer-events: none;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 /* Smooth transitions for background changes */
@@ -334,14 +396,32 @@ html {
    Top-right and bottom-left continuous rotating trapezoids
    ═══════════════════════════════════════════════════════════════ */
 @keyframes trapezoidFloat1 {
-  0%   { transform: rotate(0deg) scale(1); opacity: 0.5; }
-  50%  { transform: rotate(180deg) scale(1.15); opacity: 0.8; }
-  100% { transform: rotate(360deg) scale(1); opacity: 0.5; }
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: rotate(180deg) scale(1.15);
+    opacity: 0.8;
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+    opacity: 0.5;
+  }
 }
 @keyframes trapezoidFloat2 {
-  0%   { transform: rotate(0deg) scale(1.1); opacity: 0.4; }
-  50%  { transform: rotate(-180deg) scale(0.9); opacity: 0.7; }
-  100% { transform: rotate(-360deg) scale(1.1); opacity: 0.4; }
+  0% {
+    transform: rotate(0deg) scale(1.1);
+    opacity: 0.4;
+  }
+  50% {
+    transform: rotate(-180deg) scale(0.9);
+    opacity: 0.7;
+  }
+  100% {
+    transform: rotate(-360deg) scale(1.1);
+    opacity: 0.4;
+  }
 }
 
 .table-trapezoid-corners {
@@ -357,7 +437,11 @@ html {
   right: -15px;
   width: 120px;
   height: 70px;
-  background: linear-gradient(135deg, rgba(42, 70, 90, 0.3), rgba(56, 189, 248, 0.35));
+  background: linear-gradient(
+    135deg,
+    rgba(42, 70, 90, 0.3),
+    rgba(56, 189, 248, 0.35)
+  );
   clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
   animation: trapezoidFloat1 6s ease-in-out infinite;
   pointer-events: none;
@@ -372,7 +456,11 @@ html {
   left: -15px;
   width: 90px;
   height: 55px;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(42, 70, 90, 0.2));
+  background: linear-gradient(
+    135deg,
+    rgba(56, 189, 248, 0.25),
+    rgba(42, 70, 90, 0.2)
+  );
   clip-path: polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%);
   animation: trapezoidFloat2 8s ease-in-out infinite;
   pointer-events: none;
@@ -384,18 +472,38 @@ html {
    Two rotating/pulsing squares in top-right corner
    ═══════════════════════════════════════════════════════════════ */
 @keyframes squareOrbit1 {
-  0%   { transform: rotate(0deg) translate(0, 0) scale(1); }
-  25%  { transform: rotate(45deg) translate(4px, -3px) scale(1.1); }
-  50%  { transform: rotate(90deg) translate(0, -5px) scale(0.95); }
-  75%  { transform: rotate(135deg) translate(-3px, -2px) scale(1.05); }
-  100% { transform: rotate(180deg) translate(0, 0) scale(1); }
+  0% {
+    transform: rotate(0deg) translate(0, 0) scale(1);
+  }
+  25% {
+    transform: rotate(45deg) translate(4px, -3px) scale(1.1);
+  }
+  50% {
+    transform: rotate(90deg) translate(0, -5px) scale(0.95);
+  }
+  75% {
+    transform: rotate(135deg) translate(-3px, -2px) scale(1.05);
+  }
+  100% {
+    transform: rotate(180deg) translate(0, 0) scale(1);
+  }
 }
 @keyframes squareOrbit2 {
-  0%   { transform: rotate(45deg) translate(0, 0) scale(0.9); }
-  25%  { transform: rotate(0deg) translate(-3px, 3px) scale(1); }
-  50%  { transform: rotate(-45deg) translate(-5px, 0) scale(1.1); }
-  75%  { transform: rotate(-90deg) translate(-2px, -3px) scale(0.95); }
-  100% { transform: rotate(-135deg) translate(0, 0) scale(0.9); }
+  0% {
+    transform: rotate(45deg) translate(0, 0) scale(0.9);
+  }
+  25% {
+    transform: rotate(0deg) translate(-3px, 3px) scale(1);
+  }
+  50% {
+    transform: rotate(-45deg) translate(-5px, 0) scale(1.1);
+  }
+  75% {
+    transform: rotate(-90deg) translate(-2px, -3px) scale(0.95);
+  }
+  100% {
+    transform: rotate(-135deg) translate(0, 0) scale(0.9);
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -403,21 +511,58 @@ html {
    Organic pulsing/ripple drops with 3D perspective
    ═══════════════════════════════════════════════════════════════ */
 @keyframes dropRipple1 {
-  0%   { transform: scale(0.6) translateY(0); opacity: 0.3; border-radius: 50% 50% 50% 50%; }
-  30%  { transform: scale(1) translateY(-4px); opacity: 0.5; border-radius: 45% 55% 50% 50%; }
-  60%  { transform: scale(1.1) translateY(-2px); opacity: 0.35; border-radius: 50% 45% 55% 50%; }
-  100% { transform: scale(0.6) translateY(0); opacity: 0.3; border-radius: 50% 50% 50% 50%; }
+  0% {
+    transform: scale(0.6) translateY(0);
+    opacity: 0.3;
+    border-radius: 50% 50% 50% 50%;
+  }
+  30% {
+    transform: scale(1) translateY(-4px);
+    opacity: 0.5;
+    border-radius: 45% 55% 50% 50%;
+  }
+  60% {
+    transform: scale(1.1) translateY(-2px);
+    opacity: 0.35;
+    border-radius: 50% 45% 55% 50%;
+  }
+  100% {
+    transform: scale(0.6) translateY(0);
+    opacity: 0.3;
+    border-radius: 50% 50% 50% 50%;
+  }
 }
 @keyframes dropRipple2 {
-  0%   { transform: scale(0.8) translateY(0); opacity: 0.2; }
-  40%  { transform: scale(1.15) translateY(-6px); opacity: 0.45; }
-  70%  { transform: scale(0.9) translateY(-3px); opacity: 0.25; }
-  100% { transform: scale(0.8) translateY(0); opacity: 0.2; }
+  0% {
+    transform: scale(0.8) translateY(0);
+    opacity: 0.2;
+  }
+  40% {
+    transform: scale(1.15) translateY(-6px);
+    opacity: 0.45;
+  }
+  70% {
+    transform: scale(0.9) translateY(-3px);
+    opacity: 0.25;
+  }
+  100% {
+    transform: scale(0.8) translateY(0);
+    opacity: 0.2;
+  }
 }
 @keyframes dropRipple3 {
-  0%   { transform: scale(1) translateY(0); opacity: 0.15; }
-  50%  { transform: scale(1.2) translateY(-8px); opacity: 0.35; }
-  100% { transform: scale(1) translateY(0); opacity: 0.15; }
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 0.15;
+  }
+  50% {
+    transform: scale(1.2) translateY(-8px);
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 0.15;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -425,20 +570,34 @@ html {
    Mid-size half square/polygon continuous movement
    ═══════════════════════════════════════════════════════════════ */
 @keyframes halfSquareMove {
-  0%   { transform: rotate(0deg) translate(0, 0) skew(10deg); opacity: 0.05; }
-  25%  { transform: rotate(5deg) translate(20px, -10px) skew(15deg); opacity: 0.1; }
-  50%  { transform: rotate(0deg) translate(40px, 0px) skew(10deg); opacity: 0.05; }
-  75%  { transform: rotate(-5deg) translate(20px, 10px) skew(5deg); opacity: 0.1; }
-  100% { transform: rotate(0deg) translate(0, 0) skew(10deg); opacity: 0.05; }
+  0% {
+    transform: rotate(0deg) translate(0, 0) skew(10deg);
+    opacity: 0.05;
+  }
+  25% {
+    transform: rotate(5deg) translate(20px, -10px) skew(15deg);
+    opacity: 0.1;
+  }
+  50% {
+    transform: rotate(0deg) translate(40px, 0px) skew(10deg);
+    opacity: 0.05;
+  }
+  75% {
+    transform: rotate(-5deg) translate(20px, 10px) skew(5deg);
+    opacity: 0.1;
+  }
+  100% {
+    transform: rotate(0deg) translate(0, 0) skew(10deg);
+    opacity: 0.05;
+  }
 }
-
 
 /* ═══════════════════════════════════════════════════════════════
    SIDEBAR — dark scrollbar override
    ═══════════════════════════════════════════════════════════════ */
 .sidebar-scroll {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255,255,255,0.08) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
 }
 .sidebar-scroll::-webkit-scrollbar {
   width: 4px;
@@ -447,19 +606,19 @@ html {
   background: transparent;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 9999px;
 }
 .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-  background: rgba(255,255,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* ═══════════════════════════════════════════════════════════════
    PROSPECT LIST FIXES
    ═══════════════════════════════════════════════════════════════ */
 .prospect-list-table .max-w-xl {
-    max-width: 100% !important;
+  max-width: 100% !important;
 }
 .prospect-list-table .justify-center {
-    justify-content: space-between !important;
+  justify-content: space-between !important;
 }

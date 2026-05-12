@@ -2,12 +2,30 @@ const express = require('express');
 const router = express.Router();
 const bulkLeadUploadController = require('../controllers/bulkLeadUpload.controller');
 const { requireUser } = require('../middleware/auth');
-const { requireSalesManager } = require('../middleware/leadUpload');
+const { requireSalesManager, requireLeadAssigner } = require('../middleware/leadUpload');
+const validate = require('../middleware/validate');
 const upload = require('../middleware/upload');
+const {
+  singleAssignSchema,
+  bulkAssignSchema,
+  batchAssignSchema,
+  distributeLeadsSchema,
+  assignmentTargetsQuerySchema,
+} = require('../validators/leadAssignment.validator');
 
 // Base path: /api/sales-manager/leads
 
-router.get('/', requireUser, requireSalesManager, bulkLeadUploadController.getAllLeads);
+router.get('/', requireUser, requireLeadAssigner, bulkLeadUploadController.getAllLeads);
+router.get('/assigned', requireUser, requireLeadAssigner, bulkLeadUploadController.getAssignedLeads);
+
+router.get(
+  '/assignment-targets',
+  requireUser,
+  requireLeadAssigner,
+  validate(assignmentTargetsQuerySchema, 'query'),
+  bulkLeadUploadController.getAssignmentTargets
+);
+
 router.get('/bulk/template', requireUser, requireSalesManager, bulkLeadUploadController.downloadTemplate);
 
 router.post(
@@ -35,14 +53,32 @@ router.get(
 router.post(
   '/:leadId/assign',
   requireUser,
-  requireSalesManager,
+  requireLeadAssigner,
+  validate(singleAssignSchema, 'body'),
   bulkLeadUploadController.assignLead
+);
+
+router.post(
+  '/bulk/transfer',
+  requireUser,
+  requireLeadAssigner,
+  validate(bulkAssignSchema, 'body'),
+  bulkLeadUploadController.bulkAssignLeads
+);
+
+router.post(
+  '/bulk/distribute',
+  requireUser,
+  requireLeadAssigner,
+  validate(distributeLeadsSchema, 'body'),
+  bulkLeadUploadController.distributeLeads
 );
 
 router.post(
   '/bulk/:uploadId/assign-batch',
   requireUser,
-  requireSalesManager,
+  requireLeadAssigner,
+  validate(batchAssignSchema, 'body'),
   bulkLeadUploadController.assignBatchLeads
 );
 

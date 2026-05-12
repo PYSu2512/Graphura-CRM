@@ -4,10 +4,12 @@ import { Outlet } from "react-router-dom";
 import { useState, memo, useCallback } from "react";
 import GlobalCallModal from "../components/shared/GlobalCallModal";
 import { AttendanceProvider } from "../context/AttendanceContext";
+import usePageTitle from "../hooks/usePageTitle";
 
 const MemoNavbar = memo(Navbar);
 
 function MainLayout() {
+  usePageTitle(); // sets browser tab title based on current route
   // Desktop: expand (w-64) vs collapse (w-14 icon rail)
   const [expanded, setExpanded] = useState(true);
 

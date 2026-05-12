@@ -1,9 +1,10 @@
 import { Toaster } from "react-hot-toast";
 import AppRoutes from "./routes/AppRoutes";
+import { AttendanceProvider } from "./context/AttendanceContext";
 
 function App() {
   return (
-    <>
+    <AttendanceProvider>
       <AppRoutes />
       <Toaster
         position="top-right"
@@ -29,7 +30,7 @@ function App() {
           },
         }}
       />
-    </>
+    </AttendanceProvider>
   );
 }
 

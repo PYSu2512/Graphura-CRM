@@ -6,8 +6,9 @@ import EditProspect from "../../pages/sales/salesExecutive/EditProspect";
 import LeadsLayout from "../../pages/sales/salesExecutive/leads/LeadsLayout";
 import LeadsPage from "../../pages/sales/salesExecutive/leads/LeadsPage";
 import DumpDataPage from "../../pages/sales/salesExecutive/dumpData/DumpDataPage";
+import FollowUpsPage from "../../pages/sales/salesExecutive/leads/tabs/follow-ups/FollowUpsPage";
 import PaymentsPage from "../../pages/sales/salesExecutive/payments/PaymentsPage";
-import HRMPage from "../../pages/sales/salesExecutive/hrm/HRMPage";
+import HRMLayout from "../../pages/sales/salesExecutive/hrm/HrmLayout";
 import LoginLogs from "../../pages/sales/salesExecutive/LoginLogs/LoginLogs";
 import Support from "../../pages/sales/salesExecutive/Support/Support";
 
@@ -19,11 +20,14 @@ function SalesExecutiveRoutes() {
                 <Route path="prospects" element={<ProspectList />} />
                 <Route path="edit-prospect/:id" element={<EditProspect />} />
                 <Route path="payments" element={<PaymentsPage />} />
-                <Route path="hrm" element={<HRMPage />} />
+                <Route path="hrm" element={<HRMLayout />} />
                 <Route path="login-logs" element={<LoginLogs />} />
                 <Route path="support" element={<Support />} />
                 <Route path="leads" element={<LeadsLayout />}>
-                    <Route index element={<LeadsPage />} />
+                    <Route index element={<Navigate to="all" replace />} />
+                    <Route path="all" element={<LeadsPage />} />
+                    <Route path="follow-ups" element={<FollowUpsPage />} />
+                    <Route path="prospects" element={<ProspectList />} />
                     <Route path="dump" element={<DumpDataPage />} />
                 </Route>
                 <Route path="dump" element={<Navigate to="leads/dump" replace />} />

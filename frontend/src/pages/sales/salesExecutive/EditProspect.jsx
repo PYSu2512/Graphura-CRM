@@ -1,28 +1,88 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   User, Phone, Mail, Building2, MapPin, IndianRupee,
   Calendar, Clock, FileText, UserCheck, Target,
   CheckCircle2, RefreshCw, Activity, Check, PhoneCall,
-  Bell, ArrowLeft, TrendingUp, Sparkles,
+  Bell, ArrowLeft, TrendingUp, Sparkles, AlertCircle,
 } from "lucide-react";
 import { DataField, SelectField, Option, Button } from "../../../components/shared/Common_Components";
 import DatePicker from "../../../components/shared/DatePicker";
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const MOCK_DATA = {
-  fullName: "Ravi Sharma", phone: "9876543210", email: "ravi.sharma@example.com",
-  company: "Tech Corp India", city: "Mumbai", source: "Website", status: "Interested",
-  dealValue: "50000", priority: "High", assignedTo: "John Doe (You)",
-  followUpDate: "2026-05-02", followUpTime: "14:30", reminder: true,
-  notes: "Very interested in the premium package. Wants a demo next week.",
-  lastContactDate: "2026-05-01T10:45:00",
-};
-
-const MOCK_ACTIVITIES = [
-  { id: 1, title: "Status → Interested",  desc: "Positive response to initial pitch.",    date: "Today, 10:45 AM",     icon: TrendingUp,   color: "text-purple-600", bg: "bg-purple-50",  border: "border-purple-200" },
-  { id: 2, title: "Outbound Call",         desc: "Spoke 5 mins. Clarified pricing.",       date: "Yesterday, 4:30 PM",  icon: PhoneCall,    color: "text-emerald-600",bg: "bg-emerald-50", border: "border-emerald-200" },
-  { id: 3, title: "Lead Created",          desc: "Acquired from Website form submission.", date: "2 days ago, 9:15 AM", icon: CheckCircle2, color: "text-slate-500",  bg: "bg-slate-50",   border: "border-slate-200" },
+// ─── Shared mock prospects (same source as ProspectList) ─────────────────────
+const ALL_PROSPECTS = [
+  {
+    id: "1", name: "Ravi Sharma", phone: "9876543210", email: "ravi.sharma@example.com",
+    company: "Tech Corp India", city: "Mumbai", source: "Website", status: "Interested",
+    dealValue: "50000", priority: "High", assignedTo: "John Doe (You)",
+    followUpDate: "2026-05-02", followUpTime: "14:30", reminder: true,
+    notes: "Very interested in the premium package. Wants a demo next week.",
+    lastContactDate: "2026-05-01T10:45:00",
+    activities: [
+      { id: 1, title: "Status → Interested",  desc: "Positive response to initial pitch.",    date: "Today, 10:45 AM",     icon: TrendingUp,   color: "text-purple-600", bg: "bg-purple-50",  border: "border-purple-200" },
+      { id: 2, title: "Outbound Call",         desc: "Spoke 5 mins. Clarified pricing.",       date: "Yesterday, 4:30 PM",  icon: PhoneCall,    color: "text-emerald-600",bg: "bg-emerald-50", border: "border-emerald-200" },
+      { id: 3, title: "Lead Created",          desc: "Acquired from Website form submission.", date: "2 days ago, 9:15 AM", icon: CheckCircle2, color: "text-slate-500",  bg: "bg-slate-50",   border: "border-slate-200" },
+    ],
+  },
+  {
+    id: "3", name: "Amit Patel", phone: "9812345670", email: "amit.p@example.com",
+    company: "Retail Chain Pvt", city: "Ahmedabad", source: "Facebook", status: "Talk",
+    dealValue: "30000", priority: "Low", assignedTo: "John Doe (You)",
+    followUpDate: "2026-05-03", followUpTime: "11:30", reminder: false,
+    notes: "Initial contact made. Prospect showed mild interest.",
+    lastContactDate: "2026-05-07T09:00:00",
+    activities: [
+      { id: 1, title: "Outbound Call", desc: "Initial contact made. Prospect showed mild interest.", date: "Today, 09:00 AM",     icon: PhoneCall,    color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+      { id: 2, title: "Lead Created",  desc: "Lead acquired from Facebook ad.",                      date: "Yesterday, 03:00 PM", icon: CheckCircle2, color: "text-slate-500",   bg: "bg-slate-50",   border: "border-slate-200" },
+    ],
+  },
+  {
+    id: "4", name: "Neha Gupta", phone: "9988776655", email: "neha.g@example.com",
+    company: "Service Hub", city: "Bangalore", source: "Referral", status: "Not Interested",
+    dealValue: "85000", priority: "Low", assignedTo: "John Doe (You)",
+    followUpDate: "2026-05-10", followUpTime: "15:00", reminder: false,
+    notes: "Prospect declined after pricing discussion.",
+    lastContactDate: "2026-05-07T14:00:00",
+    activities: [
+      { id: 1, title: "Marked Not Interested", desc: "Prospect declined after pricing discussion.", date: "Today, 02:00 PM",      icon: AlertCircle,  color: "text-rose-600",    bg: "bg-rose-50",    border: "border-rose-200"    },
+      { id: 2, title: "Outbound Call",         desc: "Discussed pricing. Prospect hesitant.",       date: "Yesterday, 01:00 PM",  icon: PhoneCall,    color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+      { id: 3, title: "Lead Created",          desc: "Lead acquired via Referral.",                 date: "2 days ago, 10:00 AM", icon: CheckCircle2, color: "text-slate-500",   bg: "bg-slate-50",   border: "border-slate-200"   },
+    ],
+  },
+  {
+    id: "5", name: "Vikram Malhotra", phone: "9876501234", email: "vikram.m@example.com",
+    company: "Malhotra Industries", city: "Pune", source: "Website", status: "Talk",
+    dealValue: "250000", priority: "High", assignedTo: "John Doe (You)",
+    followUpDate: "2026-05-12", followUpTime: "16:00", reminder: true,
+    notes: "Long discussion about enterprise package.",
+    lastContactDate: "2026-05-07T11:30:00",
+    activities: [
+      { id: 1, title: "Outbound Call", desc: "Long discussion about enterprise package.", date: "Today, 11:30 AM",     icon: PhoneCall,    color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+      { id: 2, title: "Lead Created",  desc: "Lead acquired from Website form.",          date: "Yesterday, 08:00 AM", icon: CheckCircle2, color: "text-slate-500",   bg: "bg-slate-50",   border: "border-slate-200"   },
+    ],
+  },
+  {
+    id: "6", name: "Sunita Rao", phone: "9876511111", email: "sunita.r@example.com",
+    company: "Rao Enterprises", city: "Chennai", source: "Referral", status: "Won",
+    dealValue: "500000", priority: "High", assignedTo: "John Doe (You)",
+    followUpDate: "2026-05-01", followUpTime: "10:00", reminder: false,
+    notes: "Client signed the contract.",
+    lastContactDate: "2026-05-07T10:00:00",
+    activities: [
+      { id: 1, title: "Deal Won!", desc: "Client signed the contract.", date: "Today, 10:00 AM", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+    ],
+  },
+  {
+    id: "7", name: "Rahul Verma", phone: "9876522222", email: "rahul.v@example.com",
+    company: "Verma Logistics", city: "Kolkata", source: "Website", status: "Lost",
+    dealValue: "75000", priority: "Medium", assignedTo: "John Doe (You)",
+    followUpDate: "2026-04-28", followUpTime: "14:00", reminder: false,
+    notes: "Went with competitor.",
+    lastContactDate: "2026-05-05T14:00:00",
+    activities: [
+      { id: 1, title: "Deal Lost", desc: "Went with competitor.", date: "2 days ago", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50", border: "border-red-200" },
+    ],
+  },
 ];
 
 const STATUS_MAP = {
@@ -60,10 +120,64 @@ export default function EditProspect() {
   const navigate = useNavigate();
   const { id }   = useParams();
 
-  const [orig, setOrig]             = useState(MOCK_DATA);
-  const [form, setForm]             = useState(MOCK_DATA);
-  const [activities, setActivities] = useState(MOCK_ACTIVITIES);
+  // Look up the prospect by route param id
+  const prospectData = useMemo(() => {
+    const found = ALL_PROSPECTS.find(p => String(p.id) === String(id));
+    if (!found) return null;
+    // Normalise to the shape the form expects
+    return {
+      fullName:        found.name,
+      phone:           found.phone,
+      email:           found.email,
+      company:         found.company,
+      city:            found.city,
+      source:          found.source,
+      status:          found.status,
+      dealValue:       found.dealValue,
+      priority:        found.priority,
+      assignedTo:      found.assignedTo,
+      followUpDate:    found.followUpDate,
+      followUpTime:    found.followUpTime,
+      reminder:        found.reminder ?? false,
+      notes:           found.notes ?? "",
+      lastContactDate: found.lastContactDate,
+    };
+  }, [id]);
+
+  const [orig, setOrig]             = useState(() => prospectData);
+  const [form, setForm]             = useState(() => prospectData);
+  const [activities, setActivities] = useState(
+    () => ALL_PROSPECTS.find(p => String(p.id) === String(id))?.activities ?? []
+  );
   const [toast, setToast]           = useState(false);
+
+  // If id changes (unlikely but safe), re-initialise
+  const prevId = React.useRef(id);
+  if (prevId.current !== id) {
+    prevId.current = id;
+    const next = ALL_PROSPECTS.find(p => String(p.id) === String(id));
+    if (next) {
+      const fd = {
+        fullName: next.name, phone: next.phone, email: next.email,
+        company: next.company, city: next.city, source: next.source,
+        status: next.status, dealValue: next.dealValue, priority: next.priority,
+        assignedTo: next.assignedTo, followUpDate: next.followUpDate,
+        followUpTime: next.followUpTime, reminder: next.reminder ?? false,
+        notes: next.notes ?? "", lastContactDate: next.lastContactDate,
+      };
+      setOrig(fd); setForm(fd); setActivities(next.activities ?? []);
+    }
+  }
+
+  // Not found guard
+  if (!orig) {
+    return (
+      <div className="max-w-6xl mx-auto py-20 text-center">
+        <p className="text-slate-400 font-semibold">Prospect not found.</p>
+        <button onClick={() => navigate(-1)} className="mt-4 text-sm text-[#2a465a] underline">Go back</button>
+      </div>
+    );
+  }
 
   const ch     = (k) => form[k] !== orig[k];
   const ring   = (k) => ch(k) ? "ring-2 ring-sky-300/50 border-sky-400" : "";

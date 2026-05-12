@@ -118,39 +118,51 @@ const SalesExecutiveDashboard = () => {
 
 
 
-      {/* ── STATS SECTION ── */}
-      <div className="space-y-4">
-        <DashGrid cols={12} gap={4}>
-          <EnhancedDashCard
-            title="Today"
-            value="42"
-            icon={<PhoneCall size={22} />}
-            accentColor="#f43f5e"
-            size={3}
-          />
-          <EnhancedDashCard
-            title="Pending"
-            value="12"
-            icon={<Clock size={22} />}
-            accentColor="#ef4444"
-            size={3}
-          />
-          <EnhancedDashCard
-            title="Missed"
-            value="05"
-            icon={<AlertCircle size={22} />}
-            accentColor="#64748b"
-            size={3}
-          />
-          <EnhancedDashCard
-            title="Upcoming"
-            value="28"
-            icon={<Calendar size={22} />}
-            accentColor="#38bdf8"
-            size={3}
-          />
-        </DashGrid>
-      </div>
+      {/* TOP KPI CARDS */}
+      <DashGrid cols={12} gap={4}>
+        <DashCard
+          title="Total Leads"
+          value="1,284"
+          icon={<Users />}
+          accentColor="#3b82f6"
+          size={4}
+        />
+        <DashCard
+          title="Today Calls"
+          value="42"
+          icon={<PhoneCall />}
+          accentColor="#8b5cf6"
+          size={4}
+        />
+        <DashCard
+          title="Conversion Rate"
+          value="18.5%"
+          icon={<TrendingUp />}
+          accentColor="#10b981"
+          size={4}
+        />
+        <DashCard
+          title="Revenue Generated"
+          value="$124,500"
+          icon={<DollarSign />}
+          accentColor="#f59e0b"
+          size={4}
+        />
+        <DashCard
+          title="Pending Follow-ups"
+          value="12"
+          icon={<Clock />}
+          accentColor="#ef4444"
+          size={4}
+        />
+        <DashCard
+          title="Dump Leads"
+          value="342"
+          icon={<Trash2 />}
+          accentColor="#64748b"
+          size={4}
+        />
+      </DashGrid>
 
       {/* CHARTS & WIDGETS SECTION */}
       <Grid cols={12} gap={6}>

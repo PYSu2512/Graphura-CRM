@@ -205,7 +205,7 @@ export default function Departments() {
   }
 
   return (
-    <div className="w-full min-h-screen bg-[#f8fafc] p-4 md:p-8">
+    <div>
 
       {/* ─── Page Header ────────────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">

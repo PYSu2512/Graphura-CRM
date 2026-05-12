@@ -120,25 +120,25 @@ const MENUS = {
       {
         label: "Sales",
         items: [
-          { name: "Leads",     path: "/sales-manager/leads",     icon: Target },
-          { name: "Teams",     path: "/sales-manager/teams",     icon: Users  },
+          { name: "Leads", path: "/sales-manager/leads", icon: Target },
+          { name: "Teams", path: "/sales-manager/teams", icon: Users },
           { name: "Employees", path: "/sales-manager/employees", icon: UserCheck },
+        ],
+      },
+      {
+        label: "Management",
+        items: [
+          { name: "HRM", path: "/sales-manager/hrm", icon: ClipboardList },
+          { name: "Support", path: "/sales-manager/support", icon: LifeBuoy },
+          { name: "Announcements", path: "/sales-manager/announcements", icon: MessageSquare },
+          { name: "Logs", path: "/sales-manager/logs", icon: History },
         ],
       },
       {
         label: "Performance",
         items: [
           { name: "Performance", path: "/sales-manager/performance", icon: TrendingUp },
-        ],
-      },
-      {
-        label: "Management",
-        items: [
-          { name: "HRM",           path: "/sales-manager/hrm",           icon: ClipboardList },
-          { name: "Support",       path: "/sales-manager/support",       icon: LifeBuoy },
-          { name: "Announcements", path: "/sales-manager/announcements", icon: MessageSquare },
-          { name: "Logs",          path: "/sales-manager/logs",          icon: History },
-          { name: "Reports",       path: "/sales-manager/reports",       icon: BarChart2 },
+          { name: "Reports", path: "/sales-manager/reports", icon: BarChart2 },
         ],
       },
     ],
@@ -156,7 +156,7 @@ const MENUS = {
       {
         label: "Sales",
         items: [
-          { name: "Leads",   path: "/sales-team-leader/leads",   icon: Target },
+          { name: "Leads", path: "/sales-team-leader/leads", icon: Target },
           { name: "My Team", path: "/sales-team-leader/my-team", icon: Users },
           { name: "Tickets", path: "/sales-team-leader/tickets", icon: Ticket },
         ],
@@ -166,6 +166,14 @@ const MENUS = {
         items: [
           { name: "Targets", path: "/sales-team-leader/targets", icon: TrendingUp },
           { name: "Reports", path: "/sales-team-leader/reports", icon: BarChart2 },
+        ],
+      },
+      {
+        label: "Personal",
+        items: [
+          { name: "HRM", path: "/sales-team-leader/hrm", icon: UserCheck },
+          { name: "Login Logs", path: "/sales-team-leader/login-logs", icon: History },
+          { name: "Payment Alerts", path: "/sales-team-leader/payment-alerts", icon: CreditCard },
         ],
       },
       {
@@ -189,22 +197,28 @@ const MENUS = {
       {
         label: "Leads",
         items: [
-          { name: "Leads",         path: "/sales-executive/leads",         icon: Target },
-          { name: "Prospects", path: "/sales-executive/prospects", icon: ClipboardList },
-          { name: "Dump Data",     path: "/sales-executive/dump",          icon: Database },
+          {
+            name: "Leads", path: "/sales-executive/leads", icon: Target,
+            children: [
+              { name: "All Leads", path: "/sales-executive/leads/all", icon: Target },
+              { name: "My Prospects", path: "/sales-executive/leads/prospects", icon: ClipboardList },
+              { name: "Follow Ups", path: "/sales-executive/leads/follow-ups", icon: PieChart },
+              { name: "Dump Data", path: "/sales-executive/leads/dump", icon: Database },
+            ],
+          },
         ],
       },
       {
         label: "Personal",
         items: [
           { name: "My Login Logs", path: "/sales-executive/login-logs", icon: History },
-          { name: "Payments",      path: "/sales-executive/payments",   icon: CreditCard },
+          { name: "Payments", path: "/sales-executive/payments", icon: CreditCard },
         ],
       },
       {
         label: "Management",
         items: [
-          { name: "HRM",     path: "/sales-executive/hrm",     icon: UserCheck },
+          { name: "HRM", path: "/sales-executive/hrm", icon: UserCheck },
           { name: "Support", path: "/sales-executive/support", icon: LifeBuoy },
         ],
       },
@@ -223,20 +237,20 @@ const MENUS = {
       {
         label: "Finance",
         items: [
-          { name: "Deals",          path: "/finance/deals",          icon: Briefcase   },
-          { name: "Payments",       path: "/finance/payments",       icon: CreditCard  },
-          { name: "Work Orders",    path: "/finance/work-orders",    icon: ClipboardList },
-          { name: "Invoices",       path: "/finance/invoices",       icon: FileText    },
-          { name: "Expenses",       path: "/finance/expenses",       icon: Receipt     },
-          { name: "Global Payment", path: "/finance/global-payment", icon: Globe       },
+          { name: "Deals", path: "/finance/deals", icon: Briefcase },
+          { name: "Payments", path: "/finance/payments", icon: CreditCard },
+          { name: "Work Orders", path: "/finance/work-orders", icon: ClipboardList },
+          { name: "Invoices", path: "/finance/invoices", icon: FileText },
+          { name: "Expenses", path: "/finance/expenses", icon: Receipt },
+          { name: "Global Payment", path: "/finance/global-payment", icon: Globe },
         ],
       },
       {
         label: "Management",
         items: [
-          { name: "Notifications",  path: "/finance/notifications",  icon: MessageSquare },
-          { name: "Login Logs",     path: "/finance/logs",           icon: History     },
-          { name: "HRM",            path: "/finance/hrm",            icon: UserCheck   },
+          { name: "Notifications", path: "/finance/notifications", icon: MessageSquare },
+          { name: "Login Logs", path: "/finance/logs", icon: History },
+          { name: "HRM", path: "/finance/hrm", icon: UserCheck },
         ],
       },
     ],
@@ -330,10 +344,9 @@ const NavItem = memo(function NavItem({ item, expanded, onExpand, onNavClick }) 
         end={item.end ?? false}
         onClick={handleClick}
         className={({ isActive }) =>
-          `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-150 ${
-            isActive
-              ? "bg-white/10 text-white shadow-sm"
-              : "text-slate-400 hover:bg-white/6 hover:text-slate-200"
+          `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-150 ${isActive
+            ? "bg-white/10 text-white shadow-sm"
+            : "text-slate-400 hover:bg-white/6 hover:text-slate-200"
           }`
         }
       >
@@ -341,9 +354,8 @@ const NavItem = memo(function NavItem({ item, expanded, onExpand, onNavClick }) 
           <>
             {/* Left accent bar */}
             <span
-              className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-200 ${
-                isActive ? "h-5 bg-[#38bdf8]" : "h-0 bg-transparent"
-              }`}
+              className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-200 ${isActive ? "h-5 bg-[#38bdf8]" : "h-0 bg-transparent"
+                }`}
             />
             <span className={`flex-shrink-0 transition-colors duration-150 ${isActive ? "text-[#38bdf8]" : "text-slate-500 group-hover:text-slate-300"}`}>
               <Icon size={17} />
@@ -362,10 +374,9 @@ const NavItem = memo(function NavItem({ item, expanded, onExpand, onNavClick }) 
         end={item.end ?? false}
         onClick={handleClick}
         className={({ isActive }) =>
-          `relative flex items-center justify-center w-10 h-10 rounded-xl mx-auto transition-all duration-150 ${
-            isActive
-              ? "bg-white/10 text-[#38bdf8]"
-              : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
+          `relative flex items-center justify-center w-10 h-10 rounded-xl mx-auto transition-all duration-150 ${isActive
+            ? "bg-white/10 text-[#38bdf8]"
+            : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
           }`
         }
       >
@@ -449,10 +460,9 @@ const NavGroup = memo(function NavGroup({ group, expanded, onExpand, onNavClick 
                     to={child.path}
                     onClick={onNavClick ?? undefined}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
-                        isActive
-                          ? "bg-white/10 text-white"
-                          : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
+                      `flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ${isActive
+                        ? "bg-white/10 text-white"
+                        : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
                       }`
                     }
                   >
