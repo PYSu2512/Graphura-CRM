@@ -1,15 +1,26 @@
-import { Outlet } from "react-router-dom";
-import { Heading } from "../../../components/shared/Common_Components.jsx";
+import React, { useState } from "react";
+import TeamMembers from "./myTeam/TeamMembers";
+import Attendance from "./myTeam/Attendance";
+import LeaveApprovals from "./myTeam/LeaveApprovals";
 
-// Attendance + Leave Approvals moved to HRM (Packet 5). The /attendance and
-// /leave-approvals nested routes still exist (we don't edit the routes file
-// directly) but their components now redirect to /sales-team-leader/hrm. With
-// only Team Members remaining the tab nav is gone — Outlet renders directly.
 export default function SalesTeamLeaderMyTeam() {
+  const [tab, setTab] = useState("members");
+
   return (
-    <div className="flex flex-col gap-6">
-      <Heading primaryText="My" secondaryText="Team" size={12} />
-      <Outlet />
+    <div style={{ padding: "15px" }}>
+      <h2>My Team Workspace</h2>
+
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: "10px", margin: "15px 0" }}>
+        <button onClick={() => setTab("members")}>Team Members</button>
+        <button onClick={() => setTab("attendance")}>Attendance</button>
+        <button onClick={() => setTab("leaves")}>Leave Approvals</button>
+      </div>
+
+      {/* Content */}
+      {tab === "members" && <TeamMembers />}
+      {tab === "attendance" && <Attendance />}
+      {tab === "leaves" && <LeaveApprovals />}
     </div>
   );
 }

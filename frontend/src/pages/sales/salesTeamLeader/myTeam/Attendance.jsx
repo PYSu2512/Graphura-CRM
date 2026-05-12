@@ -1,9 +1,45 @@
-import { Navigate } from "react-router-dom";
+import React from "react";
+import { teamExecutives } from "./teamStore";
 
-// My Team's attendance view was retired — the team-wide attendance table now
-// lives in HRM (Packet 5). Anyone hitting /sales-team-leader/my-team/attendance
-// gets redirected there. Once Pranjal removes this route from
-// salesTeamLeaderRoutes.jsx, this file can be deleted.
 export default function Attendance() {
-  return <Navigate to="/sales-team-leader/hrm" replace />;
+  return (
+    <div style={{ padding: "10px" }}>
+      <h3>Team Attendance</h3>
+
+      <table border="1" cellPadding="10" style={{ width: "100%", marginTop: "10px" }}>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Employee ID</th>
+            <th>Region</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {teamExecutives.map((emp) => (
+            <tr key={emp.id}>
+              <td>{emp.name}</td>
+              <td>{emp.id}</td>
+              <td>{emp.region}</td>
+              <td>
+                <span
+                  style={{
+                    padding: "4px 8px",
+                    borderRadius: "6px",
+                    backgroundColor:
+                      emp.status === "Active" ? "#d1fae5" : "#fde68a",
+                    color: "#111",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {emp.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
