@@ -16,7 +16,7 @@ import {
 import {
   DashGrid,
   EnhancedDashCard as DashCard,
-  EnhancedDataTable as DataTable,
+  DataTable,
   Button,
   PanelModal as Modal,
   openModal,
@@ -397,7 +397,8 @@ export default function AllUsers() {
         rows={rows}
         actions={actions}
         pageSize={5}
-        importantColumnsCount={4}
+        searchable
+        size={12}
       />
 
       {/* ── Delete Confirmation Modal ── */}

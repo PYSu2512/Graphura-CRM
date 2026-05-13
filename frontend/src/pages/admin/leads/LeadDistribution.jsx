@@ -16,7 +16,7 @@ import {
   DashCard,
   GDoughnutChart,
   GBarChart,
-  EnhancedDataTable as DataTable,
+  DataTable,
   SelectField,
   Option,
 } from "../../../components/shared/Common_Components";
@@ -162,12 +162,8 @@ export default function LeadDistribution() {
         columns={rulesColumns} 
         rows={rules} 
         pageSize={5} 
-        importantColumnsCount={2}
-        extraHeaderActions={
-          <button onClick={() => alert("Add Rule modal coming soon")} className="flex items-center gap-2 rounded-xl bg-[#2a465a] px-4 py-2 text-xs font-black text-white hover:bg-[#1e3a52] transition active:scale-95 shadow-md shadow-[#2a465a]/20">
-            <Plus size={14} strokeWidth={3} /> NEW RULE
-          </button>
-        }
+        searchable
+        size={12}
       />
 
       {/* Manual Reassignment */}
@@ -177,12 +173,8 @@ export default function LeadDistribution() {
         rows={leads} 
         actions={unassignedActions} 
         pageSize={5} 
-        importantColumnsCount={3}
-        extraHeaderActions={
-          <button onClick={() => alert("Bulk assign")} className="flex items-center gap-2 rounded-xl border-2 border-[#2a465a]/10 bg-white px-4 py-2 text-xs font-black text-[#2a465a] hover:bg-slate-50 transition active:scale-95">
-            <Shuffle size={14} strokeWidth={2.5} /> AUTO ROUTE ALL
-          </button>
-        }
+        searchable
+        size={12}
       />
 
       {/* Distribution Stats */}

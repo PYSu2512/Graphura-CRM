@@ -16,7 +16,7 @@ import {
 import {
   DashGrid,
   EnhancedDashCard as DashCard,
-  EnhancedDataTable as DataTable,
+  DataTable,
   PanelModal as Modal,
   openModal,
   closeModal,
@@ -171,7 +171,11 @@ export default function Tickets() {
         actions={actions} 
         pageSize={5} 
         searchable 
-        importantColumnsCount={2}
+        size={12}
+        filters={[
+          { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High", "Urgent"] },
+          { title: "Status", type: "toggle", key: "status", options: ["Open", "In Progress", "Resolved"] },
+        ]}
       />
 
       {/* Ticket Detail Drawer */}

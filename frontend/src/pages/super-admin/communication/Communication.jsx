@@ -165,6 +165,7 @@ export default function Communication() {
   const [sentTo, setSentTo]   = useState(["All Admins"]);
   const [title, setTitle]     = useState("");
   const [message, setMessage] = useState("");
+  const [msgType, setMsgType] = useState("Announcement");
 
   // Messages state
   const [sentMessages, setSentMessages]           = useState(initialSent);
@@ -187,6 +188,7 @@ export default function Communication() {
     }
     const newMsg = {
       id: Date.now(),
+      type: msgType,
       title: title.trim(),
       message: message.trim(),
       sentTo: sentTo.join(", "),
@@ -197,6 +199,7 @@ export default function Communication() {
     setSentTo(["All Admins"]);
     setTitle("");
     setMessage("");
+    setMsgType("Announcement");
     alert("Message sent successfully!");
   };
 
@@ -322,39 +325,56 @@ export default function Communication() {
 
         {/* ══════════ COMPOSE TAB ══════════ */}
         {activeTab === "compose" && (
-          <div
-            className="col-span-12"
-            style={{
-              background: "#ffffff",
-              border: "1px solid #e2e8f0",
-              borderRadius: "16px",
-              padding: "24px",
-            }}
-          >
-            <p style={{ fontSize: "15px", fontWeight: 700, color: "#355872", marginBottom: "20px" }}>
+          <div className="col-span-12 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <p className="text-sm font-black text-[#2a465a] mb-5">
               Compose Message
             </p>
 
             <Grid cols={12} gap={4}>
 
-              <MultiSelectDropdown
-                label="Send To (Company Wise)"
-                options={[
-                  "All Admins",
-                  "Admin - TechNova Solutions",
-                  "Admin - Globex Inc",
-                  "Admin - Zenith Retail"
-                ]}
-                selected={sentTo}
-                onChange={setSentTo}
-              />
+              {/* Message Type */}
+              <div className="col-span-12 sm:col-span-6">
+                <SelectField
+                  label="Message Type *" id="sa-msg-type" size={12}
+                  placeholder="Select type..."
+                  value={msgType}
+                  onChange={(e) => setMsgType(e.target.value)}
+                >
+                  <Option value="Announcement" label="Announcement" />
+                  <Option value="Warning" label="Warning" />
+                  <Option value="Appreciation" label="Appreciation" />
+                </SelectField>
+              </div>
 
-              <DataField label="Title" id="title" placeholder="e.g. Platform Maintenance Tonight" size={12} value={title} onChange={(e) => setTitle(e.target.value)} />
+              {/* Multi-select Send To */}
+              <div className="col-span-12 sm:col-span-6">
+                <MultiSelectDropdown
+                  label="Send To (Company Wise)"
+                  options={[
+                    "All Admins",
+                    "Admin - TechNova Solutions",
+                    "Admin - Globex Inc",
+                    "Admin - Zenith Retail"
+                  ]}
+                  selected={sentTo}
+                  onChange={setSentTo}
+                />
+              </div>
+
+              {/* Title */}
+              <div className="col-span-12">
+                <DataField
+                  label="Title *" id="sa-title" size={12}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. Platform Maintenance Tonight"
+                />
+              </div>
 
               {/* Message Textarea */}
               <div className="col-span-12" style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
                 <label htmlFor="message" style={{ fontSize: "11px", fontWeight: 700, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.3em" }}>
-                  Message
+                  Message *
                 </label>
                 <textarea
                   id="message"
@@ -368,8 +388,87 @@ export default function Communication() {
                 <p style={{ fontSize: "12px", color: "#94a3b8", textAlign: "right" }}>{message.length} / 500</p>
               </div>
 
-              <Button text="Send Message →" size={3} variant="primary" onClick={handleSend} />
+              {/* ── Live Preview ── */}
+              {(title.trim() || message.trim()) && (
+                <div className="col-span-12">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">
+                    Preview
+                  </p>
+                  <div className={`rounded-2xl border p-5 space-y-3 transition-all ${
+                    msgType === "Warning"
+                      ? "bg-amber-50 border-amber-200"
+                      : msgType === "Appreciation"
+                        ? "bg-emerald-50 border-emerald-200"
+                        : "bg-blue-50 border-blue-200"
+                  }`}>
+                    {/* Type badge + audience */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {msgType && (
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                          msgType === "Warning"
+                            ? "bg-amber-100 text-amber-700"
+                            : msgType === "Appreciation"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {msgType}
+                        </span>
+                      )}
+                      {sentTo.length > 0 && (
+                        <span className="text-[10px] font-semibold text-slate-400">
+                          → {sentTo.join(", ")}
+                        </span>
+                      )}
+                    </div>
 
+                    {/* Title */}
+                    {title.trim() ? (
+                      <h3 className={`text-base font-black leading-snug ${
+                        msgType === "Warning"
+                          ? "text-amber-800"
+                          : msgType === "Appreciation"
+                            ? "text-emerald-800"
+                            : "text-blue-900"
+                      }`}>
+                        {title}
+                      </h3>
+                    ) : (
+                      <p className="text-sm italic text-slate-400">Title will appear here…</p>
+                    )}
+
+                    {/* Divider */}
+                    <div className={`h-px ${
+                      msgType === "Warning"
+                        ? "bg-amber-200"
+                        : msgType === "Appreciation"
+                          ? "bg-emerald-200"
+                          : "bg-blue-200"
+                    }`} />
+
+                    {/* Body */}
+                    {message.trim() ? (
+                      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                        {message}
+                      </p>
+                    ) : (
+                      <p className="text-sm italic text-slate-400">Message body will appear here…</p>
+                    )}
+
+                    {/* Footer */}
+                    <p className="text-[10px] text-slate-400 pt-1">
+                      From: Super Admin &nbsp;·&nbsp; {new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="col-span-6">
+                <Button text="Reset" variant="secondary" onClick={() => { setSentTo(["All Admins"]); setTitle(""); setMessage(""); setMsgType("Announcement"); }} />
+              </div>
+              <div className="col-span-6">
+                <Button text="Send Message →" variant="primary" onClick={handleSend} />
+              </div>
 
             </Grid>
           </div>

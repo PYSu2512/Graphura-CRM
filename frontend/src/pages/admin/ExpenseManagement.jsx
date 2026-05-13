@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Settings, Check, X } from 'lucide-react';
-import { Heading, P, Button, DashGrid, DataTable, openModal, Modal, closeModal, InputField } from '../../components/shared/Common_Components';
+import { Check, X } from 'lucide-react';
+import { P, Button, DataTable, openModal, PanelModal as Modal, closeModal, InputField } from '../../components/shared/Common_Components';
 
 export default function ExpenseManagement({ isEmbedded }) {
   const [expenseLimit, setExpenseLimit] = useState(1000);
@@ -81,36 +81,9 @@ export default function ExpenseManagement({ isEmbedded }) {
   }));
 
   return (
-    <div className={`w-full ${isEmbedded ? '' : 'min-h-screen bg-white p-4 md:p-8'}`}>
-      <style>{`
-        .expense-table-container table {
-          table-layout: fixed;
-          width: 100%;
-        }
-        .expense-table-container th, 
-        .expense-table-container td {
-          white-space: normal !important;
-          word-break: break-word;
-          padding: 12px 8px !important;
-        }
-        .expense-table-container th:nth-child(1) { width: 25%; }
-        .expense-table-container th:nth-child(2) { width: 20%; }
-        .expense-table-container th:nth-child(3) { width: 15%; }
-        .expense-table-container th:nth-child(4) { width: 15%; }
-        .expense-table-container th:nth-child(5) { width: 15%; }
-        .expense-table-container th:last-child,
-        .expense-table-container td:last-child {
-          width: 90px !important;
-          min-width: 90px !important;
-          text-align: center;
-          padding: 12px 4px !important;
-        }
-        .expense-table-container .data-table-scroll {
-          overflow-x: hidden !important;
-        }
-      `}</style>
+    <div className={`w-full ${isEmbedded ? '' : 'space-y-6'}`}>
 
-      <div className="flex flex-col gap-4 mb-6 w-full">
+      <div className="flex flex-col gap-4 mb-4 w-full">
         <div className="flex justify-end gap-4">
           <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
             <Button variant="ghost" text="Limits & Rules" onClick={() => openModal('settings-modal')} />
@@ -120,31 +93,29 @@ export default function ExpenseManagement({ isEmbedded }) {
         </div>
       </div>
 
-      <DashGrid cols={12} gap={6}>
-        <div className="col-span-12 w-full expense-table-container">
-          <DataTable
-            title="Recent Expenses"
-            columns={columns}
-            rows={formattedExpenses}
-            actions={[
-              { icon: <Check size={16} />, tooltip: "Approve", variant: "primary", onClick: (row) => handleApprove(row.id) },
-              { icon: <X size={16} />, tooltip: "Reject", variant: "danger", onClick: (row) => handleReject(row.id) }
-            ]}
-            size={12}
-            pageSize={10}
-            hideTopBar={false}
-            hidePagination={true}
-            searchable={true}
-            filters={[
-              { title: "Category", key: "category", type: "select", options: ["Operations", "IT", "HR", "Hardware", "Marketing"] },
-              { title: "Status", key: "status", type: "select", options: ["Completed", "Pending", "Failed"] }
-            ]}
-          />
-        </div>
-      </DashGrid>
+      <div className="w-full">
+        <DataTable
+          title="Recent Expenses"
+          columns={columns}
+          rows={formattedExpenses}
+          actions={[
+            { icon: <Check size={16} />, tooltip: "Approve", variant: "primary", onClick: (row) => handleApprove(row.id) },
+            { icon: <X size={16} />, tooltip: "Reject", variant: "danger", onClick: (row) => handleReject(row.id) }
+          ]}
+          size={12}
+          pageSize={10}
+          hideTopBar={false}
+          hidePagination={true}
+          searchable={true}
+          filters={[
+            { title: "Category", key: "category", type: "select", options: ["Operations", "IT", "HR", "Hardware", "Marketing"] },
+            { title: "Status", key: "status", type: "select", options: ["Completed", "Pending", "Failed"] }
+          ]}
+        />
+      </div>
 
-      <Modal id="settings-modal" title="Limits & Rules" size="sm">
-        <div className="space-y-6">
+      <Modal id="settings-modal" title="Limits & Rules" size="md">
+        <div className="space-y-6 pt-4">
           <div className="bg-white rounded-xl p-5 border border-slate-200 space-y-4">
             <P text="Set the maximum expense amount that can be auto-approved." size="sm" className="text-slate-500" />
             <InputField 
@@ -165,8 +136,8 @@ export default function ExpenseManagement({ isEmbedded }) {
         </div>
       </Modal>
 
-      <Modal id="add-expense-modal" title="Add Expense" size="sm">
-        <div className="space-y-6">
+      <Modal id="add-expense-modal" title="Add Expense" size="md">
+        <div className="space-y-6 pt-4">
            <div className="bg-white rounded-xl p-5 border border-slate-200 space-y-4">
              <P text="Submit a new expense record." size="sm" className="text-slate-500 mb-2" />
              <InputField 

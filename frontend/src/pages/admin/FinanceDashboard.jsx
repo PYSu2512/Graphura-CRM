@@ -4,7 +4,7 @@ import InvoiceManagement from './InvoiceManagement';
 import ExpenseManagement from './ExpenseManagement';
 import {
   DashGrid, EnhancedDashCard, Heading, P, Button,
-  GColumnChart, GDoughnutChart, DataTable, Modal, openModal
+  GColumnChart, GDoughnutChart, DataTable, PanelModal as Modal, openModal
 } from '../../components/shared/Common_Components';
 
 export default function FinanceDashboard() {
@@ -50,37 +50,35 @@ export default function FinanceDashboard() {
   ];
 
   return (
-    <div className="w-full min-h-screen bg-white p-4 md:p-8">
+    <div className="space-y-6">
       
-      <div className="flex flex-col mb-8">
-        <div className="flex flex-col gap-4 mb-6 w-full">
-          <div>
-            <Heading primaryText="Finance" secondaryText="Dashboard" size={12} />
-            <P text="Overview of your revenue and transactions." size="sm" />
-          </div>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col">
+          <Heading primaryText="Finance" secondaryText="Dashboard" size={12} />
+          <P text="Overview of your revenue and transactions." size="sm" />
         </div>
         
-        <div className="flex space-x-8 border-b border-slate-200 overflow-x-auto whitespace-nowrap pt-2">
+        <div className="flex space-x-8 border-b border-slate-200 overflow-x-auto no-scrollbar pt-2">
           <button 
-            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'overview' ? 'text-[#2a465a]' : 'text-slate-400 hover:text-[#2a465a]'}`}
+            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'overview' ? 'text-[#355872]' : 'text-slate-400 hover:text-[#355872]'}`}
             onClick={() => setActiveTab('overview')}
           >
             Overview
-            {activeTab === 'overview' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2a465a] rounded-t-lg"></div>}
+            {activeTab === 'overview' && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#355872] rounded-t-full"></div>}
           </button>
           <button 
-            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'invoices' ? 'text-[#2a465a]' : 'text-slate-400 hover:text-[#2a465a]'}`}
+            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'invoices' ? 'text-[#355872]' : 'text-slate-400 hover:text-[#355872]'}`}
             onClick={() => setActiveTab('invoices')}
           >
             Invoice Management
-            {activeTab === 'invoices' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2a465a] rounded-t-lg"></div>}
+            {activeTab === 'invoices' && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#355872] rounded-t-full"></div>}
           </button>
           <button 
-            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'expenses' ? 'text-[#2a465a]' : 'text-slate-400 hover:text-[#2a465a]'}`}
+            className={`pb-3 font-bold text-sm transition-colors relative ${activeTab === 'expenses' ? 'text-[#355872]' : 'text-slate-400 hover:text-[#355872]'}`}
             onClick={() => setActiveTab('expenses')}
           >
             Expense Management
-            {activeTab === 'expenses' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2a465a] rounded-t-lg"></div>}
+            {activeTab === 'expenses' && <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-[#355872] rounded-t-full"></div>}
           </button>
         </div>
       </div>
@@ -124,7 +122,7 @@ export default function FinanceDashboard() {
             subtitle="Revenue across the week"
             data={weeklyRevenue}
             bars={[{ key: "revenue", label: "Revenue", color: "#3b82f6" }]}
-            size={6}
+            size={7}
             height={320}
           />
           <GDoughnutChart
@@ -132,7 +130,7 @@ export default function FinanceDashboard() {
              subtitle="Distribution by product type"
              data={revenueStreams}
              colors={["#8b5cf6", "#14b8a6", "#22c55e"]}
-             size={6}
+             size={5}
              height={320}
              innerRadius={70}
           />
@@ -140,35 +138,39 @@ export default function FinanceDashboard() {
       )}
 
       {activeTab === 'invoices' && (
-        <div className="mt-6">
+        <div className="mt-2">
           <InvoiceManagement isEmbedded={true} />
         </div>
       )}
 
       {activeTab === 'expenses' && (
-        <div className="mt-6">
+        <div className="mt-2">
           <ExpenseManagement isEmbedded={true} />
         </div>
       )}
 
       <Modal id="pending-modal" title="Pending Payments Details" size="xl">
-         <DataTable
-           columns={tableColumns}
-           rows={pendingList}
-           size={12}
-           pageSize={5}
-           searchable={false}
-         />
+         <div className="mt-4">
+           <DataTable
+             columns={tableColumns}
+             rows={pendingList}
+             size={12}
+             pageSize={5}
+             searchable={false}
+           />
+         </div>
       </Modal>
 
       <Modal id="failed-modal" title="Failed Payments Details" size="xl">
-         <DataTable
-           columns={tableColumns}
-           rows={failedList}
-           size={12}
-           pageSize={5}
-           searchable={false}
-         />
+         <div className="mt-4">
+           <DataTable
+             columns={tableColumns}
+             rows={failedList}
+             size={12}
+             pageSize={5}
+             searchable={false}
+           />
+         </div>
       </Modal>
       
     </div>

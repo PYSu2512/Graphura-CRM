@@ -8,9 +8,13 @@ import {
   DataTable,
   GLineChart,
   GDoughnutChart,
-  GColumnChart
+  GColumnChart,
+  PanelModal as Modal,
+  openModal,
+  closeModal,
+  ModalGrid,
+  ModalData
 } from '../../components/shared/Common_Components';
-import { StatCard } from '../../components/ui/StatCard';
 
 // -- Dummy Data for Charts & Overview --
 const attendanceTrendData = [
@@ -52,7 +56,7 @@ const employeesColumns = [
   { key: "attendance", label: "ATTENDANCE %", width: "16%" },
   { key: "totalLeaves", label: "TOTAL LEAVES", width: "16%" },
   { key: "workingDays", label: "WORKING DAYS", width: "16%" },
-  { key: "empStatus", label: "CURRENT STATUS", width: "20%" },
+  { key: "empStatus", label: "CURRENT STATUS", width: "16%" },
 ];
 const employeesRows = [
   { name: "Alice Smith", department: "Sales", date: "2024-01-15", attendance: "98%", totalLeaves: "2", workingDays: "22", status: "Active" },
@@ -64,13 +68,13 @@ const employeesRows = [
 
 // Attendance
 const attendanceColumns = [
-  { key: "name", label: "NAME", width: "18%" },
+  { key: "name", label: "NAME", width: "20%" },
   { key: "department", label: "DEPARTMENT", width: "15%" },
   { key: "date", label: "DATE", width: "15%" },
-  { key: "clockIn", label: "CLOCK IN", width: "12%" },
-  { key: "clockOut", label: "CLOCK OUT", width: "12%" },
-  { key: "totalHours", label: "TOTAL HOURS", width: "12%" },
-  { key: "attStatus", label: "STATUS", width: "16%" },
+  { key: "clockIn", label: "CLOCK IN", width: "15%" },
+  { key: "clockOut", label: "CLOCK OUT", width: "15%" },
+  { key: "totalHours", label: "TOTAL HOURS", width: "10%" },
+  { key: "attStatus", label: "STATUS", width: "10%" },
 ];
 const attendanceRows = [
   { name: "Alice Smith", department: "Sales", date: "2024-11-01", clockIn: "09:00 AM", clockOut: "05:00 PM", totalHours: "8h", status: "Present" },
@@ -82,11 +86,11 @@ const attendanceRows = [
 
 // Leave Requests
 const leaveColumns = [
-  { key: "name", label: "NAME", width: "15%" },
-  { key: "leaveType", label: "LEAVE TYPE", width: "15%" },
-  { key: "dates", label: "FROM - TO DATES", width: "25%" },
-  { key: "days", label: "DAYS", width: "10%" },
-  { key: "status", label: "STATUS", width: "10%" },
+  { key: "name", label: "NAME", width: "20%" },
+  { key: "leaveType", label: "LEAVE TYPE", width: "20%" },
+  { key: "dates", label: "FROM - TO DATES", width: "30%" },
+  { key: "days", label: "DAYS", width: "15%" },
+  { key: "status", label: "STATUS", width: "15%" },
 ];
 const leaveRows = [
   { name: "Bob Johnson", leaveType: "Sick Leave", dates: "2024-11-05 to 2024-11-06", days: "2", status: "Approved" },
@@ -98,9 +102,9 @@ const leaveRows = [
 
 // Approvals
 const approvalsColumns = [
-  { key: "name", label: "NAME", width: "15%" },
-  { key: "leaveDates", label: "LEAVE DATES", width: "20%" },
-  { key: "reason", label: "REASON", width: "25%" },
+  { key: "name", label: "NAME", width: "20%" },
+  { key: "leaveDates", label: "LEAVE DATES", width: "25%" },
+  { key: "reason", label: "REASON", width: "35%" },
 ];
 const approvalsRows = [
   { id: 1, name: "Charlie Brown", leaveDates: "2024-11-10 to 2024-11-15", reason: "Family Vacation", status: "Pending" },
@@ -116,7 +120,6 @@ export default function HRM() {
 
   // Modal states
   const [selectedApproval, setSelectedApproval] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [approvalsData, setApprovalsData] = useState(approvalsRows);
 
   // Handle Approvals actions
@@ -130,7 +133,7 @@ export default function HRM() {
       icon: <Check size={16} />,
       onClick: (row) => {
         setSelectedApproval(row);
-        setIsModalOpen(true);
+        openModal("approval-modal");
       },
       variant: "primary"
     },
@@ -192,88 +195,11 @@ export default function HRM() {
   }));
 
   return (
-    <div className="w-full min-h-screen bg-white p-4 md:p-8">
-      <style>{`
-        /* Employees Table Styles */
-        .hrm-employees-table table {
-          table-layout: fixed;
-          width: 100%;
-        }
-        .hrm-employees-table th, 
-        .hrm-employees-table td {
-          white-space: normal !important;
-          word-break: normal !important;
-          overflow-wrap: break-word;
-          padding: 12px 8px !important;
-        }
-        .hrm-employees-table th:nth-child(1) { width: 20%; }
-        .hrm-employees-table th:nth-child(2) { width: 17%; }
-        .hrm-employees-table th:nth-child(3) { width: 16%; }
-        .hrm-employees-table th:nth-child(4) { width: 15%; }
-        .hrm-employees-table th:nth-child(5) { width: 15%; }
-        .hrm-employees-table th:nth-child(6) { width: 17%; }
-        .hrm-employees-table .data-table-scroll {
-          overflow-x: hidden !important;
-        }
-
-        /* Attendance Table Styles */
-        .hrm-attendance-table table {
-          table-layout: fixed;
-          width: 100%;
-        }
-        .hrm-attendance-table th, 
-        .hrm-attendance-table td {
-          white-space: normal !important;
-          word-break: normal !important;
-          overflow-wrap: break-word;
-          padding: 12px 8px !important;
-        }
-        .hrm-attendance-table th:nth-child(1) { width: 18%; }
-        .hrm-attendance-table th:nth-child(2) { width: 16%; }
-        .hrm-attendance-table th:nth-child(3) { width: 15%; }
-        .hrm-attendance-table th:nth-child(4) { width: 12%; }
-        .hrm-attendance-table th:nth-child(5) { width: 12%; }
-        .hrm-attendance-table th:nth-child(6) { width: 13%; }
-        .hrm-attendance-table th:nth-child(7) { width: 14%; }
-        .hrm-attendance-table .data-table-scroll {
-          overflow-x: hidden !important;
-        }
-
-        /* Approvals Table Styles */
-        .hrm-approvals-table table {
-          table-layout: fixed;
-          width: 100%;
-        }
-        .hrm-approvals-table th, 
-        .hrm-approvals-table td {
-          white-space: nowrap !important;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          padding: 12px 8px !important;
-        }
-        .hrm-approvals-table th:nth-child(1) { width: 20%; }
-        .hrm-approvals-table th:nth-child(2) { width: 28%; }
-        .hrm-approvals-table th:nth-child(3) { width: 27%; }
-        .hrm-approvals-table th:last-child,
-        .hrm-approvals-table td:last-child {
-          width: 190px !important;
-          min-width: 190px !important;
-          white-space: nowrap !important;
-          text-align: center;
-          overflow: visible;
-        }
-        .hrm-approvals-table td:last-child > div {
-          flex-wrap: nowrap !important;
-          justify-content: center;
-        }
-        .hrm-approvals-table .data-table-scroll {
-          overflow-x: hidden !important;
-        }
-      `}</style>
+    <div className="space-y-6">
       
       {/* Header & Tabs Wrap */}
-      <div className="mb-6">
-        <div className="flex flex-col mb-6">
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col">
           <Heading primaryText="HRM" secondaryText="Dashboard" size={12} />
           <P text="Overview of human resources and employee activities." size="sm" />
         </div>
@@ -299,7 +225,7 @@ export default function HRM() {
 
       {/* ── Overview Tab ── */}
       {activeTab === 'Overview' && (
-        <div className="space-y-10">
+        <div className="space-y-6">
           <DashGrid cols={12} gap={6}>
             <EnhancedDashCard
               title="Total Employees"
@@ -341,7 +267,7 @@ export default function HRM() {
                 { key: "absent", label: "Absent", color: "#f59e0b" },
                 { key: "leave", label: "Leave", color: "#f43f5e" },
               ]}
-              size={7}
+              size={8}
               height={320}
             />
             <GDoughnutChart
@@ -349,7 +275,7 @@ export default function HRM() {
               subtitle="Distribution of leave requests"
               data={leaveStatusData}
               colors={["#8b5cf6", "#14b8a6", "#f43f5e"]}
-              size={5}
+              size={4}
               height={320}
               innerRadius={80}
             />
@@ -358,7 +284,7 @@ export default function HRM() {
               subtitle="Attendance % by department"
               data={departmentData}
               bars={[{ key: "attendance", label: "Attendance %", color: "#3b82f6" }]}
-              size={6}
+              size={7}
               height={320}
             />
             <GDoughnutChart
@@ -366,7 +292,7 @@ export default function HRM() {
               subtitle="Distribution by department"
               data={employeeCompositionData}
               colors={["#8b5cf6", "#14b8a6", "#f43f5e", "#22c55e", "#f59e0b"]}
-              size={6}
+              size={5}
               height={320}
               innerRadius={70}
             />
@@ -376,8 +302,8 @@ export default function HRM() {
 
       {/* ── Employees Tab ── */}
       {activeTab === 'Employees' && (
-        <div className="bg-white rounded-xl p-3 flex-col gap-3 w-full hrm-employees-table">
-          <div className="flex justify-end mb-2 p-2">
+        <div className="flex-col gap-3 w-full">
+          <div className="flex justify-end mb-4">
             <button
               onClick={() => handleExportCSV(employeesColumns, styledEmployeesRows, 'employees_export.csv')}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm w-full sm:w-auto justify-center"
@@ -389,7 +315,7 @@ export default function HRM() {
             columns={employeesColumns}
             rows={styledEmployeesRows}
             size={12}
-            pageSize={5}
+            pageSize={10}
             searchable={true}
             filters={[
               { title: "Date", key: "date", type: "date" },
@@ -401,8 +327,8 @@ export default function HRM() {
 
       {/* ── Attendance Tab ── */}
       {activeTab === 'Attendance' && (
-        <div className="bg-white rounded-xl p-3 flex-col gap-3 w-full hrm-attendance-table">
-          <div className="flex justify-end mb-2 p-2">
+        <div className="flex-col gap-3 w-full">
+          <div className="flex justify-end mb-4">
             <button
               onClick={() => handleExportCSV(attendanceColumns, styledFilteredAttendanceRows, 'attendance_export.csv')}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm w-full sm:w-auto justify-center"
@@ -415,7 +341,7 @@ export default function HRM() {
             columns={attendanceColumns}
             rows={styledFilteredAttendanceRows}
             size={12}
-            pageSize={5}
+            pageSize={10}
             searchable={true}
             hideTopBar={false}
             filters={[
@@ -428,8 +354,8 @@ export default function HRM() {
 
       {/* ── Leave Requests Tab ── */}
       {activeTab === 'Leave Requests' && (
-        <div className="bg-white rounded-xl p-3 flex-col gap-3 w-full">
-          <div className="flex justify-end mb-2 p-2">
+        <div className="flex-col gap-3 w-full">
+          <div className="flex justify-end mb-4">
              <button
                 onClick={() => handleExportCSV(leaveColumns, leaveRows, 'leave_export.csv')}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm w-full sm:w-auto justify-center"
@@ -441,7 +367,7 @@ export default function HRM() {
             columns={leaveColumns}
             rows={leaveRows}
             size={12}
-            pageSize={5}
+            pageSize={10}
             searchable={true}
           />
         </div>
@@ -449,58 +375,53 @@ export default function HRM() {
 
       {/* ── Approvals Tab ── */}
       {activeTab === 'Approvals' && (
-        <div className="bg-white rounded-xl p-3 flex-col gap-3 w-full hrm-approvals-table">
+        <div className="flex-col gap-3 w-full">
           <DataTable
             columns={approvalsColumns}
             rows={approvalsData.filter(row => row.status === 'Pending')}
             actions={approvalActions}
             size={12}
-            pageSize={5}
+            pageSize={10}
             searchable={true}
           />
         </div>
       )}
 
       {/* ── Approval Modal ── */}
-      {isModalOpen && selectedApproval && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-[#2a465a]">Confirm Approval</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+      <Modal id="approval-modal" title="Confirm Approval" size="md">
+        {selectedApproval && (
+          <div className="space-y-6">
+            <P text="Are you sure you want to approve this leave request?" size="sm" />
+            
+            <div className="bg-white rounded-xl p-5 border border-slate-200">
+              <ModalGrid title="Leave Information" cols={1}>
+                <ModalData label="Employee" value={selectedApproval.name} />
+                <ModalData label="Dates" value={selectedApproval.leaveDates} />
+                <ModalData label="Reason" value={selectedApproval.reason} />
+              </ModalGrid>
             </div>
-            <div className="space-y-3 mb-6">
-              <p className="text-sm text-slate-600">Are you sure you want to approve this leave request?</p>
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-100 text-sm space-y-2">
-                <div className="flex justify-between"><span className="font-semibold text-slate-500">Employee:</span> <span className="font-medium text-[#2a465a]">{selectedApproval.name}</span></div>
-                <div className="flex justify-between"><span className="font-semibold text-slate-500">Dates:</span> <span className="font-medium text-[#2a465a]">{selectedApproval.leaveDates}</span></div>
-                <div className="flex justify-between"><span className="font-semibold text-slate-500">Reason:</span> <span className="font-medium text-[#2a465a]">{selectedApproval.reason}</span></div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-3">
+            
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
               <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                onClick={() => closeModal("approval-modal")}
+                className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => {
                   setApprovalsData(prev => prev.map(row => row.id === selectedApproval.id ? { ...row, status: 'Approved' } : row));
-                  setIsModalOpen(false);
+                  closeModal("approval-modal");
                 }}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-[#355872] text-white hover:bg-[#2a465a] transition-colors flex items-center gap-2"
+                className="px-4 py-2 rounded-xl text-sm font-semibold bg-[#2a465a] text-white hover:bg-[#1e3a52] transition-colors flex items-center gap-2 shadow-md shadow-[#2a465a]/20"
               >
                 <Check size={16} /> Confirm Approve
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
     </div>
   );
 }
-

@@ -5,76 +5,81 @@ import {
   Users,
   Wifi,
   Download,
-  Search,
   Calendar,
+  MapPin,
 } from "lucide-react";
 import {
   DashGrid,
   EnhancedDashCard as DashCard,
-  EnhancedDataTable as DataTable,
+  DataTable,
 } from "../../../components/shared/Common_Components";
 
-const statusOptions = ["All", "Success", "Failed"];
+// ── Mock login logs with required fields ──
+const mockLoginLogs = [
+  { id: 1, username: "Rahul Sharma", role: "Sales Manager", dateTime: "2026-05-09 10:23:45", ip: "192.168.1.101", latitude: "19.0760", longitude: "72.8777" },
+  { id: 2, username: "Neha Singh", role: "Team Leader", dateTime: "2026-05-09 09:45:12", ip: "192.168.1.102", latitude: "28.7041", longitude: "77.1025" },
+  { id: 3, username: "Deepika Nair", role: "Sales Executive", dateTime: "2026-05-09 09:30:08", ip: "103.21.58.193", latitude: "13.0827", longitude: "80.2707" },
+  { id: 4, username: "Anita Bose", role: "Sales Executive", dateTime: "2026-05-09 08:55:33", ip: "49.36.128.74", latitude: "22.5726", longitude: "88.3639" },
+  { id: 5, username: "Vikram Desai", role: "Team Leader", dateTime: "2026-05-08 18:12:01", ip: "103.87.65.12", latitude: "17.3850", longitude: "78.4867" },
+  { id: 6, username: "Admin User", role: "Admin", dateTime: "2026-05-08 17:40:22", ip: "192.168.1.1", latitude: "19.0760", longitude: "72.8777" },
+  { id: 7, username: "Priya Mehta", role: "Finance Manager", dateTime: "2026-05-08 16:20:55", ip: "49.36.200.18", latitude: "23.0225", longitude: "72.5714" },
+  { id: 8, username: "Kabir Singh", role: "Sales Executive", dateTime: "2026-05-08 15:05:10", ip: "103.21.58.200", latitude: "26.9124", longitude: "75.7873" },
+  { id: 9, username: "Meera Joshi", role: "HR Manager", dateTime: "2026-05-08 14:30:44", ip: "192.168.1.105", latitude: "18.5204", longitude: "73.8567" },
+  { id: 10, username: "Tarun Bhat", role: "Sales Manager", dateTime: "2026-05-07 11:15:30", ip: "49.36.128.90", latitude: "12.9716", longitude: "77.5946" },
+  { id: 11, username: "Rahul Sharma", role: "Sales Manager", dateTime: "2026-05-07 09:10:05", ip: "192.168.1.101", latitude: "19.0760", longitude: "72.8777" },
+  { id: 12, username: "Neha Singh", role: "Team Leader", dateTime: "2026-05-07 08:45:18", ip: "103.87.65.55", latitude: "28.7041", longitude: "77.1025" },
+];
+
+const roleOptions = ["All Roles", "Admin", "Sales Manager", "Team Leader", "Sales Executive", "Finance Manager", "HR Manager"];
 
 export default function LoginLogs() {
-  const [logs, setLogs] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
-  const [isLoading, setIsLoading] = useState(true);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [logs, setLogs] = useState(mockLoginLogs);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchLogs = async () => {
-      try {
-        setIsLoading(true);
-        // Placeholder until actual backend logs are implemented
-        setLogs([]);
-      } catch (error) {
-        console.error("Failed to fetch logs:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchLogs();
-  }, []);
+  // TODO: Replace with real API call when backend endpoint is ready
+  // useEffect(() => {
+  //   const fetchLogs = async () => {
+  //     try {
+  //       setIsLoading(true);
+  //       const response = await loginService.getLogs();
+  //       setLogs(response.data.logs);
+  //     } catch (error) {
+  //       console.error("Failed to fetch login logs:", error);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   fetchLogs();
+  // }, []);
 
   // ── Stats ──
   const totalLogins = logs.length;
-  const failedAttempts = logs.filter((l) => l.status === "Failed").length;
-  const uniqueUsers = new Set(
-    logs.filter((l) => l.user !== "Unknown").map((l) => l.user)
-  ).size;
-  const activeSessions = logs.filter(
-    (l) => l.status === "Success"
-  ).length;
+  const uniqueUsers = new Set(logs.map((l) => l.username)).size;
+  const todayLogins = logs.filter((l) => l.dateTime.startsWith("2026-05-09")).length;
+  const uniqueIPs = new Set(logs.map((l) => l.ip)).size;
 
-  // ── Filter Logic ──
-  const filtered = useMemo(() => {
-    return logs.filter((log) => {
-      const q = searchQuery.toLowerCase();
-      const matchSearch =
-        !q ||
-        log.user.toLowerCase().includes(q) ||
-        log.ip.includes(q) ||
-        log.location.toLowerCase().includes(q);
-      const matchStatus =
-        statusFilter === "All" || log.status === statusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [searchQuery, statusFilter]);
-
-  // ── Table columns ──
+  // ── Table columns — Username, Role, Date & Time, IP Address, Latitude, Longitude ──
   const columns = [
-    { key: "user", label: "User" },
+    { key: "username", label: "Username" },
+    { key: "role", label: "Role" },
+    { key: "dateTime", label: "Date & Time" },
     { key: "ip", label: "IP Address" },
-    { key: "device", label: "Device / Browser" },
-    { key: "location", label: "Location" },
-    { key: "loginTime", label: "Login Time" },
-    { key: "status", label: "Status" },
-    { key: "logoutTime", label: "Logout Time" },
+    { key: "latitude", label: "Latitude" },
+    { key: "longitude", label: "Longitude" },
   ];
+
+  // ── Export ──
+  const handleExport = () => {
+    const csvContent = "data:text/csv;charset=utf-8,Username,Role,Date & Time,IP Address,Latitude,Longitude\n" +
+      logs.map(l => `${l.username},${l.role},${l.dateTime},${l.ip},${l.latitude},${l.longitude}`).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "login_logs_export.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
@@ -83,11 +88,11 @@ export default function LoginLogs() {
         <div>
           <h2 className="text-xl font-bold text-[#2a465a]">Login Logs</h2>
           <p className="text-sm text-slate-500 mt-0.5">
-            Monitor all login activity and security events
+            Monitor all login activity with location tracking
           </p>
         </div>
         <button
-          onClick={() => alert("Export CSV coming soon")}
+          onClick={handleExport}
           className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:-translate-y-0.5 active:scale-95 w-fit"
         >
           <Download size={14} />
@@ -98,87 +103,47 @@ export default function LoginLogs() {
       {/* ── Stat Cards ── */}
       <DashGrid cols={12} gap={4}>
         <DashCard
-          title="Total Logins (24h)"
+          title="Total Logins"
           value={String(totalLogins)}
           icon={<LogIn size={22} />}
           accentColor="#38bdf8"
           size={3}
         />
         <DashCard
-          title="Failed Attempts"
-          value={String(failedAttempts)}
-          icon={<AlertTriangle size={22} />}
-          accentColor="#f43f5e"
+          title="Today's Logins"
+          value={String(todayLogins)}
+          icon={<Calendar size={22} />}
+          accentColor="#3b82f6"
           size={3}
         />
         <DashCard
           title="Unique Users"
           value={String(uniqueUsers)}
           icon={<Users size={22} />}
-          accentColor="#3b82f6"
+          accentColor="#22c55e"
           size={3}
         />
         <DashCard
-          title="Active Sessions"
-          value={String(activeSessions)}
-          icon={<Wifi size={22} />}
-          accentColor="#22c55e"
+          title="Unique IPs"
+          value={String(uniqueIPs)}
+          icon={<MapPin size={22} />}
+          accentColor="#f59e0b"
           size={3}
         />
       </DashGrid>
 
-      {/* ── Filters ── */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/60 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-          {/* Date range */}
-          <div className="flex items-center gap-2">
-            <Calendar size={16} className="text-slate-400 flex-shrink-0" />
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5 text-xs text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 transition"
-            />
-            <span className="text-xs text-slate-400 font-bold">to</span>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-slate-50/90 px-3 py-2.5 text-xs text-[#2a465a] focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 transition"
-            />
-          </div>
-        </div>
-
-        {/* Status pills */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider mr-1">
-            Status:
-          </span>
-          {statusOptions.map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-200 ${
-                statusFilter === s
-                  ? "bg-[#2a465a] text-white shadow-md"
-                  : "bg-slate-100 text-slate-500 hover:bg-slate-200"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
       {/* ── Data Table ── */}
       <DataTable
-        title="Login Log Records"
+        title="Login Activity Records"
         columns={columns}
-        rows={filtered}
-        pageSize={5}
-        importantColumnsCount={4}
+        rows={logs}
+        pageSize={10}
+        searchable
+        size={12}
+        filters={[
+          { title: "Role", type: "select", key: "role", options: ["Admin", "Sales Manager", "Team Leader", "Sales Executive", "Finance Manager", "HR Manager"] },
+        ]}
       />
     </div>
   );
 }
-

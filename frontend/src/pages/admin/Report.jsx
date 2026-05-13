@@ -1,671 +1,285 @@
 import { useMemo, useState } from "react";
 import {
-  BarChart3,
-  CalendarRange,
-  ChevronDown,
-  Layers3,
-  Plus,
-  Users,
-  X,
+  BarChart3, CalendarRange, Layers3, Plus, Users, Eye, Pencil,
+  FileText, CheckCircle, AlertCircle, Clock, TrendingUp, TrendingDown,
+  FileDown,
 } from "lucide-react";
+import {
+  DashGrid, EnhancedDashCard as DashCard, DataTable, Heading,
+  PanelModal as Modal, openModal, closeModal, Button,
+  Grid, InputField, SelectField, Option, GAreaChart, GBarChart,
+} from "../../components/shared/Common_Components";
+
+// ── Mock Data ──────────────────────────────────────────────────────────────
 
 const initialReports = [
-  {
-    id: "RPT-300",
-    title: "Daily Sales Activity",
-    type: "Sales",
-    department: "Sales",
-    cadence: "Daily",
-    period: "23 Apr 2026",
-    status: "Published",
-    owner: "Aarav Mehta",
-    generatedOn: "23 Apr 2026, 08:30 AM",
-    summary:
-      "Captures fresh leads, follow-ups completed, and conversion movement across the sales desk.",
-    metrics: [
-      { label: "New Leads", value: "26" },
-      { label: "Calls Closed", value: "49" },
-      { label: "Conversions", value: "8" },
-    ],
-  },
-  {
-    id: "RPT-301",
-    title: "Monthly Sales Performance",
-    type: "Sales",
-    department: "Sales",
-    cadence: "Monthly",
-    period: "Apr 2026",
-    status: "Published",
-    owner: "Riya Sharma",
-    generatedOn: "19 Apr 2026, 09:20 AM",
-    summary:
-      "Tracks lead conversion, revenue movement, and follow-up performance across regional sales teams.",
-    metrics: [
-      { label: "Revenue", value: "Rs 8.4L" },
-      { label: "Conversions", value: "124" },
-      { label: "Follow-ups", value: "392" },
-    ],
-  },
-  {
-    id: "RPT-302",
-    title: "Finance Collection Overview",
-    type: "Finance",
-    department: "Finance",
-    cadence: "Quarterly",
-    period: "Q2 2026",
-    status: "Draft",
-    owner: "Vikram Nair",
-    generatedOn: "18 Apr 2026, 05:10 PM",
-    summary:
-      "Shows pending invoices, collection trends, and payment delays across active client accounts.",
-    metrics: [
-      { label: "Collections", value: "Rs 5.9L" },
-      { label: "Pending", value: "Rs 1.3L" },
-      { label: "Overdue", value: "17" },
-    ],
-  },
-  {
-    id: "RPT-303",
-    title: "Management Pipeline Snapshot",
-    type: "Executive",
-    department: "Mgmt",
-    cadence: "Weekly",
-    period: "Week 16, 2026",
-    status: "Scheduled",
-    owner: "Ananya Patel",
-    generatedOn: "19 Apr 2026, 08:00 AM",
-    summary:
-      "High-level summary of team delivery, lead pipeline, project health, and escalation trends.",
-    metrics: [
-      { label: "Projects", value: "28" },
-      { label: "At Risk", value: "4" },
-      { label: "Escalations", value: "6" },
-    ],
-  },
+  { id: "RPT-300", title: "Daily Sales Activity", type: "Sales", department: "Sales", cadence: "Daily", period: "23 Apr 2026", status: "Published", owner: "Aarav Mehta", generatedOn: "23 Apr 2026, 08:30 AM", summary: "Captures fresh leads, follow-ups completed, and conversion movement across the sales desk.", priority: "Normal" },
+  { id: "RPT-301", title: "Monthly Sales Performance", type: "Sales", department: "Sales", cadence: "Monthly", period: "Apr 2026", status: "Published", owner: "Riya Sharma", generatedOn: "19 Apr 2026, 09:20 AM", summary: "Tracks lead conversion, revenue movement, and follow-up performance across regional sales teams.", priority: "Normal" },
+  { id: "RPT-302", title: "Finance Collection Overview", type: "Finance", department: "Finance", cadence: "Quarterly", period: "Q2 2026", status: "Draft", owner: "Vikram Nair", generatedOn: "18 Apr 2026, 05:10 PM", summary: "Shows pending invoices, collection trends, and payment delays across active client accounts.", priority: "Critical" },
+  { id: "RPT-303", title: "Management Pipeline Snapshot", type: "Executive", department: "Mgmt", cadence: "Weekly", period: "Week 16, 2026", status: "Scheduled", owner: "Ananya Patel", generatedOn: "19 Apr 2026, 08:00 AM", summary: "High-level summary of team delivery, lead pipeline, project health, and escalation trends.", priority: "Normal" },
+  { id: "RPT-304", title: "HR Attrition Report", type: "Executive", department: "HR", cadence: "Monthly", period: "Apr 2026", status: "Draft", owner: "Karan Bhatia", generatedOn: "20 Apr 2026, 11:00 AM", summary: "Tracks employee turnover, new hires, and department-level attrition rates.", priority: "Normal" },
 ];
 
-const filterConfig = [
-  {
-    key: "type",
-    title: "Report Type",
-    icon: Layers3,
-    options: ["All", "Sales", "Finance", "Executive"],
-  },
-  {
-    key: "status",
-    title: "Status",
-    icon: BarChart3,
-    options: ["All", "Published", "Draft", "Scheduled"],
-  },
-  {
-    key: "department",
-    title: "Department",
-    icon: Users,
-    options: ["All", "Sales", "Finance", "Mgmt"],
-  },
-  {
-    key: "cadence",
-    title: "Report View",
-    icon: CalendarRange,
-    options: ["All", "Daily", "Weekly", "Monthly", "Quarterly"],
-  },
+const reportTrendData = [
+  { name: "Jan", published: 5, draft: 2, scheduled: 1 },
+  { name: "Feb", published: 7, draft: 3, scheduled: 2 },
+  { name: "Mar", published: 6, draft: 1, scheduled: 3 },
+  { name: "Apr", published: 9, draft: 4, scheduled: 2 },
+  { name: "May", published: 8, draft: 2, scheduled: 1 },
+  { name: "Jun", published: 10, draft: 3, scheduled: 2 },
 ];
 
-const defaultReportForm = {
-  title: "",
-  type: "Sales",
-  department: "Sales",
-  cadence: "Monthly",
-  period: "",
-  owner: "",
-  status: "Draft",
-  summary: "",
-};
+const deptReportData = [
+  { name: "Sales", reports: 12, approved: 10 },
+  { name: "Finance", reports: 8, approved: 5 },
+  { name: "Mgmt", reports: 6, approved: 5 },
+  { name: "HR", reports: 4, approved: 3 },
+];
 
-function statusClass(status) {
-  if (status === "Published") return "bg-[#e8f4ec] text-[#246247]";
-  if (status === "Scheduled") return "bg-[#e6f0f8] text-[#355872]";
-  return "bg-[#fff2d7] text-[#9a6a06]";
-}
+const defaultForm = { title: "", type: "Sales", department: "Sales", cadence: "Monthly", period: "", owner: "", status: "Draft", summary: "", priority: "Normal" };
 
-function Report() {
+const columns = [
+  { key: "id", label: "Report ID" },
+  { key: "title", label: "Report Name" },
+  { key: "department", label: "Department" },
+  { key: "owner", label: "Generated By" },
+  { key: "type", label: "Type" },
+  { key: "priority", label: "Priority" },
+  { key: "status", label: "Status" },
+  { key: "generatedOn", label: "Last Updated" },
+];
+
+// ── Component ──────────────────────────────────────────────────────────────
+
+export default function Report() {
   const [reports, setReports] = useState(initialReports);
-  const [filters, setFilters] = useState({
-    type: "All",
-    status: "All",
-    department: "All",
-    cadence: "All",
-  });
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [activeReport, setActiveReport] = useState(null);
-  const [form, setForm] = useState(defaultReportForm);
+  const [form, setForm] = useState(defaultForm);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredReports = useMemo(() => {
-    return reports.filter((report) => {
-      const matchesType = filters.type === "All" || report.type === filters.type;
-      const matchesStatus = filters.status === "All" || report.status === filters.status;
-      const matchesDepartment =
-        filters.department === "All" || report.department === filters.department;
-      const matchesCadence = filters.cadence === "All" || report.cadence === filters.cadence;
+  // KPIs
+  const total = reports.length;
+  const published = reports.filter(r => r.status === "Published").length;
+  const drafts = reports.filter(r => r.status === "Draft").length;
+  const critical = reports.filter(r => r.priority === "Critical").length;
 
-      return matchesType && matchesStatus && matchesDepartment && matchesCadence;
-    });
-  }, [filters, reports]);
+  const handleFormChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-  const tableReports = useMemo(() => {
-    return filteredReports.filter(
-      (report) => report.cadence !== "Daily" && report.cadence !== "Monthly"
-    );
-  }, [filteredReports]);
+  const handleSave = () => {
+    if (!form.title.trim() || !form.owner.trim()) return;
+    setIsSubmitting(true);
+    setTimeout(() => {
+      if (form.id) {
+        setReports(prev => prev.map(r => r.id === form.id ? { ...form } : r));
+      } else {
+        const newReport = {
+          ...form,
+          id: `RPT-${305 + reports.length}`,
+          generatedOn: new Date().toLocaleString("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+        };
+        setReports(prev => [newReport, ...prev]);
+      }
+      closeModal("report-form-modal");
+      setIsSubmitting(false);
+    }, 400);
+  };
 
-  const stats = useMemo(() => {
-    const total = reports.length;
-    const daily = reports.filter((report) => report.cadence === "Daily").length;
-    const monthly = reports.filter((report) => report.cadence === "Monthly").length;
-    const published = reports.filter((report) => report.status === "Published").length;
+  const handleDelete = () => {
+    setIsSubmitting(true);
+    setTimeout(() => {
+      setReports(prev => prev.filter(r => r.id !== form.id));
+      closeModal("report-form-modal");
+      setIsSubmitting(false);
+    }, 400);
+  };
 
-    return [
-      {
-        label: "Total Reports",
-        value: total,
-        helper: "All business reports",
-        tone: "from-[#355872] to-[#4d7897] text-white",
-      },
-      {
-        label: "Published",
-        value: published,
-        helper: "Ready to share",
-        tone: "from-[#e4f5ec] to-[#cbe8d8] text-[#1f6b4f]",
-      },
-      {
-        label: "Daily Reports",
-        value: daily,
-        helper: "Day-wise activity summary",
-        tone: "from-[#fff1de] to-[#ffe2b9] text-[#8a4b08]",
-      },
-      {
-        label: "Monthly Reports",
-        value: monthly,
-        helper: "Month-wise performance summary",
-        tone: "from-[#e6f0f8] to-[#d5e6f3] text-[#355872]",
-      },
-    ];
-  }, [reports]);
+  const handleExport = () => {
+    const headers = columns.map(c => c.label).join(",");
+    const rows = reports.map(r => columns.map(c => `"${r[c.key] || ""}"`).join(","));
+    const blob = new Blob([headers + "\n" + rows.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "reports-export.csv"; a.click();
+  };
 
-  const spotlightReports = useMemo(() => {
-    return {
-      daily: reports.find((report) => report.cadence === "Daily") ?? null,
-      monthly: reports.find((report) => report.cadence === "Monthly") ?? null,
-    };
-  }, [reports]);
+  const tableActions = [
+    { icon: <Eye size={14} />, tooltip: "View", variant: "ghost", onClick: (row) => { setActiveReport(row); openModal("report-view-modal"); } },
+    { icon: <Pencil size={14} />, tooltip: "Edit", variant: "primary", onClick: (row) => { setForm({ ...row }); openModal("report-form-modal"); } },
+  ];
 
-  function handleFilterChange(key, value) {
-    setFilters((current) => ({ ...current, [key]: value }));
-  }
+  // Form Input Helper
+  const FormInput = ({ label, field, placeholder }) => (
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
+      <input type="text" value={form[field]} onChange={e => handleFormChange(field, e.target.value)}
+        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-[#2a465a] focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all"
+        placeholder={placeholder || `Enter ${label.toLowerCase()}`} />
+    </div>
+  );
 
-  function handleFormChange(key, value) {
-    setForm((current) => ({ ...current, [key]: value }));
-  }
-
-  function handleCreateReport(event) {
-    event.preventDefault();
-
-    if (!form.title.trim() || !form.owner.trim() || !form.summary.trim()) {
-      return;
-    }
-
-    const nextReport = {
-      id: `RPT-${304 + reports.length}`,
-      title: form.title.trim(),
-      type: form.type,
-      department: form.department,
-      cadence: form.cadence,
-      period: form.period.trim() || form.cadence,
-      status: form.status,
-      owner: form.owner.trim(),
-      generatedOn: new Date().toLocaleString("en-US", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      summary: form.summary.trim(),
-      metrics: [
-        { label: "Primary KPI", value: "Pending" },
-        { label: "Coverage", value: "All Teams" },
-        { label: "Format", value: "Dashboard" },
-      ],
-    };
-
-    setReports((current) => [nextReport, ...current]);
-    setFilters({
-      type: "All",
-      status: "All",
-      department: "All",
-      cadence: "All",
-    });
-    setActiveReport(nextReport);
-    setIsCreateOpen(false);
-  }
+  const FormSelect = ({ label, field, options }) => (
+    <div className="space-y-1.5">
+      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
+      <select value={form[field]} onChange={e => handleFormChange(field, e.target.value)}
+        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-[#2a465a] focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all">
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
 
   return (
-    <>
-      <div className="space-y-6 text-[#2d3d4a]">
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((item) => (
-            <article
-              key={item.label}
-              className={`rounded-2xl border border-white/60 bg-gradient-to-br p-5 shadow-sm ${item.tone}`}
-            >
-              <p className="text-sm font-medium opacity-90">{item.label}</p>
-              <p className="mt-3 text-3xl font-semibold">{item.value}</p>
-              <p className="mt-2 text-sm opacity-80">{item.helper}</p>
-            </article>
-          ))}
-        </section>
+    <div className="space-y-6">
+      {/* ── Header ── */}
+      <Heading primaryText="Reports" secondaryText="Command Center" size={12} />
 
-        <section className="grid gap-4 xl:grid-cols-2">
-          {[
-            {
-              key: "daily",
-              title: "Daily Report",
-              subtitle: "Quick view of today's operational movement",
-              accent: "text-[#c77727]",
-              report: spotlightReports.daily,
-            },
-            {
-              key: "monthly",
-              title: "Monthly Report",
-              subtitle: "Month-end performance and KPI snapshot",
-              accent: "text-[#355872]",
-              report: spotlightReports.monthly,
-            },
-          ].map((item) => (
-            <article
-              key={item.key}
-              className="rounded-[24px] border border-[#dfe9ef] bg-white/85 p-5 shadow-sm"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className={`text-xs font-semibold uppercase tracking-[0.22em] ${item.accent}`}>
-                    {item.title}
-                  </p>
-                  <h2 className="mt-1 text-xl font-semibold text-[#355872]">{item.subtitle}</h2>
-                </div>
-                {item.report && (
-                  <button
-                    onClick={() =>
-                      setFilters((current) => ({ ...current, cadence: item.report.cadence }))
-                    }
-                    className="rounded-xl border border-[#d5e3eb] px-3 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f5f9fb]"
-                  >
-                    Show {item.report.cadence}
-                  </button>
-                )}
-              </div>
-
-              {item.report ? (
-                <>
-                  <div className="mt-4 rounded-2xl bg-[#f7fafc] p-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-base font-semibold text-slate-800">
-                        {item.report.title}
-                      </span>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(item.report.status)}`}
-                      >
-                        {item.report.status}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm text-slate-500">
-                      {item.report.owner} - {item.report.department} - {item.report.period}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                    {item.report.metrics.map((metric) => (
-                      <div key={metric.label} className="rounded-2xl bg-[#f5f9fb] p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-slate-400">
-                          {metric.label}
-                        </p>
-                        <p className="mt-2 text-lg font-semibold text-slate-800">{metric.value}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="mt-4 text-sm leading-6 text-slate-600">{item.report.summary}</p>
-                </>
-              ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-[#d6e2ea] bg-[#fafcfd] p-6 text-sm text-slate-500">
-                  No {item.key} report available yet.
-                </div>
-              )}
-            </article>
-          ))}
-        </section>
-
-        <section className="rounded-[24px] border border-[#dfe9ef] bg-white/85 p-5 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#c77727]">
-                Reports Center
-              </p>
-              <h2 className="mt-1 text-xl font-semibold text-[#355872]">
-                Filter reports and open the full report preview
-              </h2>
-            </div>
-            <button
-              onClick={() => {
-                setForm(defaultReportForm);
-                setIsCreateOpen(true);
-              }}
-              className="inline-flex items-center gap-2 rounded-xl bg-[#355872] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d4a60]"
-            >
-              <Plus size={16} />
-              Create Report
-            </button>
-          </div>
-
-          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {filterConfig.map((filter) => (
-              <div key={filter.key} className="rounded-2xl border border-[#e6edf2] bg-[#fdfefe] p-4">
-                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#355872]">
-                  <filter.icon size={15} />
-                  {filter.title}
-                </div>
-                <div className="relative">
-                  <select
-                    value={filters[filter.key]}
-                    onChange={(event) => handleFilterChange(filter.key, event.target.value)}
-                    className="w-full appearance-none rounded-xl border border-[#d5e3eb] bg-[#f5f9fb] px-4 py-3 text-sm font-medium text-[#355872] outline-none transition focus:border-[#7AAACE] focus:bg-white"
-                  >
-                    {filter.options.map((option) => (
-                      <option key={option}>{option}</option>
-                    ))}
-                  </select>
-                  <ChevronDown
-                    size={16}
-                    className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[#d9e6ef]">
-            <div className="overflow-x-auto bg-white">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead className="bg-[#355872] text-white">
-                  <tr>
-                    <th className="px-4 py-3 font-semibold">Report</th>
-                    <th className="px-4 py-3 font-semibold">Type</th>
-                    <th className="px-4 py-3 font-semibold">Department</th>
-                    <th className="px-4 py-3 font-semibold">View</th>
-                    <th className="px-4 py-3 font-semibold">Period</th>
-                    <th className="px-4 py-3 font-semibold">Generated</th>
-                    <th className="px-4 py-3 font-semibold">Status</th>
-                    <th className="px-4 py-3 font-semibold">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableReports.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
-                        No reports found.
-                      </td>
-                    </tr>
-                  ) : (
-                    tableReports.map((report, index) => (
-                      <tr
-                        key={report.id}
-                        className={index % 2 === 0 ? "bg-white" : "bg-[#f8fbfd]"}
-                      >
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-[#1e3445]">{report.title}</p>
-                          <p className="text-xs text-slate-500">{report.id} | {report.owner}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">
-                            {report.type}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                            {report.department}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
-                            {report.cadence}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">{report.period}</td>
-                        <td className="px-4 py-3 text-slate-600">{report.generatedOn}</td>
-                        <td className="px-4 py-3">
-                          <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(report.status)}`}>
-                            {report.status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => setActiveReport(report)}
-                            className="rounded-lg border border-[#cedee8] px-3 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f3f8fb]"
-                          >
-                            View
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
+      {/* ── Action Bar ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 -mt-2">
+        <p className="text-sm font-semibold text-slate-400">Monitor, review, and manage department reports.</p>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-[#2a465a] bg-white border border-slate-200 hover:bg-slate-50 hover:-translate-y-0.5 transition-all duration-200 active:scale-95">
+            <FileDown size={16} /> Export All
+          </button>
+          <button onClick={() => { setForm({ ...defaultForm }); openModal("report-form-modal"); }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold text-white shadow-lg bg-[#2a465a] hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 active:scale-95">
+            <Plus size={16} /> Create Report
+          </button>
+        </div>
       </div>
 
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172532]/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-[28px] border border-[#d9e6ef] bg-white p-6 shadow-[0_30px_80px_rgba(23,37,50,0.22)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#c77727]">
-                  Create Report
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold text-[#355872]">
-                  Add a new admin report
-                </h2>
+      {/* ── KPI Cards ── */}
+      <DashGrid cols={12} gap={4}>
+        <DashCard title="Total Reports" value={String(total)} icon={<FileText size={22} />} accentColor="#355872" size={3} />
+        <DashCard title="Published" value={String(published)} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
+        <DashCard title="Pending Review" value={String(drafts)} icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
+        <DashCard title="Critical" value={String(critical)} icon={<AlertCircle size={22} />} accentColor="#ef4444" size={3} />
+      </DashGrid>
+
+      {/* ── Analytics Charts ── */}
+      <DashGrid cols={12} gap={4}>
+        <GAreaChart title="Report Activity Trend" subtitle="Monthly breakdown"
+          data={reportTrendData}
+          areas={[
+            { key: "published", label: "Published", color: "#22c55e" },
+            { key: "draft", label: "Drafts", color: "#f59e0b" },
+            { key: "scheduled", label: "Scheduled", color: "#3b82f6" },
+          ]} size={8} height={260} />
+        <GBarChart title="Department Reports" subtitle="Reports vs approved"
+          data={deptReportData}
+          bars={[
+            { key: "reports", label: "Total", color: "#94a3b8" },
+            { key: "approved", label: "Approved", color: "#2a465a" },
+          ]} size={4} height={260} />
+      </DashGrid>
+
+      {/* ── Reports Table ── */}
+      <DataTable
+        title="Reports Directory"
+        columns={columns}
+        rows={reports}
+        actions={tableActions}
+        size={12} pageSize={10} searchable exportable exportFileName="reports-data"
+        filters={[
+          { title: "Department", key: "department", type: "toggle", options: ["Sales", "Finance", "Mgmt", "HR"] },
+          { title: "Status", key: "status", type: "toggle", options: ["Published", "Draft", "Scheduled"] },
+          { title: "Priority", key: "priority", type: "toggle", options: ["Normal", "Critical"] },
+          { title: "Type", key: "type", type: "toggle", options: ["Sales", "Finance", "Executive"] },
+        ]}
+      />
+
+      {/* ══ VIEW MODAL ═══════════════════════════════════════════════════════ */}
+      <Modal id="report-view-modal" title="Report Details">
+        {activeReport && (
+          <div className="space-y-5">
+            <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+              <div className="w-14 h-14 rounded-2xl bg-[#2a465a] flex items-center justify-center text-white shadow-lg">
+                <FileText size={24} />
               </div>
-              <button
-                onClick={() => setIsCreateOpen(false)}
-                className="rounded-full bg-[#f3f7fa] p-2 text-slate-500 transition hover:bg-[#e7eef3]"
-              >
-                <X size={18} />
-              </button>
+              <div>
+                <p className="text-lg font-black text-[#2a465a]">{activeReport.title}</p>
+                <p className="text-sm font-bold text-slate-500">{activeReport.id} • {activeReport.owner}</p>
+              </div>
             </div>
 
-            <form onSubmit={handleCreateReport} className="mt-6 space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2 text-sm font-medium text-[#355872]">
-                  Report Title
-                  <input
-                    value={form.title}
-                    onChange={(event) => handleFormChange("title", event.target.value)}
-                    className="w-full rounded-xl border border-[#d5e3eb] bg-[#f8fbfd] px-4 py-3 text-sm text-slate-700 outline-none focus:border-[#7AAACE] focus:bg-white"
-                    placeholder="Enter report title"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-medium text-[#355872]">
-                  Owner
-                  <input
-                    value={form.owner}
-                    onChange={(event) => handleFormChange("owner", event.target.value)}
-                    className="w-full rounded-xl border border-[#d5e3eb] bg-[#f8fbfd] px-4 py-3 text-sm text-slate-700 outline-none focus:border-[#7AAACE] focus:bg-white"
-                    placeholder="Enter owner name"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-medium text-[#355872]">
-                  Report Type
-                  <select
-                    value={form.type}
-                    onChange={(event) => handleFormChange("type", event.target.value)}
-                    className="w-full rounded-xl border border-[#d5e3eb] bg-[#f8fbfd] px-4 py-3 text-sm text-slate-700 outline-none focus:border-[#7AAACE] focus:bg-white"
-                  >
-                    <option>Sales</option>
-                    <option>Finance</option>
-                    <option>Executive</option>
-                  </select>
-                </label>
-                <label className="space-y-2 text-sm font-medium text-[#355872]">
-                  Department
-                  <select
-                    value={form.department}
-                    onChange={(event) => handleFormChange("department", event.target.value)}
-                    className="w-full rounded-xl border border-[#d5e3eb] bg-[#f8fbfd] px-4 py-3 text-sm text-slate-700 outline-none focus:border-[#7AAACE] focus:bg-white"
-                  >
-                    <option>Sales</option>
-                    <option>Finance</option>
-                    <option>Mgmt</option>
-                  </select>
-                </label>
-                <label className="space-y-2 text-sm font-medium text-[#355872]">
-                  Report View
-                  <select
-                    value={form.cadence}
-                    onChange={(event) => handleFormChange("cadence", event.target.value)}
-                    className="w-full rounded-xl border border-[#d5e3eb] bg-[#f8fbfd] px-4 py-3 text-sm text-slate-700 outline-none focus:border-[#7AAACE] focus:bg-white"
-                  >
-                    <option>Daily</option>
-                    <option>Weekly</option>
-                    <option>Monthly</option>
-                    <option>Quarterly</option>
-                  </select>
-                </label>
-                <label className="space-y-2 text-sm font-medium text-[#355872]">
-                  Period Label
-                  <input
-                    value={form.period}
-                    onChange={(event) => handleFormChange("period", event.target.value)}
-                    className="w-full rounded-xl border border-[#d5e3eb] bg-[#f8fbfd] px-4 py-3 text-sm text-slate-700 outline-none focus:border-[#7AAACE] focus:bg-white"
-                    placeholder="Example: 23 Apr 2026 or Apr 2026"
-                  />
-                </label>
-                <label className="space-y-2 text-sm font-medium text-[#355872] md:col-span-2">
-                  Status
-                  <select
-                    value={form.status}
-                    onChange={(event) => handleFormChange("status", event.target.value)}
-                    className="w-full rounded-xl border border-[#d5e3eb] bg-[#f8fbfd] px-4 py-3 text-sm text-slate-700 outline-none focus:border-[#7AAACE] focus:bg-white"
-                  >
-                    <option>Draft</option>
-                    <option>Published</option>
-                    <option>Scheduled</option>
-                  </select>
-                </label>
-              </div>
-
-              <label className="block space-y-2 text-sm font-medium text-[#355872]">
-                Summary
-                <textarea
-                  value={form.summary}
-                  onChange={(event) => handleFormChange("summary", event.target.value)}
-                  rows={4}
-                  className="w-full rounded-xl border border-[#d5e3eb] bg-[#f8fbfd] px-4 py-3 text-sm text-slate-700 outline-none focus:border-[#7AAACE] focus:bg-white"
-                  placeholder="Describe what this report covers"
-                />
-              </label>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCreateOpen(false)}
-                  className="rounded-xl border border-[#d5e3eb] px-4 py-2 text-sm font-semibold text-[#355872] transition hover:bg-[#f5f9fb]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-[#355872] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2d4a60]"
-                >
-                  Save Report
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {activeReport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#172532]/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-[28px] border border-[#d9e6ef] bg-white p-6 shadow-[0_30px_80px_rgba(23,37,50,0.22)]">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#c77727]">
-                  Report Preview
-                </p>
-                <h2 className="mt-1 text-2xl font-semibold text-[#355872]">{activeReport.title}</h2>
-              </div>
-              <button
-                onClick={() => setActiveReport(null)}
-                className="rounded-full bg-[#f3f7fa] p-2 text-slate-500 transition hover:bg-[#e7eef3]"
-              >
-                <X size={18} />
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: activeReport.status, cls: activeReport.status === "Published" ? "bg-emerald-50 text-emerald-600" : activeReport.status === "Scheduled" ? "bg-sky-50 text-sky-600" : "bg-amber-50 text-amber-600" },
+                { label: activeReport.type, cls: "bg-slate-50 text-slate-600" },
+                { label: activeReport.department, cls: "bg-indigo-50 text-indigo-600" },
+                { label: activeReport.cadence, cls: "bg-fuchsia-50 text-fuchsia-600" },
+                { label: activeReport.priority, cls: activeReport.priority === "Critical" ? "bg-rose-50 text-rose-600" : "bg-slate-50 text-slate-500" },
+              ].map(b => (
+                <span key={b.label} className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest ${b.cls}`}>{b.label}</span>
+              ))}
             </div>
 
-            <div className="mt-6 space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${statusClass(activeReport.status)}`}
-                >
-                  {activeReport.status}
-                </span>
-                <span className="rounded-full bg-[#f2f7fa] px-3 py-1 text-xs font-semibold text-[#355872]">
-                  {activeReport.type}
-                </span>
-                <span className="rounded-full bg-[#f2f7fa] px-3 py-1 text-xs font-semibold text-[#355872]">
-                  {activeReport.department}
-                </span>
-                <span className="rounded-full bg-[#fff5e8] px-3 py-1 text-xs font-semibold text-[#9a6a06]">
-                  {activeReport.cadence}
-                </span>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                {activeReport.metrics.map((metric) => (
-                  <div key={metric.label} className="rounded-2xl bg-[#f5f9fb] p-4">
-                    <p className="text-xs uppercase tracking-[0.18em] text-slate-400">{metric.label}</p>
-                    <p className="mt-2 text-xl font-semibold text-slate-800">{metric.value}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl bg-[#f5f9fb] p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Owner</p>
-                  <p className="mt-2 font-semibold text-slate-800">{activeReport.owner}</p>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: "Owner", val: activeReport.owner },
+                { label: "Period", val: activeReport.period },
+                { label: "Generated On", val: activeReport.generatedOn },
+                { label: "Report ID", val: activeReport.id },
+              ].map(({ label, val }) => (
+                <div key={label}>
+                  <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{label}</span>
+                  <span className="text-[#2a465a] font-bold bg-white px-3 py-2.5 rounded-xl block border border-slate-100 text-sm">{val}</span>
                 </div>
-                <div className="rounded-2xl bg-[#f5f9fb] p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Generated On</p>
-                  <p className="mt-2 font-semibold text-slate-800">{activeReport.generatedOn}</p>
-                </div>
-                <div className="rounded-2xl bg-[#f5f9fb] p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Period</p>
-                  <p className="mt-2 font-semibold text-slate-800">{activeReport.period}</p>
-                </div>
-              </div>
+              ))}
+            </div>
 
-              <div className="rounded-2xl border border-[#e5edf3] bg-white p-4">
-                <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Summary</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">{activeReport.summary}</p>
-              </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Summary</p>
+              <p className="text-sm font-semibold leading-relaxed text-slate-700">{activeReport.summary}</p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("report-view-modal")} />
+              <Button text="Edit Report" variant="primary" size={3} onClick={() => {
+                closeModal("report-view-modal");
+                setForm({ ...activeReport });
+                openModal("report-form-modal");
+              }} />
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* ══ CREATE/EDIT MODAL ═════════════════════════════════════════════════ */}
+      <Modal id="report-form-modal" title={form.id ? "Edit Report" : "Create Report"}>
+        <div className="space-y-4">
+          <FormInput label="Report Title" field="title" />
+          <div className="grid grid-cols-2 gap-4">
+            <FormInput label="Owner" field="owner" />
+            <FormInput label="Period" field="period" placeholder="e.g. Apr 2026" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FormSelect label="Type" field="type" options={["Sales", "Finance", "Executive"]} />
+            <FormSelect label="Department" field="department" options={["Sales", "Finance", "Mgmt", "HR"]} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FormSelect label="Cadence" field="cadence" options={["Daily", "Weekly", "Monthly", "Quarterly"]} />
+            <FormSelect label="Status" field="status" options={["Draft", "Published", "Scheduled"]} />
+          </div>
+          <FormSelect label="Priority" field="priority" options={["Normal", "Critical"]} />
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Summary</label>
+            <textarea value={form.summary} onChange={e => handleFormChange("summary", e.target.value)} rows={3}
+              className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-[#2a465a] focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all resize-none"
+              placeholder="Describe what this report covers" />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
+            <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("report-form-modal")} disabled={isSubmitting} />
+            <Button text={isSubmitting ? "Saving..." : form.id ? "Update" : "Create"} variant="primary" size={3}
+              onClick={handleSave} disabled={isSubmitting || !form.title || !form.owner} />
+          </div>
+
+          {form.id && (
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 mt-2">
+              <span className="text-xs font-bold text-rose-400 uppercase tracking-widest mr-auto">Danger Zone</span>
+              <Button text="Delete Report" variant="danger" size={3} onClick={handleDelete} />
+            </div>
+          )}
         </div>
-      )}
-    </>
+      </Modal>
+    </div>
   );
 }
-
-export default Report;

@@ -52,7 +52,6 @@ const MENUS = {
         label: "Management",
         items: [
           { name: "Admins", path: "/super-admin/admins", icon: ShieldAlert },
-          { name: "Departments", path: "/super-admin/departments", icon: Building2 },
           { name: "Billing", path: "/super-admin/billing", icon: Receipt },
           { name: "Communication", path: "/super-admin/communication", icon: MessageSquare },
         ],
@@ -63,7 +62,6 @@ const MENUS = {
           { name: "Login Logs", path: "/super-admin/login-logs", icon: History },
           { name: "Support", path: "/super-admin/support", icon: LifeBuoy },
           { name: "API Config", path: "/super-admin/api-config", icon: Webhook },
-          { name: "Data Management", path: "/super-admin/data-management", icon: Database },
         ],
       },
     ],
@@ -82,6 +80,7 @@ const MENUS = {
         label: "Operations",
         items: [
           { name: "User Management", path: "/admin/users", icon: Users },
+          { name: "Departments", path: "/admin/departments", icon: Building2 },
           {
             name: "Leads & Sales", icon: TrendingUp,
             children: [
@@ -104,7 +103,7 @@ const MENUS = {
         label: "Settings",
         items: [
           { name: "Support", path: "/admin/support", icon: LifeBuoy },
-          { name: "System", path: "/admin/system", icon: Settings },
+          { name: "Profile", path: "/admin/profile", icon: Settings },
         ],
       },
     ],

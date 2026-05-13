@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import Dashboard from "../pages/admin/Dashboard";
 import Projects from "../pages/admin/Projects";
+import Departments from "../pages/admin/Departments";
 import FinanceDashboard from "../pages/admin/FinanceDashboard";
 import HRM from "../pages/admin/HRM";
 import Support from "../pages/admin/Support";
@@ -26,12 +27,10 @@ import DumpData from "../pages/admin/leads/DumpData";
 // ── Sales ──
 import Sales from "../pages/admin/Sales";
 import Analytics from "../pages/admin/sales/Analytics";
-import Pipeline from "../pages/admin/sales/Pipeline";
 import Targets from "../pages/admin/sales/Targets";
-import CallPanel from "../pages/admin/sales/CallPanel";
 import Tickets from "../pages/admin/sales/Tickets";
 
-import CompanySettings from "../pages/super-admin/company-settings/CompanySetting";
+import Profile from "../pages/admin/profile/Profile";
 
 const pageContent = {
   "Leads & Sales": {
@@ -175,22 +174,21 @@ function AdminRoutes() {
           <Route path="dump" element={<DumpData />} />
         </Route>
 
-        {/* ── Sales (5 tabs) ── */}
+        {/* ── Sales (3 tabs — Pipeline & CallPanel removed) ── */}
         <Route path="sales" element={<Sales />}>
           <Route index element={<Navigate to="analytics" replace />} />
           <Route path="analytics" element={<Analytics />} />
-          <Route path="pipeline" element={<Pipeline />} />
           <Route path="targets" element={<Targets />} />
-          <Route path="calls" element={<CallPanel />} />
           <Route path="tickets" element={<Tickets />} />
         </Route>
 
+        <Route path="departments" element={<Departments />} />
         <Route path="projects" element={<Projects />} />
         <Route path="finance" element={<FinanceDashboard />} />
         <Route path="hrm" element={<HRM />} />
         <Route path="support" element={<Support />} />
         <Route path="reports" element={<Report />} />
-        <Route path="system" element={<CompanySettings />} />
+        <Route path="profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>
     </Routes>
