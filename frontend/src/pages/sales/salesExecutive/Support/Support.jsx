@@ -4,6 +4,7 @@ import {
   DashGrid, EnhancedDashCard, DataTable, Grid, DataField,
   openModal, closeModal, Modal, Select, Option,
   Button, UserChat,
+  Heading,
 } from "../../../../components/shared/Common_Components";
 import { initialTickets, supportStats } from "./TicketStore";
 
@@ -149,7 +150,7 @@ export default function Support() {
 
   return (
     <div className="flex flex-col gap-6">
-
+      <Heading primaryText="Support Tickets" secondaryText="View and manage your support requests" />
       <DashGrid cols={12} gap={4}>
         {supportStats.map((stat, idx) => {
           const Icon = stat.icon;
