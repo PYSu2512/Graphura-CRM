@@ -5,8 +5,11 @@ import MainLayout from "../../layouts/MainLayout";
 import ManagementManagerDashboard from "../../pages/management/managementManager/ManagementManagerDashboard";
 import ManagementManagerProjects  from "../../pages/management/managementManager/ManagementManagerProjects";
 
-// ── Packet 2 (TODO) ─────────────────────────────────────────────────────
-// import ManagementManagerTeams from "../../pages/management/managementManager/ManagementManagerTeams";
+// ── Packet 2 (DONE) ─────────────────────────────────────────────────────
+import ManagementManagerTeams from "../../pages/management/managementManager/ManagementManagerTeams";
+import TeamLeaders   from "../../pages/management/managementManager/teams/TeamLeaders";
+import Employees     from "../../pages/management/managementManager/teams/Employees";
+import TeamStructure from "../../pages/management/managementManager/teams/TeamStructure";
 
 // ── Packet 3 (TODO) ─────────────────────────────────────────────────────
 // import ManagementManagerClients from "../../pages/management/managementManager/ManagementManagerClients";
@@ -27,7 +30,12 @@ function ManagementManagerRoutes() {
         <Route path="projects"  element={<ManagementManagerProjects  />} />
 
         {/* Packet 2 */}
-        {/* <Route path="teams"   element={<ManagementManagerTeams   />} /> */}
+        <Route path="teams" element={<ManagementManagerTeams />}>
+          <Route index               element={<Navigate to="team-leaders" replace />} />
+          <Route path="team-leaders" element={<TeamLeaders />} />
+          <Route path="employees"    element={<Employees />} />
+          <Route path="structure"    element={<TeamStructure />} />
+        </Route>
 
         {/* Packet 3 */}
         {/* <Route path="clients" element={<ManagementManagerClients />} /> */}
