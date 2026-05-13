@@ -141,9 +141,10 @@ export default function DatePicker({
   const [inputFocus,setInputFocus]= useState(false);
   const [inputError,setInputError]= useState("");
 
-  const ref        = useRef(null);
-  const inputRef   = useRef(null);
-  const triggerRef = useRef(null);
+  const ref          = useRef(null);
+  const dropdownRef  = useRef(null);
+  const inputRef     = useRef(null);
+  const triggerRef   = useRef(null);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
 
   // Compute dropdown position from trigger bounds
@@ -160,7 +161,8 @@ export default function DatePicker({
   // Close on outside click — if invalid, clear the field and reset calendar to today
   useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
+      if (ref.current && !ref.current.contains(e.target)
+        && !(dropdownRef.current && dropdownRef.current.contains(e.target))) {
         setOpen(false);
         if (inputError) {
           setInputText("");
@@ -395,7 +397,8 @@ export default function DatePicker({
         {/* Dropdown calendar — rendered in a portal to escape all overflow constraints */}
         {open && createPortal(
           <div
-            className="fixed z-[9999] w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 overflow-hidden"
+            ref={dropdownRef}
+            className="fixed z-[10001] w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 overflow-hidden"
             style={{ top: dropdownPos.top, left: dropdownPos.left }}
           >
           {/* ── Day view ── */}
@@ -631,10 +634,11 @@ export function TimePicker({
   const [minute, setMinute] = _useState(parsed?.min   ?? "00");
   const [period, setPeriod] = _useState(parsed?.period ?? "AM");
 
-  const ref        = _useRef(null);
-  const hourRef    = _useRef(null);
-  const minRef     = _useRef(null);
-  const triggerRef = _useRef(null);
+  const ref         = _useRef(null);
+  const dropdownRef = _useRef(null);
+  const hourRef     = _useRef(null);
+  const minRef      = _useRef(null);
+  const triggerRef  = _useRef(null);
   const [dropdownPos, setDropdownPos] = _useState({ top: 0, left: 0 });
 
   const updatePos = () => {
@@ -646,7 +650,10 @@ export function TimePicker({
   // Close on outside click
   _useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target)
+        && !(dropdownRef.current && dropdownRef.current.contains(e.target))) {
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -731,7 +738,8 @@ export function TimePicker({
         {/* ── Dropdown — portal to escape overflow constraints ── */}
         {open && createPortal(
           <div
-            className="fixed z-[9999] rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 overflow-hidden"
+            ref={dropdownRef}
+            className="fixed z-[10001] rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 overflow-hidden"
             style={{ top: dropdownPos.top, left: dropdownPos.left, width: "13rem" }}
           >
           {/* Column headers */}
