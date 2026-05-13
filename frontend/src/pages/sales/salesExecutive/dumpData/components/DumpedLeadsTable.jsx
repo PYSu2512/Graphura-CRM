@@ -1,7 +1,8 @@
+import { Eye, RotateCcw } from "lucide-react";
 import { DataTable } from "../../../../../components/shared/Common_Components";
 import { DUMPED_LEAD_COLUMNS } from "../utils/dumpDataConstants";
 
-export function DumpedLeadsTable({ rows, reasonOptions }) {
+export function DumpedLeadsTable({ rows, reasonOptions, onView, onRestore }) {
   return (
     <DataTable
       title="Dumped Leads"
@@ -16,6 +17,20 @@ export function DumpedLeadsTable({ rows, reasonOptions }) {
           type: "toggle",
           key: "reason",
           options: reasonOptions,
+        },
+      ]}
+      actions={[
+        {
+          icon: <Eye size={15} />,
+          tooltip: "View",
+          variant: "ghost",
+          onClick: onView,
+        },
+        {
+          icon: <RotateCcw size={15} />,
+          tooltip: "Restore",
+          variant: "primary",
+          onClick: onRestore,
         },
       ]}
       size={12}
