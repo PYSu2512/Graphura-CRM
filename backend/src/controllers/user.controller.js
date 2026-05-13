@@ -47,6 +47,8 @@ const ROLE_DEPARTMENT_MAP = {
   MANAGEMENT: ['MANAGEMENT_MANAGER', 'MANAGEMENT_TL', 'MANAGEMENT_EMPLOYEE']
 };
 
+const DEPARTMENT_MEMBER_ROLES = new Set(Object.values(ROLE_DEPARTMENT_MAP).flat());
+
 const buildDefaultUserPassword = (email, phone) => {
   const lastFiveDigits = String(phone || '').trim().slice(-5);
   return `${String(email || '').toLowerCase().trim()}@${lastFiveDigits}`;
@@ -171,6 +173,37 @@ exports.getDepartments = catchAsync(async (req, res, next) => {
 
   res.status(200).json(
     new ApiResponse(200, { departments }, 'Departments retrieved successfully')
+  );
+});
+
+exports.getCurrentUserProfile = catchAsync(async (req, res, next) => {
+  const userId = req.user?._id;
+
+  if (!userId) {
+    return next(new AppError('Authentication required', 401));
+  }
+
+  const user = await User.findOne({
+    _id: userId,
+    isDeleted: false,
+    isActive: true,
+    role: { $in: Array.from(DEPARTMENT_MEMBER_ROLES) },
+  })
+    .populate('department', 'name')
+    .populate('team', 'name')
+    .populate('manager', 'name email role')
+    .select('name email phone role department team manager address bankDetails profilePic leadDataLimit isActive isProfileComplete mustChangePassword isFirstLogin prereqCompleted prereqStep approvalStatus lastLoginAt lastActiveAt createdAt updatedAt');
+
+  if (!user) {
+    return next(new AppError('Department member profile not found', 404));
+  }
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      { user },
+      'Profile retrieved successfully'
+    )
   );
 });
 

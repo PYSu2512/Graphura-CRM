@@ -11,6 +11,8 @@ router.get('/departments', requireAdmin, userController.getDepartments);
 router.post('/login', validate(departmentLoginSchema, 'body'), userController.loginUser);
 router.get('/', requireAuth, userController.getUsers);
 router.get('/stats', requireAuth, userController.getUserStats);
+router.get('/profile', requireUser, userController.getCurrentUserProfile);
+router.get('/me', requireUser, userController.getCurrentUserProfile);
 router.post('/', requireAdmin, validate(createUserSchema, 'body'), userController.createUser);
 
 // Account setup (password update) for department users
