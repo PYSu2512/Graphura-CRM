@@ -4243,7 +4243,7 @@ export const EnhancedDataTable = ({
                              0 or negative → show all columns in compact view
 */
 
-export const PanelModal = ({ id, title, children, isVisible, onClose }) => {
+export const PanelModal = ({ id, title, children, isVisible, onClose, size = "lg" }) => {
   const [show, setShow] = useState(false);
   const [render, setRender] = useState(false);
 
@@ -4266,6 +4266,18 @@ export const PanelModal = ({ id, title, children, isVisible, onClose }) => {
   const handleAnimEnd = () => { if (!show) setRender(false); };
   const close = () => { setShow(false); if (onClose) onClose(); };
 
+  const sizeMap = {
+    sm:  "max-w-sm",
+    md:  "max-w-md",
+    lg:  "max-w-lg",
+    xl:  "max-w-xl",
+    "2xl": "max-w-2xl",
+    "3xl": "max-w-3xl",
+    "4xl": "max-w-4xl",
+    full: "max-w-full",
+  };
+  const maxW = sizeMap[size] ?? "max-w-lg";
+
   if (!render) return null;
 
   return createPortal(
@@ -4273,7 +4285,7 @@ export const PanelModal = ({ id, title, children, isVisible, onClose }) => {
       <div className={`absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300 ${show ? "opacity-100" : "opacity-0"}`} onClick={close} />
       <div
         onTransitionEnd={handleAnimEnd}
-        className={`relative w-full max-w-lg bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-400 cubic-bezier(0.34, 1.56, 0.64, 1) ${show ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
+        className={`relative w-full ${maxW} bg-white rounded-[24px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.3)] border border-white/50 flex flex-col max-h-[85vh] overflow-hidden transform transition-all duration-400 cubic-bezier(0.34, 1.56, 0.64, 1) ${show ? "scale-100 opacity-100 translate-y-0" : "scale-95 opacity-0 translate-y-4"}`}
       >
         <div className="flex-shrink-0 flex items-center justify-between px-6 py-5 border-b border-slate-100 bg-slate-50/50">
           <h3 className="text-lg font-black text-[#2a465a] tracking-tight">{title}</h3>

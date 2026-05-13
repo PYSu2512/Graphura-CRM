@@ -66,16 +66,11 @@ const EMPTY_ACTION_FORM = {
   reschedTitle: "", reschedDate: "", reschedTime: "", reschedType: "", reschedNote: "",
 };
 
-
-
-export default function FollowUps({
-  initialFollowups = DUMMY_FOLLOWUPS,
-  modalPrefix = "sm",
-}) {
+export default function FollowUps() {
   const now = new Date();
   const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const [followups,   setFollowups]   = useState(initialFollowups);
+  const [followups,   setFollowups]   = useState(DUMMY_FOLLOWUPS);
   const [calYear,     setCalYear]     = useState(now.getFullYear());
   const [calMonth,    setCalMonth]    = useState(now.getMonth());
   const [selectedDay, setSelectedDay] = useState(now.getDate()); // default = today
@@ -87,7 +82,7 @@ export default function FollowUps({
   const openActionModal = (f) => {
     setActionLead(f);
     setActionForm(EMPTY_ACTION_FORM);
-    openModal(`${modalPrefix}-lead-action-modal`);
+    openModal("sm-lead-action-modal");
   };
 
   const handleActionSave = () => {
@@ -102,7 +97,7 @@ export default function FollowUps({
     } else if (actionForm.action === "Interested" || actionForm.action === "Not Interested" || actionForm.action === "Not Talk") {
       setFollowups(prev => prev.map(f => f.id === actionLead.id ? { ...f, status: "done" } : f));
     }
-    closeModal(`${modalPrefix}-lead-action-modal`);
+    closeModal("sm-lead-action-modal");
   };
 
   // ── Calendar navigation ──
@@ -370,7 +365,7 @@ export default function FollowUps({
                     {/* Actions */}
                     <div className="flex gap-2 mt-3 pl-[52px]">
                       <button
-                        onClick={() => { setViewLead(f); openModal(`${modalPrefix}-view-modal`); }}
+                        onClick={() => { setViewLead(f); openModal("sm-view-modal"); }}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition active:scale-95 shadow-sm"
                       >
                         <Eye size={13} /> View
@@ -398,7 +393,7 @@ export default function FollowUps({
         size={12}
         searchable
         exportable
-        onDateFilter
+        onda
         exportFileName="followup-history"
         pageSize={10}
         date
@@ -457,7 +452,7 @@ export default function FollowUps({
             variant: "ghost",
             onClick: (row) => {
               const lead = followups.find(f => f.id === row._id);
-              if (lead) { setViewLead(lead); openModal(`${modalPrefix}-view-modal`); }
+              if (lead) { setViewLead(lead); openModal("sm-view-modal"); }
             },
           },
           {
@@ -474,7 +469,7 @@ export default function FollowUps({
       />
 
       {/* ── View Follow-up Modal ── */}
-      <Modal id="sm-view-modal" title="Follow-up Details" size="md">
+      <Modal id="sm-view-modal" title="Follow-up Details" size="2xl">
         {viewLead && (() => {
           const Icon  = typeIcons[viewLead.type]  || Phone;
           const color = typeColors[viewLead.type] || "#3b82f6";
@@ -486,7 +481,7 @@ export default function FollowUps({
           const { cls: statusCls, label: statusLabel } = statusMap[viewLead.status] ?? statusMap.pending;
 
           return (
-            <div className="space-y-5">
+            <div>
               {/* Lead identity */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
                 <div
@@ -560,7 +555,7 @@ export default function FollowUps({
                 {viewLead.status !== "done" && (
                   <button
                     onClick={() => {
-                      closeModal(`${modalPrefix}-view-modal`);
+                      closeModal("sm-view-modal");
                       openActionModal(viewLead);
                     }}
                     className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-bold bg-[#2a465a] text-white hover:bg-[#1e3a52] transition active:scale-95 shadow-md shadow-[#2a465a]/20"
@@ -569,7 +564,7 @@ export default function FollowUps({
                   </button>
                 )}
                 <button
-                  onClick={() => closeModal(`${modalPrefix}-view-modal`)}
+                  onClick={() => closeModal("sm-view-modal")}
                   className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 border border-slate-200 hover:bg-slate-50 transition"
                 >
                   Close
@@ -581,7 +576,7 @@ export default function FollowUps({
       </Modal>
 
       {/* ── Lead Action Modal ── */}
-      <Modal id={`${modalPrefix}-lead-action-modal`} title="Lead Action" size="xl">
+      <Modal id="sm-lead-action-modal" title="Lead Action" size="2xl">
         {actionLead && (
           <div className="space-y-5">
             {/* Selected lead info */}
@@ -631,7 +626,7 @@ export default function FollowUps({
 
             {/* Interested → Prospect Form */}
             {actionForm.action === "Interested" && (
-              <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 space-y-3">
+              <div className="p-4 rounded-2xl bg-emerald-50/20 border border-emerald-200 space-y-3">
                 <p className="text-xs font-black text-emerald-700 uppercase tracking-widest">Prospect Details</p><hr/>
                 <Grid cols={12} gap={3}>
                   <DataField
@@ -693,7 +688,7 @@ export default function FollowUps({
 
             {/* Reschedule → Follow-up Form */}
             {actionForm.action === "Reschedule" && (
-              <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 space-y-3">
+              <div className="p-4 rounded-2xl bg-blue-50/20 border border-blue-200 space-y-3">
                 <p className="text-xs font-black text-blue-700 uppercase tracking-widest">New Follow-up</p>
                 <Grid cols={12} gap={3}>
                   <DataField
@@ -705,21 +700,19 @@ export default function FollowUps({
                     onChange={e => setActionForm(f => ({ ...f, reschedTitle: e.target.value }))}
                   />
                   <div className="col-span-12 sm:col-span-6">
-                    <DataField
+                    <DatePicker
                       label="Date"
                       id="resched-date"
-                      type="date"
                       value={actionForm.reschedDate}
-                      onChange={e => setActionForm(f => ({ ...f, reschedDate: e.target.value }))}
+                      onChange={val => setActionForm(f => ({ ...f, reschedDate: val }))}
                     />
                   </div>
                   <div className="col-span-12 sm:col-span-6">
-                    <DataField
+                    <TimePicker
                       label="Time"
                       id="resched-time"
-                      type="time"
                       value={actionForm.reschedTime}
-                      onChange={e => setActionForm(f => ({ ...f, reschedTime: e.target.value }))}
+                      onChange={val => setActionForm(f => ({ ...f, reschedTime: val }))}
                     />
                   </div>
                   <SelectField
@@ -769,7 +762,7 @@ export default function FollowUps({
                 text="Cancel"
                 variant="secondary"
                 size={3}
-                onClick={() => closeModal(`${modalPrefix}-lead-action-modal`)}
+                onClick={() => closeModal("sm-lead-action-modal")}
               />
               <Button
                 text="Save"
