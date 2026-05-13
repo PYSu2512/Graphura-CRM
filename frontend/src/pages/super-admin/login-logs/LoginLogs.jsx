@@ -2,8 +2,6 @@ import { useMemo, useState } from "react";
 import {
   Shield,
   Eye,
-  Ban,
-  Mail,
   ShieldAlert,
   UserCheck,
   Map as MapIcon,
@@ -120,44 +118,14 @@ const LoginLogs = () => {
   }));
 
   const columns = [
-    {
-      key: "user",
-      label: "Admin Name",
-      headerClassName: "w-[28%] whitespace-nowrap",
-      cellClassName: "w-[28%] py-3.5 px-4 whitespace-normal",
-      render: (row) => (
-        <div className="flex flex-col leading-tight">
-          <span className="text-[14px] font-bold text-slate-800">{row.user}</span>
-          <span className="text-[12px] text-slate-500">{row.email}</span>
-        </div>
-      ),
-      searchValue: (row) => `${row.user} ${row.email}`,
-      sortValue: (row) => row.user,
-    },
-    {
-      key: "loginAt",
-      label: "Login Time",
-      headerClassName: "w-[24%] whitespace-nowrap",
-      cellClassName:
-        "w-[24%] py-3.5 px-4 text-[13px] font-mono text-slate-700 whitespace-nowrap",
-      sortValue: (row) => row.loginAt,
-    },
-    {
-      key: "ip",
-      label: "IP Address",
-      headerClassName: "w-[20%] whitespace-nowrap",
-      cellClassName:
-        "w-[20%] py-3.5 px-4 text-[12px] font-mono text-slate-600 whitespace-nowrap",
-    },
-    {
-      key: "status",
-      label: "Status",
-      headerClassName: "w-[14%] whitespace-nowrap",
-      cellClassName: "w-[14%] py-3.5 px-4 whitespace-nowrap",
-      render: (row) => <StatusBadge status={row.status} />,
-      searchValue: (row) => row.status,
-      sortValue: (row) => row.status,
-    },
+    { key: "user",      label: "Admin Name"  },
+    { key: "email",     label: "Email"       },
+    { key: "role",      label: "Role"        },
+    { key: "loginDate", label: "Login Date"  },
+    { key: "loginTime", label: "Login Time"  },
+    { key: "ip",        label: "IP Address"  },
+    { key: "city",      label: "City"        },
+    { key: "status",    label: "Status"      },
   ];
 
   // ── DataTable filter modal: just Status (table is already admin-only) ──
@@ -175,18 +143,6 @@ const LoginLogs = () => {
         setSelectedRow(row);
         openModal("login-detail-modal");
       },
-    },
-    {
-      icon: <Mail size={14} />,
-      tooltip: "Send security email to this admin",
-      variant: "secondary",
-      onClick: (row) => alert(`Notification sent to ${row.email}`),
-    },
-    {
-      icon: <Ban size={14} />,
-      tooltip: "Block this IP address",
-      variant: "danger",
-      onClick: (row) => alert(`IP ${row.ip} has been blocked`),
     },
   ];
 
@@ -242,8 +198,6 @@ const LoginLogs = () => {
           pageSize={5}
           searchable={true}
           title="Admin Records"
-          wrapperClassName="overflow-hidden "
-          tableClassName="table-fixed"
         />
       </Grid>
 
