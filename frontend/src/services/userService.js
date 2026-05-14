@@ -13,6 +13,18 @@ export const userService = {
     const response = await apiClient.get('/users/departments');
     return response.data;
   },
+  createDepartment: async (deptData) => {
+    const response = await apiClient.post('/users/departments', deptData);
+    return response.data;
+  },
+  updateDepartment: async (id, deptData) => {
+    const response = await apiClient.put(`/users/departments/${id}`, deptData);
+    return response.data;
+  },
+  deleteDepartment: async (id) => {
+    const response = await apiClient.delete(`/users/departments/${id}`);
+    return response.data;
+  },
   createUser: async (userData) => {
     const response = await apiClient.post('/users', userData);
     return response.data;

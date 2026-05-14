@@ -7,6 +7,7 @@ import { fetchDumpDataLeads } from "../api/dumpDataApi";
 
 export function useDumpData() {
   const [leads, setLeads] = useState([]);
+  const [viewTarget, setViewTarget] = useState(null);
   const [restoreTarget, setRestoreTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -23,7 +24,10 @@ export function useDumpData() {
     () =>
       dumpedLeads.map((lead) => ({
         ...lead,
+        mobile: lead.mobile || lead.phone,
         reason: lead.dump?.reason,
+        dumpReason: lead.dump?.reason,
+        dumpedBy: lead.dump?.dumpedBy,
         dumpDate: lead.dump?.dumpedAt,
         date: lead.dump?.dumpedAt,
       })),
@@ -38,6 +42,11 @@ export function useDumpData() {
   const openRestoreModal = (lead) => {
     setRestoreTarget(lead);
     openModal("dump-restore-modal");
+  };
+
+  const openViewModal = (lead) => {
+    setViewTarget(lead);
+    openModal("dump-view-modal");
   };
 
   const openDeleteModal = (lead) => {
@@ -75,8 +84,10 @@ export function useDumpData() {
   return {
     tableRows,
     reasonOptions,
+    viewTarget,
     restoreTarget,
     deleteTarget,
+    openViewModal,
     openRestoreModal,
     openDeleteModal,
     restoreLead,

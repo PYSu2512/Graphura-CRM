@@ -5,7 +5,6 @@ import {
   Clock3,
   Eye,
   Ticket,
-  Reply,
 } from "lucide-react";
 
 import {
@@ -219,13 +218,13 @@ const initialTickets = [
 ];
 
 const ticketColumns = [
-  { key: "ticketId", label: "Ticket ID" },
-  { key: "requester", label: "Name" },
-  { key: "company", label: "Company Name" },
-  { key: "customPriority", label: "Priority" },
-  { key: "customStatus", label: "Status" },
-  { key: "createdAt", label: "Created" },
-  { key: "customActions", label: "Actions" },
+  { key: "ticketId",  label: "Ticket ID" },
+  { key: "requester", label: "Requester" },
+  { key: "company",   label: "Company"   },
+  { key: "subject",   label: "Subject"   },
+  { key: "priority",  label: "Priority"  },
+  { key: "status",    label: "Status"    },
+  { key: "createdAt", label: "Created"   },
 ];
 
 
@@ -251,16 +250,6 @@ export default function Support() {
     openModal("support-ticket-details");
   };
 
-  const handleReplyTicket = (ticket) => {
-    setTickets((current) =>
-      current.map((item) =>
-        item.ticketId === ticket.ticketId
-          ? { ...item, status: "Opened", lastUpdate: "Just now" }
-          : item,
-      ),
-    );
-  };
-
   const handleCloseTicket = (ticket) => {
     setTickets((current) =>
       current.map((item) =>
@@ -270,6 +259,22 @@ export default function Support() {
       ),
     );
   };
+
+  const actions = [
+    {
+      icon: <Eye size={15} />,
+      tooltip: "View Details",
+      variant: "ghost",
+      onClick: (row) => handleViewTicket(row),
+    },
+    {
+      icon: <CheckCircle2 size={15} />,
+      tooltip: "Close Ticket",
+      variant: "primary",
+      show: (row) => row.status !== "Closed",
+      onClick: (row) => handleCloseTicket(row),
+    },
+  ];
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
@@ -312,82 +317,18 @@ export default function Support() {
         <DataTable
           title="Admin Support Tickets"
           columns={ticketColumns}
-          rows={tickets.map((t) => ({
-            ...t,
-            customPriority: (
-              <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
-                t.priority === "High" ? "bg-rose-100 text-rose-700" :
-                t.priority === "Medium" ? "bg-amber-100 text-amber-700" :
-                "bg-blue-100 text-blue-700"
-              }`}>
-                {t.priority}
-              </span>
-            ),
-            customStatus: (
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                t.status === "Opened" 
-                  ? "bg-emerald-100 text-emerald-700" 
-                  : "bg-slate-100 text-slate-600"
-              }`}>
-                {t.status}
-              </span>
-            ),
-            customActions: (
-              <div className="flex flex-nowrap items-center justify-center gap-2">
-                <div className="relative group flex items-center justify-center">
-                  <button
-                    onClick={() => handleViewTicket(t)}
-                    className="flex items-center justify-center w-8 h-8 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 transition duration-150 active:scale-95"
-                  >
-                    <Eye size={15} />
-                  </button>
-                  <div className="pointer-events-none absolute bottom-[110%] left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-50">
-                    <div className="bg-[#1e293b] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap">
-                      View
-                    </div>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e293b]" />
-                  </div>
-                </div>
-
-                <div className="relative group flex items-center justify-center">
-                  <button
-                    onClick={() => handleReplyTicket(t)}
-                    disabled={t.status === "Closed"}
-                    className="flex items-center justify-center w-8 h-8 rounded-xl bg-[#2a465a] text-white hover:bg-[#1e3a52] transition duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#2a465a] disabled:active:scale-100"
-                  >
-                    <Reply size={15} />
-                  </button>
-                  {t.status !== "Closed" && (
-                    <div className="pointer-events-none absolute bottom-[110%] left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-50">
-                      <div className="bg-[#1e293b] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap">
-                        Reply
-                      </div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e293b]" />
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative group flex items-center justify-center">
-                  <button
-                    onClick={() => handleCloseTicket(t)}
-                    disabled={t.status === "Closed"}
-                    className="flex items-center justify-center w-8 h-8 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 transition duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-rose-50 disabled:active:scale-100"
-                  >
-                    <CheckCircle2 size={15} />
-                  </button>
-                  {t.status !== "Closed" && (
-                    <div className="pointer-events-none absolute bottom-[110%] left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block z-50">
-                      <div className="bg-[#1e293b] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg shadow-xl whitespace-nowrap">
-                        Close
-                      </div>
-                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#1e293b]" />
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          }))}
+          rows={tickets}
+          actions={actions}
+          size={12}
           pageSize={5}
+          searchable
+          exportable
+          exportFileName="support-tickets"
+          filters={[
+            { title: "Status",   type: "toggle", key: "status",   options: ["Opened", "Closed"] },
+            { title: "Priority", type: "toggle", key: "priority", options: ["High", "Medium", "Low"] },
+            { title: "Category", type: "toggle", key: "category", options: ["Access", "Billing", "Workflow", "API", "Security", "Mobile", "Email"] },
+          ]}
         />
       </Grid>
 
@@ -400,6 +341,8 @@ export default function Support() {
               <ModalData label="Name" value={selectedTicket.requester} />
               <ModalData label="Company Name" value={selectedTicket.company} />
               <ModalData label="Priority" value={selectedTicket.priority} />
+              <ModalData label="Category" value={selectedTicket.category} />
+              <ModalData label="Assigned To" value={selectedTicket.assignedTo} />
               <ModalData label="Last Update" value={selectedTicket.lastUpdate} />
             </div>
             <ModalData label="Subject" value={selectedTicket.subject} />
@@ -412,6 +355,16 @@ export default function Support() {
               </p>
             </div>
             <div className="flex justify-end gap-3">
+              {selectedTicket.status !== "Closed" && (
+                <Button
+                  text="Close Ticket"
+                  variant="primary"
+                  onClick={() => {
+                    handleCloseTicket(selectedTicket);
+                    setSelectedTicket((prev) => ({ ...prev, status: "Closed", lastUpdate: "Just now" }));
+                  }}
+                />
+              )}
               <Button
                 text="Close"
                 variant="ghost"

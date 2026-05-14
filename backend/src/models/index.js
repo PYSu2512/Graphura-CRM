@@ -1343,7 +1343,8 @@ const AnnouncementSchema = new Schema({
   createdByAdmin: { type: Boolean, default: false },
   title: { type: String, required: true, trim: true },
   message: { type: String, required: true },
-  type: { type: String, enum: ['INFO', 'WARNING', 'APPRECIATION'], required: true },
+  type: { type: String, enum: ['INFO', 'ANNOUNCEMENT', 'WARNING', 'APPRECIATION'], required: true },
+  expiryDate: { type: Date, default: null },
   targetType: {
     type: String,
     enum: ['ALL', 'DEPARTMENT', 'TEAM', 'ROLE', 'USER'],

@@ -91,8 +91,7 @@ export default function TeamMembers() {
         <DataTable
           title="My Team"
           columns={COLS}
-          rows={executives}
-          userProfile="name"
+          rows={teamExecutives}
           size={12}
           pageSize={10}
           searchable

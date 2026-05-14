@@ -14,7 +14,7 @@ import {
 import {
   DashGrid,
   EnhancedDashCard as DashCard,
-  EnhancedDataTable as DataTable,
+  DataTable,
 } from "../../../components/shared/Common_Components";
 
 // ── Mock Dumped Leads ──
@@ -126,7 +126,8 @@ export default function DumpData() {
         rows={filtered} 
         actions={actions} 
         pageSize={5} 
-        importantColumnsCount={4}
+        searchable
+        size={12}
       />
     </div>
   );

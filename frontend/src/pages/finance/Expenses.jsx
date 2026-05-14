@@ -78,7 +78,7 @@ export default function Expenses() {
   ];
 
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Expenses" secondaryText="Management" size={12} />
         <DashCard title="Total Expenses" value={total} icon={<Receipt size={22} />} accentColor="#3b82f6" size={3} />

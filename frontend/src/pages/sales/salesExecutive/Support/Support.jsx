@@ -1,22 +1,16 @@
 import { useState, useRef } from "react";
+import { MessageSquare, CheckCircle2, Trash2, Paperclip, X } from "lucide-react";
 import {
-  DashGrid, DashCard, DataTable, Grid, DataField,
+  DashGrid, EnhancedDashCard, DataTable, Grid, DataField,
   openModal, closeModal, Modal, Select, Option,
-  Heading, Button, UserChat,
+  Button, UserChat,
+  Heading,
 } from "../../../../components/shared/Common_Components";
-import { kpiTickets, initialTickets } from "./TicketStore";
-import {
-  Ticket, CheckCircle, AlertCircle, Clock, Paperclip,
-  MessageSquare, CheckCircle2, Trash2, X,
-} from "lucide-react";
-
-const kpiIcons   = [<Ticket size={22} />, <AlertCircle size={22} />, <Clock size={22} />, <CheckCircle size={22} />];
-const kpiAccents = ["#3b82f6", "#f59e0b", "#8b5cf6", "#22c55e"];
+import { initialTickets, supportStats } from "./TicketStore";
 
 const ticketCols = [
   { key: "id",          label: "Ticket ID"    },
   { key: "title",       label: "Subject"      },
-  { key: "category",    label: "Type"         },
   { key: "priority",    label: "Priority"     },
   { key: "status",      label: "Status"       },
   { key: "createdDate", label: "Created Date" },
@@ -61,7 +55,7 @@ export default function Support() {
     if (ticket.description?.trim()) {
       initial.push({
         id:     SYSTEM_ID,
-        sender: "Me",
+        sender: "Sales Executive",   // matches currentUser → shows on right
         time:   ticket.createdDate ? `${ticket.createdDate} 00:00` : "",
         text:   ticket.description,
       });
@@ -71,7 +65,7 @@ export default function Support() {
       if (att.url) {
         initial.push({
           id:        `${SYSTEM_ID}_img_${i}`,
-          sender:    "Me",
+          sender:    "Sales Executive",
           time:      ticket.createdDate ? `${ticket.createdDate} 00:00` : "",
           imageUrl:  att.url,
           imageName: att.name,
@@ -156,19 +150,21 @@ export default function Support() {
 
   return (
     <div className="flex flex-col gap-6">
-
+      <Heading primaryText="Support Tickets" secondaryText="View and manage your support requests" />
       <DashGrid cols={12} gap={4}>
-        <Heading primaryText="Support Ticket" secondaryText="Management" size={12} />
-        {kpiTickets.map((k, i) => (
-          <DashCard
-            key={k.title}
-            title={k.title}
-            value={String(liveCounts[i])}
-            icon={kpiIcons[i]}
-            accentColor={kpiAccents[i]}
-            size={3}
-          />
-        ))}
+        {supportStats.map((stat, idx) => {
+          const Icon = stat.icon;
+          return (
+            <EnhancedDashCard
+              key={idx}
+              title={stat.title}
+              value={stat.value}
+              icon={<Icon size={22} />}
+              accentColor={stat.color}
+              size={3}
+            />
+          );
+        })}
       </DashGrid>
 
       <div className="flex justify-end">
@@ -190,10 +186,9 @@ export default function Support() {
         searchable
         filters={[
           { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High"] },
-          { title: "Status",   type: "toggle", key: "status",   options: ["In Progress", "Replied", "Resolved"] },
+          { title: "Status", type: "toggle", key: "status", options: ["Opened", "In Progress", "Replied", "Resolved", "Escalated", "Closed"] },
         ]}
       />
-
       {/* Create Ticket Modal */}
       <Modal id="create-ticket-modal" title="Raise New Ticket" size="lg">
         <div className="flex flex-col gap-5">
@@ -292,45 +287,80 @@ export default function Support() {
       </Modal>
 
       {/* View Modal */}
-      <Modal id="ticket-view-modal" title="Ticket Details" size="lg">
+      <Modal id="ticket-view-modal" title="My Ticket Details" size="lg">
         {selected && (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-2.5">
-              {[
-                { label: "Ticket ID",  value: selected.id },
-                { label: "Priority",   value: selected.priority },
-                { label: "Status",     value: selected.status },
-                { label: "Raised Date", value: selected.createdDate },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
-                  <p className="text-xs font-bold text-[#2a465a]">{value}</p>
-                </div>
-              ))}
-              <div className="col-span-2 rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Subject</p>
-                <p className="text-xs font-bold text-[#2a465a]">{selected.title}</p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conversation</p>
-              <UserChat
-                messages={selected.conversation || []}
-                onSend={sendReply}
-                currentUser="Sales Executive"
-                maxHeight="max-h-72"
-                placeholder="Type your message…"
-              />
-            </div>
-
-            <div className="flex justify-end pt-1 border-t border-slate-100">
-              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("ticket-view-modal")} />
-            </div>
-          </div>
+          <TicketDetailContent
+            selected={selected}
+            onSendMsg={sendReply}
+            onClose={() => closeModal("ticket-view-modal")}
+          />
         )}
       </Modal>
 
+    </div>
+  );
+}
+
+// ── Shared ticket detail content — matches Sales Manager panel style ──
+function TicketDetailContent({ selected, onSendMsg, onClose }) {
+  const statusColors = {
+    Open:         "bg-amber-100 text-amber-700",
+    "In Progress":"bg-purple-100 text-purple-700",
+    Replied:      "bg-blue-100 text-blue-700",
+    Resolved:     "bg-emerald-100 text-emerald-700",
+    Escalated:    "bg-rose-100 text-rose-700",
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+
+      {/* ── Ticket meta tiles ── */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {[
+          { label: "Ticket ID",  value: selected.id },
+          { label: "Raised By",  value: selected.raisedBy || "Sales Executive" },
+          { label: "Priority",   value: selected.priority },
+          { label: "Status",     value: selected.status },
+        ].map(({ label, value }) => (
+          <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+            <p className={`text-xs font-bold ${
+              label === "Status"
+                ? `inline-flex px-2 py-0.5 rounded-full ${statusColors[value] ?? "bg-slate-100 text-slate-600"}`
+                : "text-[#2a465a]"
+            }`}>
+              {value}
+            </p>
+          </div>
+        ))}
+        {/* Title — full width */}
+        <div className="col-span-2 rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Title</p>
+          <p className="text-xs font-bold text-[#2a465a]">{selected.title}</p>
+        </div>
+      </div>
+
+      {/* ── Chat thread ── */}
+      <div className="flex flex-col gap-1">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conversation</p>
+        <UserChat
+          messages={selected.conversation || []}
+          onSend={onSendMsg}
+          currentUser="Sales Executive"
+          maxHeight="max-h-72"
+          placeholder="Type your reply… (Enter to send)"
+        />
+      </div>
+
+      {/* ── Footer ── */}
+      <div className="flex justify-end pt-1 border-t border-slate-100">
+        <button
+          onClick={onClose}
+          className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition active:scale-95"
+        >
+          Close
+        </button>
+      </div>
     </div>
   );
 }

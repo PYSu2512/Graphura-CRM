@@ -18,6 +18,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 
 const DAYS   = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
@@ -140,13 +141,28 @@ export default function DatePicker({
   const [inputFocus,setInputFocus]= useState(false);
   const [inputError,setInputError]= useState("");
 
-  const ref      = useRef(null);
-  const inputRef = useRef(null);
+  const ref          = useRef(null);
+  const dropdownRef  = useRef(null);
+  const inputRef     = useRef(null);
+  const triggerRef   = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+
+  // Compute dropdown position from trigger bounds
+  const updatePos = () => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    setDropdownPos({
+      top:   r.bottom + window.scrollY + 6,
+      left:  r.left   + window.scrollX,
+      width: r.width,
+    });
+  };
 
   // Close on outside click — if invalid, clear the field and reset calendar to today
   useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
+      if (ref.current && !ref.current.contains(e.target)
+        && !(dropdownRef.current && dropdownRef.current.contains(e.target))) {
         setOpen(false);
         if (inputError) {
           setInputText("");
@@ -325,8 +341,8 @@ export default function DatePicker({
         </label>
       )}
 
-      {/* ── Trigger + dropdown wrapper (relative so dropdown anchors to trigger) ── */}
-      <div className="relative">
+      {/* ── Trigger + dropdown wrapper ── */}
+      <div className="relative" ref={triggerRef}>
         <div className={triggerCls}>
           {/* Calendar icon — toggles dropdown */}
           <button
@@ -336,6 +352,7 @@ export default function DatePicker({
             onMouseDown={(e) => { e.preventDefault(); if (!disabled) {
             // Reset calendar to today when opening with no valid value
             if (!value) { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); }
+            updatePos();
             setOpen(o => !o);
           } }}
             className="shrink-0 focus:outline-none"
@@ -355,6 +372,7 @@ export default function DatePicker({
             onFocus={() => {
             setInputFocus(true);
             if (!value) { setViewYear(now.getFullYear()); setViewMonth(now.getMonth()); }
+            updatePos();
             setOpen(true);
           }}
             onBlur={handleInputBlur}
@@ -376,9 +394,12 @@ export default function DatePicker({
           )}
         </div>
 
-        {/* Dropdown calendar — anchored directly below the trigger */}
-        {open && (
-          <div className="absolute z-50 top-[calc(100%+6px)] left-0 w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 overflow-hidden"
+        {/* Dropdown calendar — rendered in a portal to escape all overflow constraints */}
+        {open && createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed z-[10001] w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 overflow-hidden"
+            style={{ top: dropdownPos.top, left: dropdownPos.left }}
           >
           {/* ── Day view ── */}
           {mode === "day" && (
@@ -546,7 +567,7 @@ export default function DatePicker({
             </>
           )}
         </div>
-        )}
+        , document.body)}
       </div>
     </div>
   );
@@ -613,14 +634,26 @@ export function TimePicker({
   const [minute, setMinute] = _useState(parsed?.min   ?? "00");
   const [period, setPeriod] = _useState(parsed?.period ?? "AM");
 
-  const ref     = _useRef(null);
-  const hourRef = _useRef(null);
-  const minRef  = _useRef(null);
+  const ref         = _useRef(null);
+  const dropdownRef = _useRef(null);
+  const hourRef     = _useRef(null);
+  const minRef      = _useRef(null);
+  const triggerRef  = _useRef(null);
+  const [dropdownPos, setDropdownPos] = _useState({ top: 0, left: 0 });
+
+  const updatePos = () => {
+    if (!triggerRef.current) return;
+    const r = triggerRef.current.getBoundingClientRect();
+    setDropdownPos({ top: r.bottom + window.scrollY + 6, left: r.left + window.scrollX });
+  };
 
   // Close on outside click
   _useEffect(() => {
     const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target)
+        && !(dropdownRef.current && dropdownRef.current.contains(e.target))) {
+        setOpen(false);
+      }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -670,12 +703,12 @@ export function TimePicker({
       )}
 
       {/* ── Trigger + dropdown wrapper ── */}
-      <div className="relative">
+      <div className="relative" ref={triggerRef}>
         <button
           id={id}
           type="button"
           disabled={disabled}
-          onClick={() => !disabled && setOpen(o => !o)}
+          onClick={() => { if (!disabled) { updatePos(); setOpen(o => !o); } }}
           className={`
             w-full flex items-center gap-3 px-4 py-3.5
             rounded-2xl border text-sm font-medium text-left
@@ -702,11 +735,12 @@ export function TimePicker({
           )}
         </button>
 
-        {/* ── Dropdown — anchored directly below the trigger ── */}
-        {open && (
+        {/* ── Dropdown — portal to escape overflow constraints ── */}
+        {open && createPortal(
           <div
-            className="absolute z-50 top-[calc(100%+6px)] left-0 rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 overflow-hidden"
-            style={{ width: "13rem" }}
+            ref={dropdownRef}
+            className="fixed z-[10001] rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-200/80 overflow-hidden"
+            style={{ top: dropdownPos.top, left: dropdownPos.left, width: "13rem" }}
           >
           {/* Column headers */}
           <div className="grid grid-cols-3 border-b border-slate-100 bg-slate-50/80">
@@ -795,7 +829,7 @@ export function TimePicker({
             </button>
           </div>
         </div>
-        )}
+        , document.body)}
       </div>
     </div>
   );

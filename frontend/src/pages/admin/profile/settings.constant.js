@@ -1,10 +1,10 @@
 export const DEFAULT_SETTINGS = {
   branding: {
-    company_name: "",
-    email: "",
-    phone: "",
-    website_url: "",
-    address: "",
+    company_name: "Graphura India Pvt Ltd",
+    email: "admin@graphura.com",
+    phone: "+91 9876543210",
+    website_url: "https://graphura.com",
+    address: "123 Tech Park, Sector 4, Mumbai, Maharashtra 400001",
     logo_url: "",
   },
   limits: {

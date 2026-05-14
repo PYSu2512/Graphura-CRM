@@ -35,6 +35,17 @@ export function useClientLeads() {
   const [clientLeads, setClientLeads] = useState([]);
   const [selectedLead, setSelectedLead] = useState(null);
   const [draftStatus, setDraftStatus] = useState(STATUS_OPTIONS[0]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    totalLeads: 0,
+    talk: 0,
+    interested: 0,
+    dumped: 0,
+    untouched: 0,
+    notTalk: 0,
+    converted: 0,
+  });
 
   // Existing comment flow (Add Comment)
   const [commentLead, setCommentLead] = useState(null);
@@ -52,21 +63,45 @@ export function useClientLeads() {
   const [actionLead, setActionLead] = useState(null);
   const [actionValue, setActionValue] = useState(ACTION_OPTIONS[0]);
 
-  useEffect(() => {
-    fetchClientLeads().then((leads) => {
-      // Auto-mark leads with no activity as "Untouched"
-      const processed = leads.map((lead) => {
-        const hasActivity =
-          (lead.comments && lead.comments.length > 0) ||
-          (lead.followUps && lead.followUps.length > 0) ||
-          (lead.lastContact && lead.lastContact !== lead.assignedAt);
-        if (!hasActivity && lead.status !== "Dumped" && lead.status !== "Interested") {
-          return { ...lead, status: "Untouched" };
-        }
-        return lead;
+  const loadLeads = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const leads = await fetchClientLeads(true);
+      if (!Array.isArray(leads)) {
+        throw new Error("Invalid response format from server");
+      }
+
+      const normalized = leads.map((lead) => ({
+        ...lead,
+        status: lead.status
+          ? lead.status.charAt(0).toUpperCase() + lead.status.slice(1).toLowerCase()
+          : "Untouched",
+      }));
+
+      setClientLeads(normalized);
+      setStats({
+        totalLeads: normalized.length,
+        talk: normalized.filter((l) => l.status === "Talk").length,
+        interested: normalized.filter((l) => l.status === "Interested").length,
+        dumped: normalized.filter((l) => l.isDumped === true).length,
+        untouched: normalized.filter((l) => l.status === "Untouched").length,
+        notTalk: normalized.filter((l) => l.status?.toLowerCase().includes("not")).length,
+        converted: normalized.filter((l) => l.status === "Converted").length,
       });
-      setClientLeads(processed);
-    });
+    } catch (err) {
+      const errorMsg = err.response?.data?.message || err.message || "Failed to load leads";
+      setError(errorMsg);
+      console.error("Error loading leads:", errorMsg);
+      setClientLeads([]);
+      setStats({ totalLeads: 0, talk: 0, interested: 0, dumped: 0, untouched: 0, notTalk: 0, converted: 0 });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadLeads();
   }, []);
 
   const openLeadDetails = (lead) => {
@@ -309,6 +344,10 @@ export function useClientLeads() {
 
   return {
     clientLeads,
+    loading,
+    error,
+    stats,
+    loadLeads,
 
     selectedLead,
     draftStatus,

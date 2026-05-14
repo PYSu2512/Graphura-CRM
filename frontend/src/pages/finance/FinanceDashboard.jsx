@@ -1,169 +1,275 @@
 import {
-  DashGrid, DashCard, Heading, HeadingForDataTable,
-  GLineChart, GColumnChart, GDoughnutChart, GPieChart,
+  DashGrid,
+  DashCard,
+  Heading,
+  HeadingForDataTable,
   DataTable,
+  GLineChart,
+  GColumnChart,
+  GDoughnutChart,
+  GPieChart,
 } from "../../components/shared/Common_Components";
 import {
-  DollarSign, TrendingUp, TrendingDown, AlertCircle,
-  Receipt, FileText, CheckCircle,
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  Receipt,
+  FileText,
+  CheckCircle,
+  CreditCard,
+  IndianRupee,
+  Clock,
+  Eye,
+  Download,
+  CheckSquare,
 } from "lucide-react";
+import {
+  financeKpiData,
+  revenueExpenseData,
+  paymentStatusData,
+  expenseCategoryData,
+  monthlyRevenueTargetData,
+  recentPaymentsData,
+  recentInvoicesData,
+  pendingActionsData,
+  recentActivitiesData,
+  quickInsightsData,
+} from "./FinanceDashboardData";
 
-// ── Dummy Data ────────────────────────────────────────────────────────────────
-const revenueVsExpense = [
-  { name: "Jan", Revenue: 52, Expense: 21 },
-  { name: "Feb", Revenue: 48, Expense: 19.5 },
-  { name: "Mar", Revenue: 61, Expense: 24 },
-  { name: "Apr", Revenue: 57, Expense: 22 },
-  { name: "May", Revenue: 69, Expense: 26 },
-  { name: "Jun", Revenue: 73, Expense: 28 },
-  { name: "Jul", Revenue: 65, Expense: 25 },
+// ── KPI icon + color config (by index) ───────────────────────────────────────
+const kpiConfig = [
+  { icon: <DollarSign  size={22} />, accentColor: "#22c55e" },
+  { icon: <TrendingUp  size={22} />, accentColor: "#3b82f6" },
+  { icon: <AlertCircle size={22} />, accentColor: "#f59e0b" },
+  { icon: <TrendingDown size={22} />,accentColor: "#f43f5e" },
+  { icon: <Receipt     size={22} />, accentColor: "#8b5cf6" },
+  { icon: <TrendingUp  size={22} />, accentColor: "#14b8a6" },
+  { icon: <FileText    size={22} />, accentColor: "#38bdf8" },
+  { icon: <CheckCircle size={22} />, accentColor: "#22c55e" },
+  { icon: <CheckSquare size={22} />, accentColor: "#10b981" },
+  { icon: <Clock       size={22} />, accentColor: "#f59e0b" },
+  { icon: <CreditCard  size={22} />, accentColor: "#a78bfa" },
+  { icon: <IndianRupee size={22} />, accentColor: "#ef4444" },
 ];
 
-const monthlyRevenue = [
-  { name: "Jan", Revenue: 52 },
-  { name: "Feb", Revenue: 48 },
-  { name: "Mar", Revenue: 61 },
-  { name: "Apr", Revenue: 57 },
-  { name: "May", Revenue: 69 },
-  { name: "Jun", Revenue: 73 },
-  { name: "Jul", Revenue: 65 },
-];
-
-const paymentStatusData = [
-  { name: "Successful", value: 142 },
-  { name: "Pending",    value: 38  },
-  { name: "Failed",     value: 12  },
-  { name: "Partial",    value: 24  },
-];
-
-const expenseCategoryData = [
-  { name: "Operations",    value: 38 },
-  { name: "Marketing",     value: 15 },
-  { name: "Salaries",      value: 52 },
-  { name: "Technology",    value: 9  },
-  { name: "Miscellaneous", value: 4.5},
-];
-
-const recentPayments = [
-  { id: "PAY-001", client: "Arjun Mehta", amount: "₹45,000", method: "UPI", status: "Successful", date: "2025-07-10" },
-  { id: "PAY-002", client: "Priya Sharma", amount: "₹82,500", method: "Net Banking", status: "Pending", date: "2025-07-11" },
-  { id: "PAY-003", client: "Rohan Gupta", amount: "₹30,000", method: "Card", status: "Successful", date: "2025-07-12" },
-  { id: "PAY-004", client: "Sneha Patil", amount: "₹60,000", method: "UPI", status: "Failed", date: "2025-07-12" },
-  { id: "PAY-005", client: "Kavya Nair", amount: "₹1,20,000", method: "Net Banking", status: "Successful", date: "2025-07-13" },
-];
-
-const recentInvoices = [
-  { id: "INV-2025-001", client: "Arjun Mehta", amount: "₹45,000", gst: "₹8,100", total: "₹53,100", status: "Paid", date: "2025-07-08" },
-  { id: "INV-2025-002", client: "Priya Sharma", amount: "₹82,500", gst: "₹14,850", total: "₹97,350", status: "Unpaid", date: "2025-07-09" },
-  { id: "INV-2025-003", client: "Rohan Gupta", amount: "₹30,000", gst: "₹5,400", total: "₹35,400", status: "Paid", date: "2025-07-10" },
-  { id: "INV-2025-004", client: "TechNova Pvt Ltd", amount: "₹2,50,000", gst: "₹45,000", total: "₹2,95,000", status: "Pending", date: "2025-07-11" },
-  { id: "INV-2025-005", client: "Kavya Nair", amount: "₹1,20,000", gst: "₹21,600", total: "₹1,41,600", status: "Paid", date: "2025-07-12" },
-];
-
+// ── Table column definitions ──────────────────────────────────────────────────
 const paymentColumns = [
-  { key: "id", label: "Payment ID" },
-  { key: "client", label: "Client Name" },
-  { key: "amount", label: "Amount" },
-  { key: "method", label: "Method" },
-  {
-    key: "status", label: "Status", render: (val) => {
-      const color = val === "Successful" ? "bg-emerald-100 text-emerald-700" : val === "Pending" ? "bg-amber-100 text-amber-700" : "bg-rose-100 text-rose-700";
-      return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{val}</span>;
-    }
-  },
-  { key: "date", label: "Date" },
+  { key: "id",          label: "Payment ID"   },
+  { key: "client",      label: "Client Name"  },
+  { key: "invoiceId",   label: "Invoice ID"   },
+  { key: "amount",      label: "Amount"       },
+  { key: "paymentType", label: "Payment Type" },
+  { key: "method",      label: "Method"       },
+  { key: "status",      label: "Status"       },
+  { key: "date",        label: "Date"         },
 ];
 
 const invoiceColumns = [
-  { key: "id", label: "Invoice ID" },
-  { key: "client", label: "Client Name" },
-  { key: "amount", label: "Amount" },
-  { key: "gst", label: "GST" },
-  { key: "total", label: "Total" },
-  {
-    key: "status", label: "Status", render: (val) => {
-      const color = val === "Paid" ? "bg-emerald-100 text-emerald-700" : val === "Unpaid" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700";
-      return <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${color}`}>{val}</span>;
-    }
-  },
-  { key: "date", label: "Date" },
+  { key: "id",          label: "Invoice ID"   },
+  { key: "client",      label: "Client Name"  },
+  { key: "amount",      label: "Amount"       },
+  { key: "gst",         label: "GST"          },
+  { key: "total",       label: "Total"        },
+  { key: "paymentType", label: "Payment Type" },
+  { key: "status",      label: "Status"       },
+  { key: "dueDate",     label: "Due Date"     },
+  { key: "date",        label: "Date"         },
 ];
 
+const activityColumns = [
+  { key: "id",       label: "Activity ID" },
+  { key: "activity", label: "Activity"    },
+  { key: "type",     label: "Type"        },
+  { key: "user",     label: "User"        },
+  { key: "date",     label: "Date"        },
+  { key: "status",   label: "Status"      },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function FinanceDashboard() {
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
+
+      {/* ── Heading ── */}
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Finance" secondaryText="Dashboard" size={12} />
       </DashGrid>
 
-      {/* KPI Cards */}
+      {/* ── 12 KPI Cards — 3 per row ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Total Revenue" value="₹48.5L" icon={<DollarSign size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Today Revenue" value="₹1.2L" icon={<TrendingUp size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Pending Payments" value="38" icon={<AlertCircle size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Failed Payments" value="12" icon={<TrendingDown size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="Total Expenses" value="₹11.85L" icon={<Receipt size={22} />} accentColor="#8b5cf6" size={3} />
-        <DashCard title="Net Profit" value="₹36.65L" icon={<TrendingUp size={22} />} accentColor="#14b8a6" size={3} />
-        <DashCard title="Total Invoices" value="216" icon={<FileText size={22} />} accentColor="#38bdf8" size={3} />
-        <DashCard title="Work Orders Signed" value="84" icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
+        {financeKpiData.map((kpi, i) => (
+          <DashCard
+            key={kpi.title}
+            title={kpi.title}
+            value={kpi.value}
+            icon={kpiConfig[i].icon}
+            accentColor={kpiConfig[i].accentColor}
+            size={3}
+          />
+        ))}
       </DashGrid>
 
-      {/* Charts */}
+      {/* ── Charts Row 1: Revenue/Expense/Profit line + Payment Status doughnut ── */}
       <DashGrid cols={12} gap={4}>
         <GLineChart
-          title="Revenue vs Expense"
+          title="Revenue vs Expense vs Profit"
           subtitle="Monthly comparison (₹ Lakhs)"
-          data={revenueVsExpense}
+          data={revenueExpenseData}
           lines={[
-            { key: "Revenue", color: "#22c55e", label: "Revenue (L)" },
-            { key: "Expense", color: "#f43f5e", label: "Expense (L)" },
+            { key: "revenue", color: "#22c55e", label: "Revenue (L)" },
+            { key: "expense", color: "#f43f5e", label: "Expense (L)" },
+            { key: "profit",  color: "#3b82f6", label: "Profit (L)"  },
           ]}
           size={8}
         />
         <GDoughnutChart
           title="Payment Status"
-          subtitle="Distribution by status"
+          subtitle="Successful · Pending · Failed · Partial"
           data={paymentStatusData}
           size={4}
         />
+      </DashGrid>
+
+      {/* ── Charts Row 2: Revenue vs Target column + Expense by Category pie ── */}
+      <DashGrid cols={12} gap={4}>
         <GColumnChart
-          title="Monthly Revenue"
-          subtitle="Revenue trend this year (₹ Lakhs)"
-          data={monthlyRevenue}
-          bars={[{ key: "Revenue", color: "#3b82f6", label: "Revenue (L)" }]}
-          size={6}
+          title="Monthly Revenue vs Target"
+          subtitle="Actual revenue against expected target (₹ Lakhs)"
+          data={monthlyRevenueTargetData}
+          bars={[
+            { key: "revenue", color: "#3b82f6", label: "Revenue (L)" },
+            { key: "target",  color: "#f59e0b", label: "Target (L)"  },
+          ]}
+          size={7}
         />
         <GPieChart
           title="Expense by Category"
-          subtitle="Category-wise expense split"
+          subtitle="Category-wise expense distribution"
           data={expenseCategoryData}
-          size={6}
+          size={5}
         />
       </DashGrid>
 
-      {/* Recent Tables */}
+      {/* ── Pending Actions + Quick Insights ── */}
       <DashGrid cols={12} gap={4}>
-        <div className="col-span-12">
-          <HeadingForDataTable primaryText="Recent" secondaryText="Payments" />
+        {/* Pending Actions */}
+        <div className="col-span-12 lg:col-span-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm h-full">
+            <h3 className="text-sm font-bold text-[#2a465a] mb-4 uppercase tracking-wider">
+              ⚡ Pending Actions
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {pendingActionsData.map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl p-4 border"
+                  style={{
+                    borderColor: item.color + "40",
+                    backgroundColor: item.color + "10",
+                  }}
+                >
+                  <p className="text-2xl font-black" style={{ color: item.color }}>
+                    {item.count}
+                  </p>
+                  <p className="text-xs font-semibold text-slate-600 mt-1">
+                    {item.title}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="col-span-12">
-          <DataTable
-            columns={paymentColumns}
-            rows={recentPayments}
-            pageSize={5}
-          />
-        </div>
-        <div className="col-span-12 mt-4">
-          <HeadingForDataTable primaryText="Recent" secondaryText="Invoices" />
-        </div>
-        <div className="col-span-12">
-          <DataTable
-            columns={invoiceColumns}
-            rows={recentInvoices}
-            pageSize={5}
-          />
+
+        {/* Quick Insights */}
+        <div className="col-span-12 lg:col-span-6">
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm h-full">
+            <h3 className="text-sm font-bold text-[#2a465a] mb-4 uppercase tracking-wider">
+              💡 Quick Insights
+            </h3>
+            <div className="grid grid-cols-2 gap-3">
+              {quickInsightsData.map((item, i) => (
+                <div
+                  key={i}
+                  className="rounded-xl p-4 bg-slate-50 border border-slate-100"
+                >
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                    {item.label}
+                  </p>
+                  <p className="text-sm font-black text-[#2a465a]">{item.value}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{item.sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </DashGrid>
+
+      {/* ── Recent Payments Table ── */}
+      <DashGrid cols={12} gap={4}>
+        <DataTable
+          title={"Recent Payments"}
+          columns={paymentColumns}
+          rows={recentPaymentsData}
+          searchable
+          pageSize={5}
+          size={12}
+          actions={[
+            {
+              icon: <Eye size={15} />,
+              tooltip: "View payment",
+              variant: "ghost",
+              onClick: (row) => console.log("View payment", row.id),
+            },
+            {
+              icon: <CheckSquare size={15} />,
+              tooltip: "Verify payment",
+              variant: "ghost",
+              show: (row) => row.status !== "Successful",
+              onClick: (row) => console.log("Verify payment", row.id),
+            },
+          ]}
+        />
+      </DashGrid>
+
+      {/* ── Recent Invoices Table ── */}
+      <DashGrid cols={12} gap={4}>
+        <DataTable
+          title={"Recent Invoices"}
+          columns={invoiceColumns}
+          rows={recentInvoicesData}
+          searchable
+          pageSize={5}
+          size={12}
+          actions={[
+            {
+              icon: <Eye size={15} />,
+              tooltip: "View invoice",
+              variant: "ghost",
+              onClick: (row) => console.log("View invoice", row.id),
+            },
+            {
+              icon: <Download size={15} />,
+              tooltip: "Download invoice",
+              variant: "ghost",
+              onClick: (row) => console.log("Download invoice", row.id),
+            },
+          ]}
+        />
+      </DashGrid>
+
+      {/* ── Recent Activities Table ── */}
+      <DashGrid cols={12} gap={4}>
+        <DataTable
+          title={"Recent Activities"}
+          columns={activityColumns}
+          rows={recentActivitiesData}
+          searchable
+          pageSize={5}
+          size={12}
+        />
+      </DashGrid>
+
     </div>
   );
 }

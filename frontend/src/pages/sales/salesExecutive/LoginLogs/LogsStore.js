@@ -1,5 +1,3 @@
-// LogsStore.js — dummy data for Login Logs page (Executive version)
-
 export const kpiLogs = [
   { title: "My Logins (Today)",   value: "1",  accent: "#3b82f6" },
   { title: "My Total Logins",     value: "12", accent: "#8b5cf6" },
@@ -18,7 +16,7 @@ export const myLogRows = [
     ip: "192.168.1.15", 
     latitude: "28.6139° N", 
     longitude: "77.2090° E", 
-    status: "Active",   
+    status: "Success",   
     device: "Chrome / macOS" 
   },
   { 
@@ -30,7 +28,7 @@ export const myLogRows = [
     ip: "192.168.1.15", 
     latitude: "28.6139° N", 
     longitude: "77.2090° E", 
-    status: "Active",   
+    status: "Success",   
     device: "Chrome / macOS" 
   },
   { 
@@ -42,7 +40,7 @@ export const myLogRows = [
     ip: "192.168.1.15", 
     latitude: "28.6139° N", 
     longitude: "77.2090° E", 
-    status: "Active",   
+    status: "Logged Out",   
     device: "Chrome / macOS" 
   },
   { 
@@ -54,7 +52,7 @@ export const myLogRows = [
     ip: "103.45.72.12", 
     latitude: "19.0760° N", 
     longitude: "72.8777° E", 
-    status: "Active",   
+    status: "Failed",   
     device: "Safari / iPhone" 
   },
   { 
@@ -66,7 +64,7 @@ export const myLogRows = [
     ip: "192.168.1.15", 
     latitude: "28.6139° N", 
     longitude: "77.2090° E", 
-    status: "Active",   
+    status: "Success",   
     device: "Chrome / macOS" 
   },
 ];

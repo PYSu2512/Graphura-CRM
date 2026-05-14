@@ -2,6 +2,7 @@ import { useState, memo, useCallback } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   BarChart2,
+  Bell,
   Briefcase,
   Building2,
   ChevronDown,
@@ -29,6 +30,7 @@ import {
   UserCheck,
   Users,
   Webhook,
+  Activity,
 } from "lucide-react";
 import logo from "../assets/Logo/Graphura_Logo.webp";
 
@@ -50,7 +52,6 @@ const MENUS = {
         label: "Management",
         items: [
           { name: "Admins", path: "/super-admin/admins", icon: ShieldAlert },
-          { name: "Departments", path: "/super-admin/departments", icon: Building2 },
           { name: "Billing", path: "/super-admin/billing", icon: Receipt },
           { name: "Communication", path: "/super-admin/communication", icon: MessageSquare },
         ],
@@ -61,7 +62,6 @@ const MENUS = {
           { name: "Login Logs", path: "/super-admin/login-logs", icon: History },
           { name: "Support", path: "/super-admin/support", icon: LifeBuoy },
           { name: "API Config", path: "/super-admin/api-config", icon: Webhook },
-          { name: "Data Management", path: "/super-admin/data-management", icon: Database },
         ],
       },
     ],
@@ -80,6 +80,7 @@ const MENUS = {
         label: "Operations",
         items: [
           { name: "User Management", path: "/admin/users", icon: Users },
+          { name: "Departments", path: "/admin/departments", icon: Building2 },
           {
             name: "Leads & Sales", icon: TrendingUp,
             children: [
@@ -102,7 +103,7 @@ const MENUS = {
         label: "Settings",
         items: [
           { name: "Support", path: "/admin/support", icon: LifeBuoy },
-          { name: "System", path: "/admin/system", icon: Settings },
+          { name: "Profile", path: "/admin/profile", icon: Settings },
         ],
       },
     ],
@@ -255,24 +256,75 @@ const MENUS = {
       },
     ],
   },
-  management: {
-    title: "Management",
-    initials: "MG",
+  "management-manager": {
+    title: "Management Manager",
+    initials: "MM",
     sections: [
       {
         label: "Overview",
         items: [
-          { name: "Dashboard", path: "/management", icon: LayoutDashboard, end: true },
+          { name: "Dashboard", path: "/management-manager", icon: LayoutDashboard, end: true },
         ],
       },
       {
         label: "Operations",
         items: [
-          { name: "Teams", path: "/management/teams", icon: Users },
-          { name: "Projects", path: "/management/projects", icon: FolderOpen },
-          { name: "Performance", path: "/management/performance", icon: TrendingUp },
-          { name: "Approvals", path: "/management/approvals", icon: ClipboardList },
-          { name: "Reports", path: "/management/reports", icon: BarChart2 },
+          { name: "Projects", path: "/management-manager/projects", icon: FolderOpen },
+          { name: "Teams", path: "/management-manager/teams", icon: Users },
+          { name: "Clients", path: "/management-manager/clients", icon: Briefcase },
+        ],
+      },
+      {
+        label: "Performance",
+        items: [
+          { name: "Reports", path: "/management-manager/reports", icon: BarChart2 },
+        ],
+      },
+      {
+        label: "Support",
+        items: [
+          { name: "Tickets", path: "/management-manager/tickets", icon: Ticket },
+        ],
+      },
+      {
+        label: "Personal",
+        items: [
+          { name: "HRM", path: "/management-manager/hrm", icon: UserCheck },
+          { name: "Login Logs", path: "/management-manager/login-logs", icon: History },
+        ],
+      },
+    ],
+  },
+  "management-team-leader": {
+    title: "Management Team Leader",
+    initials: "ML",
+    sections: [
+      {
+        label: "Overview",
+        items: [
+          { name: "Dashboard", path: "/management-team-leader", icon: LayoutDashboard, end: true },
+        ],
+      },
+      {
+        label: "Work",
+        items: [
+          { name: "Projects",  path: "/management-team-leader/projects",  icon: FolderOpen  },
+          { name: "Teams",     path: "/management-team-leader/teams",     icon: Users       },
+          { name: "Progress",  path: "/management-team-leader/progress",  icon: Activity    },
+        ],
+      },
+      {
+        label: "Insights",
+        items: [
+          { name: "Reports",   path: "/management-team-leader/reports",   icon: BarChart2   },
+        ],
+      },
+      {
+        label: "Management",
+        items: [
+          { name: "Support",       path: "/management-team-leader/support",       icon: LifeBuoy    },
+          { name: "HRM",           path: "/management-team-leader/hrm",           icon: UserCheck   },
+          { name: "Notifications", path: "/management-team-leader/notifications", icon: Bell        },
         ],
       },
     ],
@@ -302,7 +354,19 @@ const MENUS = {
 
 function useRole() {
   const { pathname } = useLocation();
-  const roles = ["super-admin", "admin", "sales-manager", "sales-team-leader", "sales-executive", "finance", "management", "client"];
+  // Order matters — more specific prefixes must come before shorter ones
+  const roles = [
+    "super-admin",
+    "admin",
+    "sales-manager",
+    "sales-team-leader",
+    "sales-executive",
+    "finance",
+    "management-team-leader",
+    "management-manager",
+    "management-employee",
+    "client",
+  ];
   return roles.find((r) => pathname.startsWith(`/${r}`)) ?? "admin";
 }
 

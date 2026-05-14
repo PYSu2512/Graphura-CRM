@@ -292,3 +292,98 @@ exports.deleteLead = catchAsync(async (req, res, next) => {
 
   res.status(200).json(new ApiResponse(200, null, 'Lead and client deleted permanently'));
 });
+
+/**
+ * GET /api/sales-executive/leads
+ * Fetch leads assigned to the current Sales Executive
+ */
+exports.getMyAssignedLeads = catchAsync(async (req, res, next) => {
+  const { Lead, LeadAssignmentHistory } = require('../models');
+
+  if (req.user?.role !== 'SALES_EXECUTIVE') {
+    return next(new AppError('Only Sales Executive users can access this resource', 403));
+  }
+
+  // Strict filtering: only this executive's leads
+  const query = {
+    admin: req.admin._id,
+    assignedTo: req.user._id,
+    isDeleted: { $ne: true },
+    // Note: Keep isDumped leads to show dump history, but frontend can filter if needed
+  };
+
+  // Fetch leads with all necessary relationships
+  const leads = await Lead.find(query)
+    .populate({
+      path: 'client',
+      select: 'name email mobile companyName'
+    })
+    .populate('assignedTo', 'name email role')
+    .populate('assignedBy', 'name email role')
+    .populate('team', 'name')
+    .sort({ updatedAt: -1 })
+    .lean();
+
+  // Keep only leads assigned by Sales Team Leaders as requested business rule.
+  const leadsAssignedByTL = leads.filter((lead) => lead.assignedBy?.role === 'SALES_TL');
+
+  // Get assignment history for latest assignment metadata
+  const assignmentHistory = await LeadAssignmentHistory.find({
+    admin: req.admin._id,
+    lead: { $in: leadsAssignedByTL.map((lead) => lead._id) },
+  })
+    .sort({ assignedAt: -1 })
+    .select('lead assignedAt reason')
+    .lean();
+
+  // Build map of latest assignment per lead
+  const latestAssignmentByLead = new Map();
+  for (const entry of assignmentHistory) {
+    const leadId = String(entry.lead);
+    if (!latestAssignmentByLead.has(leadId)) {
+      latestAssignmentByLead.set(leadId, entry);
+    }
+  }
+
+  // Transform to frontend format
+  const transformedLeads = leadsAssignedByTL.map((l) => ({
+    id: l._id,
+    name: l.client?.name || '',
+    email: l.client?.email || '',
+    mobile: l.client?.mobile || '',
+    companyName: l.client?.companyName || '',
+    status: l.status || 'UNTOUCHED',
+    isDumped: Boolean(l.isDumped),
+    dumpReason: l.dumpReason || null,
+    createdAt: l.createdAt ? new Date(l.createdAt).toISOString().split('T')[0] : '',
+    assignedTo: l.assignedTo ? l.assignedTo.name : 'Unassigned',
+    assignedBy: l.assignedBy ? l.assignedBy.name : 'Unassigned',
+    team: l.team ? l.team.name : 'No Team',
+    assignedAt: latestAssignmentByLead.get(String(l._id))?.assignedAt
+      ? new Date(latestAssignmentByLead.get(String(l._id)).assignedAt).toISOString().split('T')[0]
+      : (l.updatedAt ? new Date(l.updatedAt).toISOString().split('T')[0] : ''),
+    assignmentReason: latestAssignmentByLead.get(String(l._id))?.reason || null,
+  }));
+
+  // Calculate status statistics
+  const stats = {
+    totalLeads: transformedLeads.length,
+    talk: transformedLeads.filter((l) => l.status === 'TALK').length,
+    interested: transformedLeads.filter((l) => l.status === 'INTERESTED').length,
+    dumped: transformedLeads.filter((l) => l.isDumped === true).length,
+    untouched: transformedLeads.filter((l) => l.status === 'UNTOUCHED').length,
+    notTalk: transformedLeads.filter((l) => l.status === 'NOT_TALK').length,
+    converted: transformedLeads.filter((l) => l.status === 'CONVERTED').length,
+  };
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        leads: transformedLeads,
+        stats,
+      },
+      'Leads retrieved successfully'
+    )
+  );
+});

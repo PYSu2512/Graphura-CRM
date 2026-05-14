@@ -209,14 +209,34 @@ export default function Departments() {
 
       {/* ─── Page Header ────────────────────────────────────────────────────── */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-        <div>
+        <div className="flex-1">
           <Heading primaryText="Company Admin" secondaryText="Detail View" size={12} />
           <P text="Full overview of company profile, departments, and performance metrics." size="sm" />
         </div>
         <div className="flex items-center gap-3 flex-wrap">
-          <Button text="Edit Company" variant="secondary" size={12} onClick={() => alert("Edit company")} />
           <Button text="Deactivate" variant="danger" size={12} onClick={() => alert("Deactivate company")} />
-          <Button text="Export Data" variant="primary" size={12} onClick={() => alert("Exporting...")} />
+          <Button text="Export Data" variant="primary" size={12} onClick={() => {
+            const sections = [
+              { title: "Sales Employees", data: salesEmployees, cols: salesColumnsFull },
+              { title: "Projects", data: projects, cols: projectColumnsFull },
+              { title: "Finance", data: financeRecords, cols: financeColumnsFull },
+            ];
+            let csv = "";
+            sections.forEach(({ title, data, cols }) => {
+              csv += `\n${title}\n`;
+              csv += cols.map(c => c.label).join(",") + "\n";
+              data.forEach(row => {
+                csv += cols.map(c => `"${String(row[c.key] ?? "").replace(/"/g, '""')}"` ).join(",") + "\n";
+              });
+            });
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${(adminData?.company || company.name).replace(/\s+/g, "_")}_export.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }} />
         </div>
       </div>
 

@@ -393,7 +393,7 @@ export default function FollowUps() {
         size={12}
         searchable
         exportable
-        onDateFilter
+        onda
         exportFileName="followup-history"
         pageSize={10}
         date
@@ -469,7 +469,7 @@ export default function FollowUps() {
       />
 
       {/* ── View Follow-up Modal ── */}
-      <Modal id="sm-view-modal" title="Follow-up Details" size="xl">
+      <Modal id="sm-view-modal" title="Follow-up Details" size="2xl">
         {viewLead && (() => {
           const Icon  = typeIcons[viewLead.type]  || Phone;
           const color = typeColors[viewLead.type] || "#3b82f6";
@@ -481,7 +481,7 @@ export default function FollowUps() {
           const { cls: statusCls, label: statusLabel } = statusMap[viewLead.status] ?? statusMap.pending;
 
           return (
-            <div className="space-y-5">
+            <div>
               {/* Lead identity */}
               <div className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
                 <div
@@ -576,7 +576,7 @@ export default function FollowUps() {
       </Modal>
 
       {/* ── Lead Action Modal ── */}
-      <Modal id="sm-lead-action-modal" title="Lead Action" size="xl">
+      <Modal id="sm-lead-action-modal" title="Lead Action" size="2xl">
         {actionLead && (
           <div className="space-y-5">
             {/* Selected lead info */}
@@ -626,7 +626,7 @@ export default function FollowUps() {
 
             {/* Interested → Prospect Form */}
             {actionForm.action === "Interested" && (
-              <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-200 space-y-3">
+              <div className="p-4 rounded-2xl bg-emerald-50/20 border border-emerald-200 space-y-3">
                 <p className="text-xs font-black text-emerald-700 uppercase tracking-widest">Prospect Details</p><hr/>
                 <Grid cols={12} gap={3}>
                   <DataField
@@ -688,7 +688,7 @@ export default function FollowUps() {
 
             {/* Reschedule → Follow-up Form */}
             {actionForm.action === "Reschedule" && (
-              <div className="p-4 rounded-2xl bg-blue-50 border border-blue-200 space-y-3">
+              <div className="p-4 rounded-2xl bg-blue-50/20 border border-blue-200 space-y-3">
                 <p className="text-xs font-black text-blue-700 uppercase tracking-widest">New Follow-up</p>
                 <Grid cols={12} gap={3}>
                   <DataField

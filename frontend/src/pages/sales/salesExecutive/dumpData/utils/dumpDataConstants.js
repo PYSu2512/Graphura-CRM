@@ -1,8 +1,9 @@
 export const DUMPED_LEAD_COLUMNS = [
   { key: "name", label: "Name" },
-  { key: "phone", label: "Phone" },
-  { key: "email", label: "Email Id" },
-  { key: "reason", label: "Reason" },
+  { key: "mobile", label: "Mobile" },
+  { key: "email", label: "Email" },
+  { key: "dumpReason", label: "Dump Reason" },
+  { key: "dumpedBy", label: "Dumped By" },
   { key: "dumpDate", label: "Dump Date" },
 ];
 

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDataTable as DataTable,
+  DataTable,
 } from "../../../components/shared/Common_Components";
 
 // ── Step labels ──
@@ -339,13 +339,14 @@ export default function BulkUpload() {
         </div>
       </div>
 
-      {/* Import History - Using EnhancedDataTable */}
+      {/* Import History */}
       <DataTable 
         title="Import Log History" 
         columns={columns} 
         rows={importHistory} 
         pageSize={5} 
-        importantColumnsCount={4}
+        searchable
+        size={12}
       />
     </div>
   );

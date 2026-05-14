@@ -28,7 +28,7 @@ import {
 import {
   DashGrid,
   EnhancedDashCard as DashCard,
-  EnhancedDataTable as DataTable,
+  DataTable,
   PanelModal as Modal,
   openModal,
   closeModal,
@@ -183,7 +183,12 @@ export default function AllLeads() {
           rows={filtered}
           actions={actions}
           pageSize={5}
-          importantColumnsCount={4}
+          searchable
+          size={12}
+          filters={[
+            { title: "Source", type: "select", key: "source", options: ["Website", "Referral", "Cold Call", "Social", "Ads"] },
+            { title: "Status", type: "toggle", key: "status", options: ["New", "Contacted", "Interested", "Proposal", "Won", "Lost"] },
+          ]}
         />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

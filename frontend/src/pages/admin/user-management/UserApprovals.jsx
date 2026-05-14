@@ -11,7 +11,7 @@ import {
 import {
   DashGrid,
   EnhancedDashCard as DashCard,
-  EnhancedDataTable as DataTable,
+  DataTable,
   PanelModal as Modal,
   openModal,
   closeModal,
@@ -186,7 +186,8 @@ export default function UserApprovals() {
         rows={filtered}
         actions={actions}
         pageSize={5}
-        importantColumnsCount={4}
+        searchable
+        size={12}
       />
 
       {/* ── Toast ── */}

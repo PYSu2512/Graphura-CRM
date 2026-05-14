@@ -85,7 +85,7 @@ export default function GlobalPayment() {
   };
 
   return (
-    <div className="p-6 flex flex-col gap-6 max-w-2xl mx-auto">
+    <div className="flex flex-col gap-6">
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Global" secondaryText="Payment Portal" size={12} />
       </DashGrid>

@@ -93,7 +93,7 @@ export default function WorkOrders() {
   ];
 
   return (
-    <div className="p-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
       {emailMsg && (
         <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl px-4 py-3 text-sm font-semibold">{emailMsg}</div>
       )}

@@ -26,8 +26,6 @@ import {
   Eye,
   Pencil,
   Power,
-  KeyRound,
-  Trash2,
   Plus,
 } from "lucide-react";
 
@@ -102,6 +100,9 @@ export default function Admins() {
   const handleEditField = (field) => (e) =>
     setEditForm((prev) => ({ ...prev, [field]: e.target.value }));
 
+  // ── Deactivate reason state ──
+  const [deactivateReason, setDeactivateReason] = useState("");
+
   // ── Create form state ──
   const [createForm, setCreateForm] = useState({
     adminName: "", company: "", email: "", phone: "",
@@ -126,18 +127,15 @@ export default function Admins() {
   // ── Action handlers ──
   const handleToggleStatus = () => {
     if (!selectedAdmin) return;
+    if (selectedAdmin.status === "Active" && !deactivateReason.trim()) return;
     const newStatus = selectedAdmin.status === "Active" ? "Inactive" : "Active";
-    setAdmins((prev) => prev.map((a) => a.id === selectedAdmin.id ? { ...a, status: newStatus } : a));
+    setAdmins((prev) => prev.map((a) => a.id === selectedAdmin.id ? { ...a, status: newStatus, deactivateReason: newStatus === "Inactive" ? deactivateReason : "" } : a));
     setSelectedAdmin((prev) => ({ ...prev, status: newStatus }));
+    setDeactivateReason("");
     closeModal("admin-toggle");
   };
 
-  const handleDeleteAdmin = () => {
-    if (!selectedAdmin) return;
-    setAdmins((prev) => prev.filter((a) => a.id !== selectedAdmin.id));
-    setSelectedAdmin(null);
-    closeModal("admin-delete");
-  };
+
 
   const handleSaveEdit = () => {
     if (!selectedAdmin) return;
@@ -230,9 +228,7 @@ export default function Admins() {
             actions={[
               { icon: <Eye size={15} />,      tooltip: "View",       variant: "ghost",   onClick: (row) => { navigate("/super-admin/departments", { state: { admin: row } }); } },
               { icon: <Pencil size={15} />,    tooltip: "Edit",       variant: "primary", onClick: (row) => openEditModal(row) },
-              { icon: <Power size={15} />,     tooltip: "Toggle Status", variant: "ghost", onClick: (row) => { setSelectedAdmin(row); openModal("admin-toggle"); } },
-              { icon: <KeyRound size={15} />,  tooltip: "Reset Password", variant: "ghost", onClick: (row) => { setSelectedAdmin(row); openModal("admin-reset"); } },
-              { icon: <Trash2 size={15} />,    tooltip: "Delete",     variant: "danger",  onClick: (row) => { setSelectedAdmin(row); openModal("admin-delete"); } },
+              { icon: <Power size={15} />,     tooltip: "Toggle Status", variant: "ghost", onClick: (row) => { setSelectedAdmin(row); setDeactivateReason(""); openModal("admin-toggle"); } },
             ]}
           />
         </div>
@@ -334,6 +330,19 @@ export default function Admins() {
               <Button text="Cancel" variant="ghost" size={2} onClick={() => closeModal("admin-edit")} />
               <Button text="Save Changes" variant="primary" size={3} onClick={handleSaveEdit} />
             </div>
+
+            {/* ── Danger Zone ── */}
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100">
+              <span className="text-xs font-bold text-rose-400 uppercase tracking-widest mr-auto">Danger Zone</span>
+              <Button text="Reset Password" variant="ghost" size={3} onClick={() => {
+                closeModal("admin-edit");
+                openModal("admin-reset");
+              }} />
+              <Button text="Delete Admin" variant="danger" size={3} onClick={() => {
+                closeModal("admin-edit");
+                openModal("admin-delete");
+              }} />
+            </div>
           </div>
         )}
       </Modal>
@@ -362,19 +371,35 @@ export default function Admins() {
         </div>
       </Modal>
 
-      {/* ── Confirm: Toggle Status ── */}
-      <Modal id="admin-toggle" title="Change Admin Status" size="sm">
+      <Modal id="admin-toggle" title={selectedAdmin?.status === "Active" ? "Deactivate Admin" : "Activate Admin"} size="sm">
         {selectedAdmin && (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-slate-600">
               {selectedAdmin.status === "Active"
-                ? <>Are you sure you want to <span className="font-bold text-rose-500">deactivate</span> <span className="font-bold text-[#2a465a]">{selectedAdmin.adminName}</span>? They will lose access to the platform.</>
+                ? <><span className="font-bold text-rose-500">Deactivate</span> <span className="font-bold text-[#2a465a]">{selectedAdmin.adminName}</span>? They will lose access to the platform.</>
                 : <>Reactivate <span className="font-bold text-[#2a465a]">{selectedAdmin.adminName}</span>? They will regain access to the platform.</>}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <ModalData label="Company" value={selectedAdmin.company} />
               <ModalData label="Current Status" value={selectedAdmin.status} />
             </div>
+
+            {/* Reason textarea — only for deactivation */}
+            {selectedAdmin.status === "Active" && (
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Reason for Deactivation *</label>
+                <textarea
+                  rows={3}
+                  maxLength={300}
+                  placeholder="e.g. Subscription expired, policy violation..."
+                  value={deactivateReason}
+                  onChange={(e) => setDeactivateReason(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3 text-[#2a465a] placeholder:text-slate-400 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40 transition duration-200 resize-none"
+                />
+                <p className="text-xs text-slate-400 text-right">{deactivateReason.length}/300</p>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-2">
               <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("admin-toggle")} />
               <Button
@@ -382,6 +407,7 @@ export default function Admins() {
                 variant={selectedAdmin.status === "Active" ? "danger" : "primary"}
                 size={3}
                 onClick={handleToggleStatus}
+                disabled={selectedAdmin.status === "Active" && !deactivateReason.trim()}
               />
             </div>
           </div>
@@ -417,7 +443,11 @@ export default function Admins() {
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("admin-delete")} />
-              <Button text="Delete Permanently" variant="danger" size={4} onClick={handleDeleteAdmin} />
+              <Button text="Delete Permanently" variant="danger" size={4} onClick={() => {
+                setAdmins((prev) => prev.filter((a) => a.id !== selectedAdmin.id));
+                setSelectedAdmin(null);
+                closeModal("admin-delete");
+              }} />
             </div>
           </div>
         )}

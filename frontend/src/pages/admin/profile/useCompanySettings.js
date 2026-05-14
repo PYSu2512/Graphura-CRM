@@ -45,6 +45,7 @@ export const useCompanySettings = () => {
 
   return {
     settings,
+    original,
     setSettings,
     loading,
     saving,
