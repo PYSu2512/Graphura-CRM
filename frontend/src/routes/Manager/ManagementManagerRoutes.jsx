@@ -11,9 +11,9 @@ import TeamLeaders   from "../../pages/management/managementManager/teams/TeamLe
 import Employees     from "../../pages/management/managementManager/teams/Employees";
 import TeamStructure from "../../pages/management/managementManager/teams/TeamStructure";
 
-// ── Packet 3 (TODO) ─────────────────────────────────────────────────────
-// import ManagementManagerClients from "../../pages/management/managementManager/ManagementManagerClients";
-// import ManagementManagerReports from "../../pages/management/managementManager/ManagementManagerReports";
+// ── Packet 3 (DONE) ─────────────────────────────────────────────────────
+import ManagementManagerClients from "../../pages/management/managementManager/ManagementManagerClients";
+import ManagementManagerReports from "../../pages/management/managementManager/ManagementManagerReports";
 
 // ── Packet 4 (TODO) ─────────────────────────────────────────────────────
 // import HRMPage                    from "../../pages/management/managementManager/hrm/HRMPage";
@@ -38,8 +38,8 @@ function ManagementManagerRoutes() {
         </Route>
 
         {/* Packet 3 */}
-        {/* <Route path="clients" element={<ManagementManagerClients />} /> */}
-        {/* <Route path="reports" element={<ManagementManagerReports />} /> */}
+        <Route path="clients" element={<ManagementManagerClients />} />
+        <Route path="reports" element={<ManagementManagerReports />} />
 
         {/* Packet 4 */}
         {/* <Route path="hrm"         element={<HRMPage                  />} /> */}
