@@ -1,5 +1,5 @@
 // reportsStore.js — computed from canonical store
-import { projects, teamLeaders } from "../managementManagerStore";
+import { projects, teamLeaders } from "./managementManagerStore";
 
 export const teamReports = teamLeaders.map((tl) => {
   const tlProjects = projects.filter(
