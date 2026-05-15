@@ -22,7 +22,8 @@ const superAdminRoutes = require('./routes/superadmin');
 const teamRoutes = require('./routes/teams');
 const announcementRoutes = require('./routes/announcements');
 const salesManagerLeadRoutes = require('./routes/salesManagerLeads');
-const salesTeamLeaderLeadRoutes = require('./routes/salesTeamLeaderLeads');
+const salesTeamLeaderLeadRoutes      = require('./routes/salesTeamLeaderLeads');
+const salesTeamLeaderDashboardRoutes = require('./routes/salesTeamLeaderDashboard');
 const attendanceRoutes = require('./routes/attendance');
 const salesExecutiveLeadRoutes = require('./routes/salesExecutiveLeads');
 const salesExecutiveProspectRoutes = require('./routes/salesExecutiveProspects');
@@ -88,6 +89,8 @@ try {
   console.log('✓ /api/sales-manager/leads routes registered');
   app.use('/api/sales-team-leader/leads', salesTeamLeaderLeadRoutes);
   console.log('✓ /api/sales-team-leader/leads routes registered');
+  app.use('/api/sales-team-leader/dashboard', salesTeamLeaderDashboardRoutes);
+  console.log('✓ /api/sales-team-leader/dashboard routes registered');
   app.use('/api/attendance', attendanceRoutes);
   console.log('✓ /api/attendance registered');
 	app.use('/api/sales-executive/leads', salesExecutiveLeadRoutes);
