@@ -1,7 +1,22 @@
-import { Activity, UserCheck, Users, Zap } from "lucide-react";
-import { DashCard, DashGrid, DataTable, Heading } from "../../../../components/shared/Common_Components.jsx";
+import { Activity, Eye, UserCheck, UserPlus, Users, Zap } from "lucide-react";
+import { useState } from "react";
+import {
+    Button,
+    closeModal,
+    DashCard,
+    DashGrid,
+    DataTable,
+    Heading,
+    Modal,
+    ModalData,
+    ModalGrid,
+    ModalProfile,
+    openModal,
+    Option,
+    SelectField,
+} from "../../../../components/shared/Common_Components.jsx";
 import { projects } from "../managementManagerStore";
-import { employees, teamLeaders } from "./teamsStore";
+import { teamLeaderKpiCards, teamLeaders } from "./teamsStore";
 
 const cols = [
   { key: "name", label: "Team Leader" },
@@ -14,7 +29,17 @@ const cols = [
   { key: "delayedProjects", label: "Delayed Projects" },
 ];
 
-export default function TeamLeaders() {
+export default function TeamLeaders({ employees, moveEmployee }) {
+  const [selectedLeader, setSelectedLeader] = useState(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [targetTL, setTargetTL] = useState("");
+
+  const assignedEmployees = selectedLeader
+    ? employees.filter((emp) => emp.teamLeaderId === selectedLeader.id)
+    : [];
+
+  const selectedEmployee = employees.find((emp) => emp.id === selectedEmployeeId);
+
   const leaderRows = teamLeaders.map((tl) => {
     const myEmployees = employees.filter((emp) => emp.teamLeaderId === tl.id);
     const myProjects = projects.filter((project) => project.assignedTL === tl.id);
@@ -32,12 +57,18 @@ export default function TeamLeaders() {
     };
   });
 
-  const kpis = [
-    { title: "Team Leaders", value: String(teamLeaders.length), accent: "#3b82f6" },
-    { title: "Employees", value: String(employees.length), accent: "#8b5cf6" },
-    { title: "Active Projects", value: String(projects.filter((p) => ["In Progress", "Work Started", "Review Stage", "Finalization"].includes(p.status)).length), accent: "#14b8a6" },
-    { title: "Delayed Projects", value: String(projects.filter((p) => p.status === "Delayed").length), accent: "#f97316" },
-  ];
+  const kpis = teamLeaderKpiCards.map((card) => {
+    if (card.title === "Team Leaders") return { ...card, value: String(teamLeaders.length) };
+    if (card.title === "Employees") return { ...card, value: String(employees.length) };
+    if (card.title === "Active Projects")
+      return {
+        ...card,
+        value: String(projects.filter((p) => ["In Progress", "Work Started", "Review Stage", "Finalization"].includes(p.status)).length),
+      };
+    if (card.title === "Delayed Projects")
+      return { ...card, value: String(projects.filter((p) => p.status === "Delayed").length) };
+    return { ...card, value: "0" };
+  });
 
   return (
     <div className="space-y-6">
@@ -64,7 +95,112 @@ export default function TeamLeaders() {
           { title: "Region", type: "toggle", key: "region", options: [...new Set(teamLeaders.map((tl) => tl.region))] },
           { title: "Status", type: "toggle", key: "status", options: ["Active", "On Leave"] },
         ]}
+        actions={[
+          {
+            icon: <Eye size={15} />,
+            tooltip: "View",
+            variant: "ghost",
+            onClick: (row) => {
+              const leader = teamLeaders.find((tl) => tl.id === row.id);
+              setSelectedLeader(leader);
+              openModal("mm-tl-view");
+            },
+          },
+          {
+            icon: <UserPlus size={15} />,
+            tooltip: "Reassign Employee",
+            variant: "primary",
+            onClick: (row) => {
+              const leader = teamLeaders.find((tl) => tl.id === row.id);
+              setSelectedLeader(leader);
+              setSelectedEmployeeId(
+                employees.find((emp) => emp.teamLeaderId === leader.id)?.id || "",
+              );
+              setTargetTL("");
+              openModal("mm-tl-reassign");
+            },
+          },
+        ]}
       />
+
+      <Modal id="mm-tl-view" title="Team Leader Profile" size="md">
+        {selectedLeader && (
+          <div className="space-y-5">
+            <ModalProfile
+              name={selectedLeader.name}
+              subtitle={`${selectedLeader.region} · ${selectedLeader.status}`}
+              meta={`Team Leader · ${selectedLeader.phone}`}
+            />
+            <ModalGrid title="Summary" cols={2}>
+              <ModalData label="Employees" value={String(assignedEmployees.length)} />
+              <ModalData
+                label="Active Projects"
+                value={String(
+                  projects.filter(
+                    (p) => p.assignedTL === selectedLeader.id && [
+                      "In Progress",
+                      "Work Started",
+                      "Review Stage",
+                      "Finalization",
+                    ].includes(p.status),
+                  ).length,
+                )}
+              />
+              <ModalData
+                label="Delivered"
+                value={String(projects.filter((p) => p.assignedTL === selectedLeader.id && p.status === "Delivered").length)}
+              />
+              <ModalData
+                label="Delayed"
+                value={String(projects.filter((p) => p.assignedTL === selectedLeader.id && p.status === "Delayed").length)}
+              />
+            </ModalGrid>
+            <div className="flex justify-end gap-3">
+              <Button text="Close" variant="primary" size={3} onClick={() => closeModal("mm-tl-view")} />
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal id="mm-tl-reassign" title="Reassign Employee" size="md">
+        <ModalGrid title="Team Leader" cols={1}>
+          <ModalData label="Leader" value={selectedLeader?.name || "—"} />
+          <ModalData label="Region" value={selectedLeader?.region || "—"} />
+        </ModalGrid>
+        <SelectField
+          label="Employee"
+          id="reassign-employee"
+          value={selectedEmployeeId}
+          onChange={(e) => setSelectedEmployeeId(e.target.value)}
+        >
+          <Option value="" label="Select employee" />
+          {assignedEmployees.map((emp) => (
+            <Option key={emp.id} value={emp.id} label={emp.name} />
+          ))}
+        </SelectField>
+        <SelectField label="Move to Team Leader" id="reassign-tl" value={targetTL} onChange={(e) => setTargetTL(e.target.value)}>
+          <Option value="" label="Select team leader" />
+          {teamLeaders
+            .filter((tl) => tl.id !== selectedLeader?.id)
+            .map((tl) => (
+              <Option key={tl.id} value={tl.id} label={tl.name} />
+            ))}
+        </SelectField>
+        <div className="mt-5 flex gap-3 justify-end">
+          <Button text="Cancel" variant="secondary" size={3} onClick={() => closeModal("mm-tl-reassign")} />
+          <Button
+            text="Reassign"
+            variant="primary"
+            size={3}
+            onClick={() => {
+              if (selectedEmployee && targetTL) {
+                moveEmployee(selectedEmployee.id, targetTL);
+                closeModal("mm-tl-reassign");
+              }
+            }}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
