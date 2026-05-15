@@ -35,21 +35,21 @@ const TYPE_BADGE = {
 };
 
 const COLS = [
-  { key: "notificationType", label: "Type",          width: "16%" },
+  { key: "notificationType", label: "Type",          width: "12%" },
   { key: "priority",     label: "Priority",      width: "10%" },
-  { key: "subject",      label: "Subject",       width: "26%" },
-  { key: "employeeName", label: "Employee Name", width: "13%" },
-  { key: "projectName",  label: "Project Name",  width: "13%" },
+  { key: "subject",      label: "Subject",       width: "28%" },
+  { key: "employeeName", label: "Employee",      width: "14%" },
+  { key: "projectName",  label: "Project",       width: "14%" },
   { key: "date",         label: "Date & Time",   width: "14%" },
   { key: "status",       label: "Status",        width: "8%" },
 ];
 
 const REMINDER_COLS = [
-  { key: "reminder",  label: "Reminder",   width: "30%" },
+  { key: "reminder",  label: "Reminder",   width: "22%" },
   { key: "relatedTo", label: "Related To", width: "20%" },
   { key: "time",      label: "Time",       width: "18%" },
-  { key: "repeat",    label: "Frequency",  width: "15%" },
-  { key: "type",      label: "Type",       width: "17%" },
+  { key: "repeat",    label: "Frequency",  width: "20%" },
+  { key: "type",      label: "Type",       width: "20%" },
 ];
 
 // ── Icon button with portal tooltip ──────────────────────────────────────────

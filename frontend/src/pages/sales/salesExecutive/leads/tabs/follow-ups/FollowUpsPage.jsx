@@ -493,23 +493,24 @@ export default function FollowUpsPage() {
         )}
       </Modal>
 
-      <Modal id="se-followup-action-modal" title="Lead Action" size="lg">
+      <Modal id="se-followup-action-modal" title="Lead Action" size="md">
         {actionLead && (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Selected Lead</p>
-              <div className="flex items-center gap-5 p-5 rounded-2xl bg-slate-50 border border-slate-100">
-                <div className="w-14 h-14 rounded-xl bg-slate-200 flex items-center justify-center text-[#2a465a] font-black text-xl shrink-0">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Selected Lead</p>
+              <div className="flex items-center gap-4 p-4 rounded-[16px] bg-[#f8fafc] border border-slate-100/80">
+                <div className="w-12 h-12 rounded-2xl bg-[#eef2f6] flex items-center justify-center text-[#2a465a] font-black text-lg shrink-0 shadow-sm">
                   {actionLead.leadName.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-base font-black text-[#2a465a]">{actionLead.leadName}</p>
-                  <div className="flex flex-wrap items-center gap-3 sm:gap-5 mt-2">
-                    <a href={`tel:${actionLead.mobile}`} className="flex items-center gap-2 text-sm text-blue-600 font-semibold hover:underline whitespace-nowrap">
-                      <Phone size={15} /> {actionLead.mobile}
+                  <p className="text-[15px] font-bold text-[#2a465a] mb-1 leading-none">{actionLead.leadName}</p>
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                    <a href={`tel:${actionLead.mobile}`} className="flex items-center gap-1.5 text-[11px] text-blue-500 font-bold hover:underline">
+                      <Phone size={12} className="stroke-[2.5]" /> {actionLead.mobile}
                     </a>
-                    <a href={`mailto:${actionLead.email}`} className="flex items-center gap-2 text-sm text-purple-600 font-semibold hover:underline whitespace-nowrap">
-                      <Mail size={15} /> {actionLead.email}
+                    <span className="text-slate-300 text-[10px]">•</span>
+                    <a href={`mailto:${actionLead.email}`} className="flex items-center gap-1.5 text-[11px] text-purple-500 font-bold hover:underline">
+                      <Mail size={12} className="stroke-[2.5]" /> {actionLead.email}
                     </a>
                   </div>
                 </div>
@@ -517,13 +518,13 @@ export default function FollowUpsPage() {
             </div>
 
             <div>
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Action</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Action</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
-                  { id: "interested", label: "Interested", icon: ThumbsUp, colorClass: "text-emerald-600" },
-                  { id: "not_interested", label: "Not Interested", icon: ThumbsDown, colorClass: "text-rose-600" },
-                  { id: "reschedule", label: "Reschedule", icon: RefreshCcw, colorClass: "text-blue-600" },
-                  { id: "not_talk", label: "Not Talk", icon: PhoneOff, colorClass: "text-amber-600" }
+                  { id: "interested", label: "Interested", icon: ThumbsUp, colorClass: "text-emerald-500" },
+                  { id: "not_interested", label: "Not Interested", icon: ThumbsDown, colorClass: "text-rose-500" },
+                  { id: "reschedule", label: "Reschedule", icon: RefreshCcw, colorClass: "text-blue-500" },
+                  { id: "not_talk", label: "Not Talk", icon: PhoneOff, colorClass: "text-amber-500" }
                 ].map((act) => {
                   const Icon = act.icon;
                   const isSelected = selectedAction === act.id;
@@ -532,23 +533,40 @@ export default function FollowUpsPage() {
                       key={act.id}
                       type="button"
                       onClick={() => setSelectedAction(act.id)}
-                      className={`flex items-center gap-3.5 px-5 py-4 rounded-xl border transition-all ${
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
                         isSelected 
                           ? "border-[#2a465a] bg-slate-50 shadow-sm" 
                           : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                       }`}
                     >
-                      <Icon size={20} className={act.colorClass} />
-                      <span className="text-base font-bold text-[#2a465a]">{act.label}</span>
+                      <Icon size={16} className={`${act.colorClass} stroke-[2.5]`} />
+                      <span className="text-[13px] font-bold text-[#2a465a]">{act.label}</span>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-5 border-t border-slate-100">
-              <Button text="Cancel" variant="secondary" size={4} onClick={() => closeModal("se-followup-action-modal")} />
-              <Button text="Save" variant="primary" size={4} onClick={handleSaveAction} disabled={!selectedAction} />
+            <div className="flex justify-end gap-3 pt-6 border-t border-slate-100/80 mt-2">
+              <button 
+                type="button" 
+                onClick={() => closeModal("se-followup-action-modal")}
+                className="px-6 py-2.5 rounded-[14px] border border-slate-200 text-[#2a465a] font-bold text-sm bg-white hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSaveAction} 
+                disabled={!selectedAction}
+                className={`px-6 py-2.5 rounded-[14px] font-bold text-sm transition-colors shadow-sm ${
+                  selectedAction 
+                    ? "bg-[#94a3b8] hover:bg-[#64748b] text-white" 
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                }`}
+              >
+                Save
+              </button>
             </div>
           </div>
         )}
