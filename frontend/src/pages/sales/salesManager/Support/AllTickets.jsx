@@ -60,7 +60,8 @@ export default function AllTickets() {
         getMyRaisedTickets({ limit: 100 }),
       ]);
       const all  = (assignedData.tickets || []).map(mapTicket);
-      const mine = (raisedData.tickets   || []).map(mapTicket);
+      const mine = (raisedData.tickets   || []).map(mapTicket)
+        .filter(t => t.status !== 'Resolved' && t.status !== 'Closed');
       setAllTickets(all);
       setMyTickets(mine);
 
@@ -147,11 +148,11 @@ export default function AllTickets() {
 
   const allActions = [
     { icon: <MessageSquare size={15}/>, tooltip: 'View & Reply',    variant: 'primary', onClick: openAllView },
+    { icon: <CheckCircle2  size={15}/>, tooltip: 'Mark Resolved',   variant: 'success', onClick: handleResolve },
     { icon: <AlertTriangle size={15}/>, tooltip: 'Escalate to Admin', variant: 'danger',  onClick: handleEscalate },
   ];
   const myActions = [
-    { icon: <MessageSquare size={15}/>, tooltip: 'View',         variant: 'primary', onClick: openMyView },
-    { icon: <CheckCircle2  size={15}/>, tooltip: 'Mark Resolved', variant: 'success', onClick: handleResolve },
+    { icon: <MessageSquare size={15}/>, tooltip: 'View', variant: 'primary', onClick: openMyView },
   ];
 
   return (

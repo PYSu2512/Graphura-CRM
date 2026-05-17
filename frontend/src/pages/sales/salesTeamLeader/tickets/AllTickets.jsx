@@ -60,7 +60,8 @@ export default function AllTickets() {
         getMyRaisedTickets({ limit: 100 }),
       ]);
       const team = (assignedData.tickets || []).map(mapTicket);
-      const mine = (raisedData.tickets  || []).map(mapTicket);
+      const mine = (raisedData.tickets  || []).map(mapTicket)
+        .filter(t => t.status !== 'Resolved' && t.status !== 'Closed');
       setTeamTickets(team);
       setMyTickets(mine);
 
