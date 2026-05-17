@@ -1,9 +1,9 @@
 import { useState } from "react";
 import Announcements from "./Announcements";
-import { initialAnnouncements } from "./AnnouncementStore";
 
 export default function AnnouncementLayout() {
-  const [announcements, setAnnouncements] = useState(initialAnnouncements);
+  // Announcements state lives here so it can be shared if needed
+  const [announcements, setAnnouncements] = useState([]);
 
   return (
     <div className="flex flex-col gap-6">

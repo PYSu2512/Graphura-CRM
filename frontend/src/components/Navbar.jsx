@@ -1,8 +1,9 @@
-import { memo, useState, useRef, useEffect } from "react";
+import { memo, useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Menu, PanelLeft, Search, LogIn, LogOut, Pause, Play, Clock, RotateCcw } from "lucide-react";
+import { Menu, PanelLeft, Search, LogIn, LogOut, Pause, Play, Clock } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useAttendance, formatElapsed } from "../context/AttendanceContext";
+import NotificationBell from "./NotificationBell";
 
 const ROLE_LABELS = {
   "super-admin":         { short: "SA",  label: "Super Admin"           },
@@ -17,6 +18,15 @@ const ROLE_LABELS = {
   client:                { short: "CL",  label: "Client"                },
 };
 
+// Map URL path segment → backend role string (for NotificationBell)
+const PATH_TO_BACKEND_ROLE = {
+  "sales-team-leader":   "SALES_TL",
+  "sales-executive":     "SALES_EXECUTIVE",
+  "sales-manager":       "SALES_MANAGER",
+  admin:                 "ADMIN",
+  "super-admin":         "SUPER_ADMIN",
+};
+
 function useRole() {
   const { pathname } = useLocation();
   const roles = [
@@ -29,30 +39,24 @@ function useRole() {
 
 // ── Mini Attendance Widget (Navbar) ───────────────────────────────────────────
 function NavAttendance() {
-  const { status, elapsed, pct, checkIn, pause, resume, checkOut, reset } = useAttendance();
+  const { status, elapsed, pct, checkIn, pause, resume, checkOut } = useAttendance();
   const [open,        setOpen]        = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [dropPos,     setDropPos]     = useState({ top: 0, right: 0 });
   const triggerRef = useRef(null);
 
-  // Position the portal dropdown below the trigger button
   const openDropdown = () => {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setDropPos({
-        top:   rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
+      setDropPos({ top: rect.bottom + 8, right: window.innerWidth - rect.right });
     }
     setOpen((o) => !o);
   };
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e) => {
       if (triggerRef.current && !triggerRef.current.contains(e.target)) {
-        // Check if click is inside the portal dropdown
         const portal = document.getElementById("att-dropdown-portal");
         if (portal && portal.contains(e.target)) return;
         setOpen(false);
@@ -79,11 +83,8 @@ function NavAttendance() {
       className="fixed w-72 rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-300/60 overflow-hidden"
       style={{ top: dropPos.top, right: dropPos.right, zIndex: 9999 }}
     >
-      {/* Gradient top bar */}
       <div className="h-1 w-full bg-gradient-to-r from-[#2a465a] via-blue-400 to-emerald-400" />
-
       <div className="p-4 flex flex-col gap-3">
-        {/* Status + timer */}
         <div className="flex items-center justify-between">
           <p className="text-xs font-black text-[#2a465a] uppercase tracking-widest">
             {status === "idle"   && "Not checked in"}
@@ -95,8 +96,6 @@ function NavAttendance() {
             {formatElapsed(elapsed)}
           </span>
         </div>
-
-        {/* Progress bar */}
         <div>
           <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
             <div
@@ -108,8 +107,6 @@ function NavAttendance() {
             {pct.toFixed(1)}% of 8h target
           </p>
         </div>
-
-        {/* Action buttons */}
         <div className="flex gap-2">
           {status === "idle" && (
             <button onClick={() => { checkIn(); setOpen(false); }}
@@ -166,7 +163,6 @@ function NavAttendance() {
         )}
       </button>
       {dropdown}
-      {/* Checkout confirmation portal */}
       {showConfirm && createPortal(
         <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={() => setShowConfirm(false)} />
@@ -213,6 +209,20 @@ function Navbar({ onToggleDesktop, onToggleMobile }) {
   const role = useRole();
   const { short, label } = ROLE_LABELS[role] ?? ROLE_LABELS.admin;
 
+  // Derive backend role string for NotificationBell
+  const backendRole = useMemo(() => {
+    // Try sessionStorage first (most reliable)
+    try {
+      const stored = sessionStorage.getItem("user");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed?.role) return parsed.role;
+      }
+    } catch { /* ignore */ }
+    // Fallback: derive from URL path
+    return PATH_TO_BACKEND_ROLE[role] || null;
+  }, [role]);
+
   return (
     <div className="flex h-16 w-full items-center justify-between">
 
@@ -248,10 +258,8 @@ function Navbar({ onToggleDesktop, onToggleMobile }) {
         {/* ── Attendance mini widget ── */}
         <NavAttendance />
 
-        <button className="relative text-gray-400 hover:text-gray-600 transition-colors duration-150">
-          <Bell size={20} />
-          <span className="absolute right-0 top-0 h-1.5 w-1.5 rounded-full bg-red-500" />
-        </button>
+        {/* ── Notification Bell — real API for TL/Executive, static for others ── */}
+        <NotificationBell userRole={backendRole} />
 
         <div className="flex cursor-pointer items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-700">

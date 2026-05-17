@@ -216,7 +216,7 @@ export default function DepartmentWorkspace() {
                     id="dw-email"
                     type="email"
                     icon={Mail}
-                    value={(() => { try { return JSON.parse(localStorage.getItem("user") || "{}")?.email || ""; } catch { return ""; } })()}
+                    value={(() => { try { return JSON.parse(sessionStorage.getItem("user") || "{}")?.email || ""; } catch { return ""; } })()}
                     readOnly
                     disabled
                     size={12}
