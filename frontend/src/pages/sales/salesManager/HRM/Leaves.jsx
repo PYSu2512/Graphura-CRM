@@ -73,6 +73,7 @@ export default function Leaves() {
 
       const mapLeave = (l) => ({
         ...l,
+        id: l._id,
         name: l.user?.name || "Unknown",
         role: formatRole(l.user?.role),
         dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,

@@ -113,6 +113,17 @@ exports.updateLeaveStatus = catchAsync(async (req, res, next) => {
   const { status, rejectionNote } = req.body;
   const leaveId = req.params.id;
 
+  // Authorization check: Only Admin or Manager roles
+  const userRole = req.user?.role || req.userType;
+  const isManagerOrAdmin = 
+    userRole === 'ADMIN' || 
+    //userRole === 'SUPER_ADMIN' || 
+    (userRole && userRole.includes('_MANAGER'));
+
+  if (!isManagerOrAdmin) {
+    return next(new AppError('Only Admins or Managers are authorized to approve/reject leaves.', 403));
+  }
+
   if (!['APPROVED', 'REJECTED'].includes(status)) {
     return next(new AppError('Invalid status update.', 400));
   }
