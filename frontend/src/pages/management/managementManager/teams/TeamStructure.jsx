@@ -11,19 +11,19 @@ import {
     closeModal,
     openModal,
 } from "../../../../components/shared/Common_Components.jsx";
-import { employees, teamLeaders } from "./teamsStore";
+import { teamLeaders } from "./teamsStore";
 
-export default function TeamStructure() {
-  const [localEmployees, setLocalEmployees] = useState(employees);
+export default function TeamStructure({ employees, moveEmployeeToTL }) {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [targetTL, setTargetTL] = useState("");
 
   const groups = useMemo(
-    () => teamLeaders.map((tl) => ({
-      leader: tl,
-      members: localEmployees.filter((emp) => emp.teamLeaderId === tl.id),
-    })),
-    [localEmployees]
+    () =>
+      teamLeaders.map((tl) => ({
+        leader: tl,
+        members: employees.filter((emp) => emp.teamLeaderId === tl.id),
+      })),
+    [employees],
   );
 
   const openMoveModal = (employee) => {
@@ -32,19 +32,19 @@ export default function TeamStructure() {
     openModal("mm-move-employee");
   };
 
-  const moveEmployeeToTL = () => {
+  const submitMove = () => {
     if (!selectedEmployee || !targetTL || targetTL === selectedEmployee.teamLeaderId) return;
-    setLocalEmployees((prev) =>
-      prev.map((emp) =>
-        emp.id === selectedEmployee.id ? { ...emp, teamLeaderId: targetTL } : emp
-      )
-    );
+    moveEmployeeToTL(selectedEmployee.id, targetTL);
     closeModal("mm-move-employee");
   };
 
   return (
     <div className="space-y-6">
-      <Heading primaryText="Team Structure" secondaryText="View the org tree and move employees between team leaders." size={12} />
+      <Heading
+        primaryText="Team Structure"
+        secondaryText="View the org tree and move employees between team leaders."
+        size={12}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         {groups.map(({ leader, members }) => (
@@ -87,7 +87,10 @@ export default function TeamStructure() {
       <Modal id="mm-move-employee" title="Move Employee" size="sm">
         <ModalGrid title="Employee" cols={1}>
           <ModalData label="Name" value={selectedEmployee?.name || "—"} />
-          <ModalData label="Current Team Leader" value={selectedEmployee ? teamLeaders.find((tl) => tl.id === selectedEmployee.teamLeaderId)?.name : "—"} />
+          <ModalData
+            label="Current Team Leader"
+            value={selectedEmployee ? teamLeaders.find((tl) => tl.id === selectedEmployee.teamLeaderId)?.name : "—"}
+          />
         </ModalGrid>
 
         <SelectField label="Move to Team Leader" id="move-target" value={targetTL} onChange={(e) => setTargetTL(e.target.value)}>
@@ -99,7 +102,7 @@ export default function TeamStructure() {
 
         <div className="mt-5 flex gap-3 justify-end">
           <Button text="Cancel" variant="secondary" size={3} onClick={() => closeModal("mm-move-employee")} />
-          <Button text="Move" variant="primary" size={3} onClick={moveEmployeeToTL} />
+          <Button text="Move" variant="primary" size={3} onClick={submitMove} />
         </div>
       </Modal>
     </div>
