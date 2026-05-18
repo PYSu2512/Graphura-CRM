@@ -1,9 +1,10 @@
 import { memo, useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { Menu, PanelLeft, Search, LogIn, LogOut, Pause, Play, Clock } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Bell, Menu, PanelLeft, Search, LogIn, LogOut, Pause, Play, Clock, RotateCcw } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAttendance, formatElapsed } from "../context/AttendanceContext";
 import NotificationBell from "./NotificationBell";
+import UserAvatar from "./shared/UserAvatar";
 
 const ROLE_LABELS = {
   "super-admin":         { short: "SA",  label: "Super Admin"           },
@@ -205,21 +206,65 @@ function NavAttendance() {
 }
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
+function getStoredProfile() {
+  try {
+    const storedKeys = [
+      { key: "user", storage: sessionStorage },
+      { key: "admin", storage: sessionStorage },
+      { key: "superAdmin", storage: localStorage },
+    ];
+
+    for (const { key, storage } of storedKeys) {
+      const raw = storage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function getProfileDisplayName(profile) {
+  if (!profile) return "";
+  return profile.fullName || profile.name || profile.firstName || profile.email || "Profile";
+}
+
+function getProfileAvatar(profile) {
+  if (!profile) return null;
+  return profile.avatarUrl || profile.photo || profile.profilePic || profile.picture || null;
+}
+
 function Navbar({ onToggleDesktop, onToggleMobile }) {
+  const navigate = useNavigate();
   const role = useRole();
+  const storedProfile = useMemo(() => getStoredProfile(), []);
+  const displayName = getProfileDisplayName(storedProfile);
+  const avatarUrl = getProfileAvatar(storedProfile);
   const { short, label } = ROLE_LABELS[role] ?? ROLE_LABELS.admin;
+  const profilePath = [
+    "super-admin",
+    "admin",
+    "sales-manager",
+    "sales-team-leader",
+    "sales-executive",
+    "finance",
+  ].includes(role)
+    ? `/${role}/profile`
+    : "/admin/profile";
 
   // Derive backend role string for NotificationBell
   const backendRole = useMemo(() => {
-    // Try sessionStorage first (most reliable)
     try {
       const stored = sessionStorage.getItem("user");
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed?.role) return parsed.role;
       }
-    } catch { /* ignore */ }
-    // Fallback: derive from URL path
+    } catch {
+      // ignore
+    }
     return PATH_TO_BACKEND_ROLE[role] || null;
   }, [role]);
 
@@ -258,17 +303,22 @@ function Navbar({ onToggleDesktop, onToggleMobile }) {
         {/* ── Attendance mini widget ── */}
         <NavAttendance />
 
-        {/* ── Notification Bell — real API for TL/Executive, static for others ── */}
-        <NotificationBell userRole={backendRole} />
-
-        <div className="flex cursor-pointer items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-sky-100 text-sm font-semibold text-sky-700">
-            {short}
-          </div>
-          <span className="hidden text-sm font-medium text-gray-700 sm:block">
+        <button
+          type="button"
+          onClick={() => navigate(profilePath)}
+          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-1.5 py-1.5 shadow-sm shadow-slate-200/40 transition duration-200 hover:border-slate-300 hover:bg-slate-50"
+          aria-label="Go to Profile"
+        >
+          <UserAvatar
+            name={displayName || label}
+            src={avatarUrl}
+            size={32}
+            className="shrink-0"
+          />
+          <span className="hidden text-sm pr-1.5 font-medium text-slate-700 sm:block">
             {label}
           </span>
-        </div>
+        </button>
       </div>
     </div>
   );

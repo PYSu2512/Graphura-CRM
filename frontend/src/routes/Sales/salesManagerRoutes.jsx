@@ -17,6 +17,7 @@ import LoginLogs from "../../pages/sales/salesManager/LoginLogs/LoginLogs";
 import ReportLayout from "../../pages/sales/salesManager/Reports/ReportLayout";
 import AnnouncementLayout from "../../pages/sales/salesManager/Announcements/AnnouncementLayout";
 import Employees from "../../pages/sales/salesManager/Employees/Employees";
+import SalesManagerProfile from "../../pages/sales/salesManager/SalesManagerProfile";
 
 function SalesManagerRoutes() {
   return (
@@ -49,6 +50,7 @@ function SalesManagerRoutes() {
 
         {/* Employees — /sales-manager/employees */}
         <Route path="employees" element={<Employees />} />
+        <Route path="profile" element={<SalesManagerProfile />} />
 
         {/* Reports — /sales-manager/reports */}
         <Route path="reports" element={<ReportLayout />} />

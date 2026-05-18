@@ -11,6 +11,7 @@ import PaymentsPage from "../../pages/sales/salesExecutive/payments/PaymentsPage
 import HRMLayout from "../../pages/sales/salesExecutive/hrm/HrmLayout";
 import LoginLogs from "../../pages/sales/salesExecutive/LoginLogs/LoginLogs";
 import Support from "../../pages/sales/salesExecutive/Support/Support";
+import SalesExecutiveProfile from "../../pages/sales/salesExecutive/SalesExecutiveProfile";
 
 function SalesExecutiveRoutes() {
     return (
@@ -23,6 +24,7 @@ function SalesExecutiveRoutes() {
                 <Route path="hrm" element={<HRMLayout />} />
                 <Route path="login-logs" element={<LoginLogs />} />
                 <Route path="support" element={<Support />} />
+                <Route path="profile" element={<SalesExecutiveProfile />} />
                 <Route path="leads" element={<LeadsLayout />}>
                     <Route index element={<Navigate to="all" replace />} />
                     <Route path="all" element={<LeadsPage />} />

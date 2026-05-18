@@ -11,6 +11,7 @@ import SalesTeamLeaderAnnouncements from "../../pages/sales/salesTeamLeader/Sale
 // Packet 3
 import SalesTeamLeaderMyTeam from "../../pages/sales/salesTeamLeader/SalesTeamLeaderMyTeam";
 import TeamMembers from "../../pages/sales/salesTeamLeader/myTeam/TeamMembers";
+import SalesTeamLeaderProfile from "../../pages/sales/salesTeamLeader/SalesTeamLeaderProfile";
 
 
 // Packet 5
@@ -41,6 +42,7 @@ function SalesTeamLeaderRoutes() {
                 <Route path="hrm" element={<HRMPage />} />
                 <Route path="login-logs" element={<LoginLogs />} />
                 <Route path="payment-alerts" element={<PaymentAlerts />} />
+                <Route path="profile" element={<SalesTeamLeaderProfile />} />
 
                 <Route path="*" element={<Navigate to="/sales-team-leader" replace />} />
 

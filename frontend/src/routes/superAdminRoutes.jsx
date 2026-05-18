@@ -7,6 +7,7 @@ import Communication from "../pages/super-admin/communication/Communication";
 import Support from "../pages/super-admin/support/Support";
 import ApiConfig from "../pages/super-admin/api-config/ApiConfig";
 import LoginLogs from "../pages/super-admin/login-logs/LoginLogs";
+import SuperAdminProfile from "../pages/super-admin/SuperAdminProfile";
 
 function SuperAdminRoutes() {
   return (
@@ -18,6 +19,7 @@ function SuperAdminRoutes() {
         <Route path="communication" element={<Communication />} />
         <Route path="login-logs" element={<LoginLogs />} />
         <Route path="support" element={<Support />} />
+        <Route path="profile" element={<SuperAdminProfile />} />
         <Route path="api-config" element={<ApiConfig />} />
         <Route path="*" element={<Navigate to="/super-admin" replace />} />
       </Route>

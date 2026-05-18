@@ -2,8 +2,47 @@
 // Profile.jsx  —  Reusable CRM Profile Page
 //
 // Usage:
-//   <Profile bankDetails={true} />   → shows bank section
-//   <Profile bankDetails={false} />  → hides bank section  (default: false)
+//   <Profile photo="https://..." name="Riya Sharma" email="riya.sharma@crm.com" />
+//
+//   <Profile
+//     photo="https://..."
+//     name="Riya Sharma"
+//     email="riya.sharma@crm.com"
+//     phone="9876543210"
+//     employeeId="EMP-1024"
+//     role="Finance Executive"
+//     department="Finance"
+//     bankDetails={{
+//       name: "Riya Sharma",
+//       accountNumber: "50100123456789",
+//       bankName: "Axis Bank",
+//       ifscCode: "UTIB0001234",
+//       branchName: "Juhu",
+//       upiId: "riya@axis",
+//     }}
+//   />
+//
+//   <Profile
+//     photo="https://..."
+//     name="John Admin"
+//     email="john@admin.crm"
+//     employeeId="AD-1001"
+//     role="Admin"
+//     department="Administration"
+//     companyInfo={{
+//       companyName: "Graphura CRM",
+//       ownerName: "John Doe",
+//       companyEmail: "info@graphura.com",
+//       industry: "SaaS",
+//       foundedYear: "2020",
+//     }}
+//   />
+//
+// Notes:
+//   - bankDetails is optional. If provided, the Bank Details section is shown.
+//   - companyInfo is optional. If provided, the Company Details section is shown (typically for Admin).
+//   - `name` maps to fullName and `photo` becomes the avatar image.
+//   - Additional fields are optional and will use defaults when missing.
 //
 // Import path (adjust to your project structure):
 //   import Profile from "../../pages/profile/Profile";
@@ -153,16 +192,55 @@ function Toast({ message, variant = "success", onDismiss }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // PROFILE  — main export
 // ─────────────────────────────────────────────────────────────────────────────
-export default function Profile({ bankDetails: showBank = false }) {
+export default function Profile({
+  photo,
+  name,
+  email,
+  phone,
+  employeeId,
+  role,
+  department,
+  isActive = true,
+  bankDetails = null,
+  companyInfo = null,
+}) {
+  const initialProfile = useMemo(
+    () => ({
+      ...defaultProfile,
+      avatarUrl: photo ?? defaultProfile.avatarUrl,
+      fullName: name ?? defaultProfile.fullName,
+      email: email ?? defaultProfile.email,
+      phone: phone ?? defaultProfile.phone,
+      employeeId: employeeId ?? defaultProfile.employeeId,
+      role: role ?? defaultProfile.role,
+      department: department ?? defaultProfile.department,
+      isActive,
+      bankDetails: {
+        accountHolderName:
+          bankDetails?.name ?? defaultProfile.bankDetails.accountHolderName,
+        accountNumber:
+          bankDetails?.accountNumber ?? defaultProfile.bankDetails.accountNumber,
+        bankName: bankDetails?.bankName ?? defaultProfile.bankDetails.bankName,
+        ifscCode: bankDetails?.ifscCode ?? defaultProfile.bankDetails.ifscCode,
+        branchName: bankDetails?.branchName ?? defaultProfile.bankDetails.branchName,
+        upiId: bankDetails?.upiId ?? defaultProfile.bankDetails.upiId,
+      },
+    }),
+    [photo, name, email, phone, employeeId, role, department, isActive, bankDetails],
+  );
+
+  const showBank = Boolean(bankDetails);
+  const showCompany = Boolean(companyInfo);
+
   // ── Master data (reflects saved state) ────────────────────────────────────
-  const [saved, setSaved] = useState(defaultProfile);
+  const [saved, setSaved] = useState(initialProfile);
 
   // ── Live form state (reflects current edits, may differ from saved) ────────
-  const [form, setForm] = useState({ ...defaultProfile });
+  const [form, setForm] = useState({ ...initialProfile });
 
   // ── Avatar preview (before save) ──────────────────────────────────────────
-  const [avatarPreview, setAvatarPreview] = useState(defaultProfile.avatarUrl);
-  const [pendingAvatar, setPendingAvatar] = useState(defaultProfile.avatarUrl);
+  const [avatarPreview, setAvatarPreview] = useState(initialProfile.avatarUrl);
+  const [pendingAvatar, setPendingAvatar] = useState(initialProfile.avatarUrl);
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -546,7 +624,79 @@ export default function Profile({ bankDetails: showBank = false }) {
       </ProfileSection>
 
       {/* ════════════════════════════════════════════════════════════════════
-          3. BANK DETAILS  (conditional on bankDetails prop)
+          3. COMPANY DETAILS  (conditional on companyInfo prop)
+      ════════════════════════════════════════════════════════════════════ */}
+      {showCompany && (
+        <ProfileSection
+          title="Company Details"
+          subtitle="Organization & corporate information"
+        >
+          <Grid cols={12} gap={4}>
+            <DataField
+              label="Company Name"
+              id="companyName"
+              size={6}
+              icon={Building2}
+              value={companyInfo?.companyName ?? ""}
+              readOnly
+              disabled
+            />
+
+            <DataField
+              label="Company Email"
+              id="companyEmail"
+              type="email"
+              size={6}
+              icon={Mail}
+              value={companyInfo?.companyEmail ?? ""}
+              readOnly
+              disabled
+            />
+
+            <DataField
+              label="Owner Name"
+              id="ownerName"
+              size={6}
+              icon={User}
+              value={companyInfo?.ownerName ?? ""}
+              readOnly
+              disabled
+            />
+
+            <DataField
+              label="Industry"
+              id="industry"
+              size={6}
+              icon={Briefcase}
+              value={companyInfo?.industry ?? ""}
+              readOnly
+              disabled
+            />
+
+            <DataField
+              label="Founded Year"
+              id="foundedYear"
+              size={6}
+              icon={BadgeCheck}
+              value={companyInfo?.foundedYear ?? ""}
+              readOnly
+              disabled
+            />
+
+            <DataField
+              label="Website"
+              id="website"
+              size={6}
+              value={companyInfo?.website ?? ""}
+              readOnly
+              disabled
+            />
+          </Grid>
+        </ProfileSection>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          4. BANK DETAILS  (conditional on bankDetails prop)
       ════════════════════════════════════════════════════════════════════ */}
       {showBank && (
         <ProfileSection
@@ -614,7 +764,7 @@ export default function Profile({ bankDetails: showBank = false }) {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          4. SECURITY SECTION
+          5. SECURITY SECTION
       ════════════════════════════════════════════════════════════════════ */}
       <ProfileSection
         title="Security"
@@ -646,7 +796,7 @@ export default function Profile({ bankDetails: showBank = false }) {
       </ProfileSection>
 
       {/* ════════════════════════════════════════════════════════════════════
-          5. SAVE / RESET
+          6. SAVE / RESET
       ════════════════════════════════════════════════════════════════════ */}
       {isDirty && (
         <div className="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4">
@@ -987,13 +1137,9 @@ export default function Profile({ bankDetails: showBank = false }) {
             <P
               text="You will be signed out of your current session and redirected to the login page."
               size="xs"
+              center
             />
           </div>
-
-          <ModalGrid title="Session Info" cols={2}>
-            <ModalData label="Logged in as" value={saved.fullName} />
-            <ModalData label="Role" value={saved.role} />
-          </ModalGrid>
 
           {/* Buttons */}
           <Grid cols={12} gap={3}>
@@ -1015,3 +1161,65 @@ export default function Profile({ bankDetails: showBank = false }) {
     </div>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Profile component usage
+//
+// Props:
+//   photo: string - URL to the profile image
+//   name: string - user full name
+//   email: string - user email address
+//   phone: string - phone number
+//   employeeId: string - employee or user ID
+//   role: string - user role label
+//   department: string - department name
+//   isActive: boolean - active status badge (default: true)
+//   bankDetails: object - when provided, the Bank Details section is shown
+//     bankDetails = {
+//       name: string,
+//       accountNumber: string,
+//       bankName?: string,
+//       ifscCode?: string,
+//       branchName?: string,
+//       upiId?: string,
+//     }
+//   companyInfo: object - when provided, the Company Details section is shown (typically for Admin)
+//     companyInfo = {
+//       companyName: string,
+//       ownerName: string,
+//       companyEmail: string,
+//       industry?: string,
+//       foundedYear?: string,
+//       website?: string,
+//     }
+//
+// Examples:
+//   // Sales Executive with Bank Details
+//   <Profile
+//     photo="https://example.com/avatar.jpg"
+//     name="Riya Sharma"
+//     email="riya.sharma@example.com"
+//     phone="9876543210"
+//     employeeId="EMP-1001"
+//     role="Sales Executive"
+//     department="Sales"
+//     bankDetails={{ name: "Riya Sharma", accountNumber: "50100123456789", bankName: "Axis Bank" }}
+//   />
+//
+//   // Admin with Company Info
+//   <Profile
+//     photo="https://example.com/avatar.jpg"
+//     name="John Admin"
+//     email="john@admin.com"
+//     employeeId="AD-1001"
+//     role="Admin"
+//     department="Administration"
+//     companyInfo={{
+//       companyName: "Graphura CRM",
+//       ownerName: "John Doe",
+//       companyEmail: "info@graphura.com",
+//       industry: "SaaS",
+//       foundedYear: "2020",
+//     }}
+//   />
+// ─────────────────────────────────────────────────────────────────────────────
