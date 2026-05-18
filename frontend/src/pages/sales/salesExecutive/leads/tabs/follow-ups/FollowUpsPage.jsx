@@ -26,6 +26,10 @@ import {
   MessageCircle,
   MonitorPlay,
   Phone,
+  PhoneOff,
+  RefreshCcw,
+  ThumbsDown,
+  ThumbsUp,
   Users,
   Zap,
 } from 'lucide-react';
@@ -85,6 +89,7 @@ export default function FollowUpsPage() {
   const [filterType,   setFilterType]   = useState('All');
   const [viewLead,     setViewLead]     = useState(null);
   const [actionLead,   setActionLead]   = useState(null);
+  const [selectedAction, setSelectedAction] = useState(null);
 
   const selectedKey = toDateKey(calYear, calMonth, selectedDay);
   const monthName   = new Date(calYear, calMonth).toLocaleString('default', { month: 'long' });
@@ -139,13 +144,14 @@ export default function FollowUpsPage() {
 
   const openActionModal = (lead) => {
     setActionLead(lead);
-    openModal('se-followup-action-modal');
+    setSelectedAction(null);
+    openModal("se-followup-action-modal");
   };
 
-  const handleMarkDone = async () => {
-    if (!actionLead) return;
+  const handleSaveAction = async () => {
+    if (!selectedAction || !actionLead) return;
     await markDone(actionLead.id);
-    closeModal('se-followup-action-modal');
+    closeModal("se-followup-action-modal");
   };
 
   // ── Calendar nav ──
@@ -487,37 +493,80 @@ export default function FollowUpsPage() {
         )}
       </Modal>
 
-      {/* ── Action Modal ── */}
-      <Modal id="se-followup-action-modal" title="Mark Follow-up Done" size="md">
+      <Modal id="se-followup-action-modal" title="Lead Action" size="md">
         {actionLead && (
-          <div className="space-y-5">
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+          <div className="flex flex-col gap-6">
+            <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Selected Lead</p>
-              <p className="text-sm font-black text-[#2a465a]">{actionLead.leadName}</p>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mt-2">
-                {actionLead.mobile && (
-                  <a href={`tel:${actionLead.mobile}`} className="flex items-center gap-1.5 text-sm text-blue-600 font-semibold hover:underline">
-                    <Phone size={14} /> {actionLead.mobile}
-                  </a>
-                )}
-                {actionLead.email && (
-                  <a href={`mailto:${actionLead.email}`} className="flex items-center gap-1.5 text-sm text-purple-600 font-semibold hover:underline break-all">
-                    <Mail size={14} /> {actionLead.email}
-                  </a>
-                )}
+              <div className="flex items-center gap-4 p-4 rounded-[16px] bg-[#f8fafc] border border-slate-100/80">
+                <div className="w-12 h-12 rounded-2xl bg-[#eef2f6] flex items-center justify-center text-[#2a465a] font-black text-lg shrink-0 shadow-sm">
+                  {actionLead.leadName.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-bold text-[#2a465a] mb-1 leading-none">{actionLead.leadName}</p>
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                    <a href={`tel:${actionLead.mobile}`} className="flex items-center gap-1.5 text-[11px] text-blue-500 font-bold hover:underline">
+                      <Phone size={12} className="stroke-[2.5]" /> {actionLead.mobile}
+                    </a>
+                    <span className="text-slate-300 text-[10px]">•</span>
+                    <a href={`mailto:${actionLead.email}`} className="flex items-center gap-1.5 text-[11px] text-purple-500 font-bold hover:underline">
+                      <Mail size={12} className="stroke-[2.5]" /> {actionLead.email}
+                    </a>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {actionLead.notes && (
-              <div className="rounded-xl bg-white border border-slate-200 p-4">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Follow-up Note</p>
-                <p className="text-sm text-slate-600">{actionLead.notes}</p>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Action</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { id: "interested", label: "Interested", icon: ThumbsUp, colorClass: "text-emerald-500" },
+                  { id: "not_interested", label: "Not Interested", icon: ThumbsDown, colorClass: "text-rose-500" },
+                  { id: "reschedule", label: "Reschedule", icon: RefreshCcw, colorClass: "text-blue-500" },
+                  { id: "not_talk", label: "Not Talk", icon: PhoneOff, colorClass: "text-amber-500" }
+                ].map((act) => {
+                  const Icon = act.icon;
+                  const isSelected = selectedAction === act.id;
+                  return (
+                    <button
+                      key={act.id}
+                      type="button"
+                      onClick={() => setSelectedAction(act.id)}
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl border transition-all ${
+                        isSelected 
+                          ? "border-[#2a465a] bg-slate-50 shadow-sm" 
+                          : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      <Icon size={16} className={`${act.colorClass} stroke-[2.5]`} />
+                      <span className="text-[13px] font-bold text-[#2a465a]">{act.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
 
-            <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-              <Button text="Cancel" variant="secondary" size={3} onClick={() => closeModal('se-followup-action-modal')} />
-              <Button text="Mark Done" variant="primary" size={4} onClick={handleMarkDone} />
+            <div className="flex justify-end gap-3 pt-6 border-t border-slate-100/80 mt-2">
+              <button 
+                type="button" 
+                onClick={() => closeModal("se-followup-action-modal")}
+                className="px-6 py-2.5 rounded-[14px] border border-slate-200 text-[#2a465a] font-bold text-sm bg-white hover:bg-slate-50 transition-colors shadow-sm"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSaveAction} 
+                disabled={!selectedAction}
+                className={`px-6 py-2.5 rounded-[14px] font-bold text-sm transition-colors shadow-sm ${
+                  selectedAction 
+                    ? "bg-[#94a3b8] hover:bg-[#64748b] text-white" 
+                    : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                }`}
+              >
+                Save
+              </button>
             </div>
           </div>
         )}

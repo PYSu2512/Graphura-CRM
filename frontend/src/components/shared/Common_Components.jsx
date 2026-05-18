@@ -874,7 +874,7 @@ function ActionButton({ action, row, isIconOnly, actionVariantCls }) {
 
   // Support per-row visibility: action.show can be a function (row) => bool
   if (action.show && !action.show(row)) {
-    return <div className={isIconOnly ? "w-8 h-8 flex-shrink-0" : "px-3 py-1.5 flex-shrink-0"} />;
+    return null;
   }
 
   const showTip = () => {
@@ -1626,13 +1626,14 @@ export const DataTable = ({
               {columns.map((col) => (
                 <th
                   key={col.key}
+                  style={col.width ? { width: col.width } : {}}
                   onClick={() => !col.headerNode && handleSort(col.key)}
-                  className={`group py-4 px-5 text-left text-xs font-black text-white uppercase tracking-[0.2em] whitespace-nowrap transition-colors select-none ${col.headerNode ? "" : "cursor-pointer hover:bg-white/5"}`}
+                  className={`group py-4 px-4 text-[11px] font-black text-white uppercase tracking-[0.2em] whitespace-nowrap transition-colors select-none ${col.headerNode ? "" : "cursor-pointer hover:bg-white/5"} ${col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "text-left"}`}
                 >
                   {col.headerNode ? (
                     col.headerNode
                   ) : (
-                    <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-2 ${col.align === "center" ? "justify-center" : col.align === "right" ? "justify-end" : "justify-start"}`}>
                       {col.label}
                       <ArrowUpDown
                         size={14}
@@ -1643,7 +1644,7 @@ export const DataTable = ({
                 </th>
               ))}
               {actions.length > 0 && (
-                <th style={{ width: "1%", whiteSpace: "nowrap" }} className="py-4 px-4 text-center text-xs font-black text-white uppercase tracking-[0.1em]">
+                <th style={{ width: "1%", whiteSpace: "nowrap" }} className="py-4 px-4 text-left text-xs font-black text-white uppercase tracking-[0.1em]">
                   Actions
                 </th>
               )}
@@ -1790,7 +1791,7 @@ export const DataTable = ({
                         };
                         const [statusBg, statusText] = STATUS_MAP[val] ?? ["bg-slate-100", "text-slate-600"];
                         return (
-                          <td key={col.key} className="py-3.5 px-5 whitespace-nowrap">
+                          <td key={col.key} style={col.width ? { width: col.width } : {}} className={`py-3 px-4 whitespace-nowrap ${col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "text-left"}`}>
                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusBg} ${statusText}`}>
                               {val ?? "—"}
                             </span>
@@ -1800,7 +1801,8 @@ export const DataTable = ({
                       return (
                         <td
                           key={col.key}
-                          className="py-3.5 px-5 text-[#2a465a] font-medium whitespace-nowrap"
+                          style={col.width ? { width: col.width } : {}}
+                          className={`py-3 px-4 text-[#2a465a] font-medium whitespace-nowrap ${col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "text-left"}`}
                         >
                           {(() => {
                             const raw = row[col.key] ?? "—";
@@ -1839,7 +1841,7 @@ export const DataTable = ({
                     })}
                     {actions.length > 0 && (
                       <td style={{ width: "1%", whiteSpace: "nowrap" }} className="py-3 px-4 align-middle">
-                        <div className="flex flex-nowrap items-center justify-center gap-2">
+                        <div className="flex flex-nowrap items-center justify-start gap-2">
                           {actions.map((action, ai) => {
                             const isIconOnly = action.icon && !action.label;
                             return (

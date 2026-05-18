@@ -21,21 +21,21 @@ const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f59e0b", "#f43f5e"];
 
 // ── Column definitions ────────────────────────────────────────────────────────
 const MY_COLS = [
-  { key: "type",      label: "Leave Type" },
-  { key: "reason",    label: "Reason"     },
-  { key: "dateRange", label: "Date Range" },
-  { key: "days",      label: "Days"       },
-  { key: "appliedOn", label: "Applied On" },
-  { key: "status",    label: "Status"     },
+  { key: "type",      label: "Leave Type", width: "16%" },
+  { key: "reason",    label: "Reason",     width: "36%" },
+  { key: "dateRange", label: "Date Range", width: "20%", align: "center" },
+  { key: "days",      label: "Days",       width: "10%", align: "center" },
+  { key: "appliedOn", label: "Applied On", width: "10%", align: "center" },
+  { key: "status",    label: "Status",     width: "8%", align: "center" },
 ];
 
 const LEAVE_COLS = [
-  { key: "name",      label: "Employee Name" },
-  { key: "type",      label: "Leave Type"    },
-  { key: "appliedOn", label: "Applied On"    },
-  { key: "from",      label: "From Date"     },
-  { key: "to",        label: "To Date"       },
-  { key: "status",    label: "Leave Status"  },
+  { key: "name",      label: "Employee Name", width: "22%" },
+  { key: "type",      label: "Leave Type",    width: "16%" },
+  { key: "appliedOn", label: "Applied On",    width: "16%", align: "center" },
+  { key: "from",      label: "From Date",     width: "14%", align: "center" },
+  { key: "to",        label: "To Date",       width: "14%", align: "center" },
+  { key: "status",    label: "Leave Status",  width: "18%", align: "center" },
 ];
 
 const calcDays = (from, to) => {

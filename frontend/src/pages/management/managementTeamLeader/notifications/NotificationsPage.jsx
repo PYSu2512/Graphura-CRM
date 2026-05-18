@@ -35,21 +35,21 @@ const TYPE_BADGE = {
 };
 
 const COLS = [
-  { key: "type",         label: "Type"          },
-  { key: "priority",     label: "Priority"      },
-  { key: "subject",      label: "Subject"       },
-  { key: "employeeName", label: "Employee Name" },
-  { key: "projectName",  label: "Project Name"  },
-  { key: "date",         label: "Date & Time"   },
-  { key: "status",       label: "Status"        },
+  { key: "notificationType", label: "Type",          width: "12%" },
+  { key: "priority",     label: "Priority",      width: "10%" },
+  { key: "subject",      label: "Subject",       width: "28%" },
+  { key: "employeeName", label: "Employee",      width: "14%" },
+  { key: "projectName",  label: "Project",       width: "14%" },
+  { key: "date",         label: "Date & Time",   width: "14%" },
+  { key: "status",       label: "Status",        width: "8%" },
 ];
 
 const REMINDER_COLS = [
-  { key: "reminder",  label: "Reminder"   },
-  { key: "relatedTo", label: "Related To" },
-  { key: "time",      label: "Time"       },
-  { key: "repeat",    label: "Frequency"  },
-  { key: "type",      label: "Type"       },
+  { key: "reminder",  label: "Reminder",   width: "22%" },
+  { key: "relatedTo", label: "Related To", width: "20%" },
+  { key: "time",      label: "Time",       width: "18%" },
+  { key: "repeat",    label: "Frequency",  width: "20%" },
+  { key: "type",      label: "Type",       width: "20%" },
 ];
 
 // ── Icon button with portal tooltip ──────────────────────────────────────────
@@ -133,7 +133,7 @@ export default function NotificationsPage() {
   }));
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4">
 
       {/* KPI cards */}
       <DashGrid cols={12} gap={4}>
@@ -287,7 +287,7 @@ export default function NotificationsPage() {
       <DataTable
         title="All Notifications"
         columns={COLS}
-        rows={rows}
+        rows={rows.map(r => ({ ...r, notificationType: r.type }))}
         size={12}
         pageSize={10}
         searchable
@@ -296,20 +296,22 @@ export default function NotificationsPage() {
         filters={[
           { title: "Employee Name",     type: "text",   key: "employeeName" },
           { title: "Project Name",      type: "text",   key: "projectName"  },
-          { title: "Notification Type", type: "select", key: "type",     options: NOTIFICATION_TYPES },
+          { title: "Notification Type", type: "toggle", key: "notificationType", options: NOTIFICATION_TYPES },
           { title: "Status",            type: "toggle", key: "status",   options: NOTIFICATION_STATUS },
-          { title: "Priority",          type: "select", key: "priority", options: NOTIFICATION_PRIORITIES },
+          { title: "Priority",          type: "toggle", key: "priority", options: NOTIFICATION_PRIORITIES },
           {
-            title: "Date Filter", type: "select", key: "dateFilter",
+            title: "Date Filter", type: "toggle", key: "dateFilter",
             options: ["Today", "This Week", "This Month"],
-            fn: (row, value) => {
+            fn: (row, values) => {
               if (!row.date) return false;
               const today = new Date(); today.setHours(0,0,0,0);
               const rDate = new Date(row.date); rDate.setHours(0,0,0,0);
-              if (value === "Today")      return rDate.getTime() === today.getTime();
-              if (value === "This Week")  { const w = new Date(today); w.setDate(today.getDate()-7); return rDate >= w && rDate <= today; }
-              if (value === "This Month") return rDate.getMonth() === today.getMonth() && rDate.getFullYear() === today.getFullYear();
-              return true;
+              return values.some(value => {
+                if (value === "Today")      return rDate.getTime() === today.getTime();
+                if (value === "This Week")  { const w = new Date(today); w.setDate(today.getDate()-7); return rDate >= w && rDate <= today; }
+                if (value === "This Month") return rDate.getMonth() === today.getMonth() && rDate.getFullYear() === today.getFullYear();
+                return false;
+              });
             },
           },
         ]}

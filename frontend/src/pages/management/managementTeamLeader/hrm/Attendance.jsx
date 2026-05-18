@@ -18,32 +18,35 @@ const KPI_ICONS   = [<Users size={20} />, <UserCheck size={20} />, <UserX size={
 const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f43f5e", "#f59e0b"];
 
 const COLS = [
-  { key: "employeeId", label: "Emp ID"       },
-  { key: "name",       label: "Member"       },
-  { key: "role",       label: "Role"         },
-  { key: "department", label: "Department"   },
-  { key: "date",       label: "Date"         },
-  { key: "clockIn",    label: "Clock In"     },
-  { key: "clockOut",   label: "Clock Out"    },
-  { key: "hours",      label: "Total Hours"  },
-  { key: "status",     label: "Status"       },
+  { key: "employeeId", label: "Emp ID",      width: "10%" },
+  { key: "name",       label: "Member",      width: "16%" },
+  { key: "role",       label: "Role",        width: "12%" },
+  { key: "department", label: "Department",  width: "14%" },
+  { key: "date",       label: "Date",        width: "10%" },
+  { key: "clockIn",    label: "Clock In",    width: "10%" },
+  { key: "clockOut",   label: "Clock Out",   width: "10%" },
+  { key: "hours",      label: "Total Hours", width: "10%" },
+  { key: "status",     label: "Status",      width: "8%" },
 ];
 
+
 const SUMMARY_COLS = [
-  { key: "name",            label: "Employee Name" },
-  { key: "present",         label: "Present Days" },
-  { key: "absent",          label: "Absent Days" },
-  { key: "leaves",          label: "Leave Count" },
-  { key: "percentage",      label: "Attendance %" },
-  { key: "workingDays",     label: "Working Days" },
-  { key: "remainingLeaves", label: "Remaining Leaves" },
+  { key: "name",            label: "Employee Name",    width: "22%" },
+  { key: "present",         label: "Present Days",     width: "12%" },
+  { key: "absent",          label: "Absent Days",      width: "12%" },
+  { key: "leaves",          label: "Leave Count",      width: "12%" },
+  { key: "percentage",      label: "Attendance %",     width: "14%" },
+  { key: "workingDays",     label: "Working Days",     width: "14%" },
+  { key: "remainingLeaves", label: "Remaining Leaves", width: "14%" },
 ];
+
 
 // ── Bridge: SessionTimer ← AttendanceContext ──────────────────────────────────
 function MyAttendanceWidget() {
   const ctx = useAttendance();
   return (
-    <div className="flex flex-col gap-6">
+
+    <div className="flex flex-col gap-4">
       {/* ── Page Action Buttons ────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-end gap-3">
         <Button text="+ Add Attendance" variant="primary" onClick={() => openModal("mtl-hrm-add-attendance")} />
@@ -66,11 +69,13 @@ function MyAttendanceWidget() {
         onCheckOut={ctx.checkOut}
       />
     </div>
+
   );
 }
 
 export default function Attendance() {
   const [selected, setSelected] = useState(null);
+
 
   const formatTime = (timeStr) => {
     if (!timeStr || timeStr === "—") return "—";
@@ -104,10 +109,11 @@ export default function Attendance() {
   });
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 animate-in fade-in duration-500">
 
       {/* ── KPI cards ──────────────────────────────────── */}
       <DashGrid cols={12} gap={4}>
+
         {kpiAttendance.map((k, i) => (
           <EnhancedDashCard
             key={k.title}
@@ -123,9 +129,8 @@ export default function Attendance() {
       {/* ── My attendance session timer ───────────────────────────────────── */}
       <MyAttendanceWidget />
 
-
       {/* ── Analytics & Insights Section (moved up) ──────────────────────── */}
-      <Grid cols={12} gap={6}>
+      <Grid cols={12} gap={4}>
         <GPieChart
           title="Attendance Overview"
           subtitle="Overall distribution"
@@ -144,6 +149,7 @@ export default function Attendance() {
           ]}
           size={8}
           height={320}
+
         />
       </Grid>
 
@@ -156,12 +162,12 @@ export default function Attendance() {
         size={12}
         pageSize={10}
         searchable
-        date
         exportable
         exportFileName="team_attendance"
         filters={[
+
           { title: "Status", type: "toggle", key: "status", options: ["Present", "Absent", "Leave", "Half Day", "Late"] },
-          { title: "Department", type: "select", key: "department", options: ["Engineering", "Design", "QA", "DevOps"] }
+          { title: "Department", type: "toggle", key: "department", options: ["Engineering", "Design", "QA", "DevOps"] }
         ]}
         actions={[
           {
@@ -190,20 +196,25 @@ export default function Attendance() {
         exportable
         exportFileName="attendance_summary"
         filters={[
-          { title: "Department", type: "select", key: "department", options: ["Engineering", "Design", "QA", "DevOps"] },
-          { title: "Attendance %", type: "select", key: "percentage", options: ["Above 90%", "70% - 90%", "Below 70%"], fn: (row, value) => {
+          { title: "Department", type: "toggle", key: "department", options: ["Engineering", "Design", "QA", "DevOps"] },
+          { title: "Attendance %", type: "toggle", key: "percentage", options: ["Above 90%", "70% - 90%", "Below 70%"], fn: (row, values) => {
               const p = row.rawPercentage;
-              if (value === "Above 90%") return p >= 90;
-              if (value === "70% - 90%") return p >= 70 && p < 90;
-              if (value === "Below 70%") return p < 70;
-              return true;
+              return values.some(value => {
+                if (value === "Above 90%") return p >= 90;
+                if (value === "70% - 90%") return p >= 70 && p < 90;
+                if (value === "Below 70%") return p < 70;
+                return false;
+              });
             } 
           },
-          { title: "Leave Count", type: "select", key: "leaves", options: ["0", "1", "2", "3", "4+"], fn: (row, value) => {
-              if (value === "4+") return row.leaves >= 4;
-              return row.leaves === Number(value);
+          { title: "Leave Count", type: "toggle", key: "leaves", options: ["0", "1", "2", "3", "4+"], fn: (row, values) => {
+              return values.some(value => {
+                if (value === "4+") return row.leaves >= 4;
+                return row.leaves === Number(value);
+              });
             }
           }
+
         ]}
         actions={[
           {
@@ -251,6 +262,7 @@ export default function Attendance() {
               <ModalData label="Present Days" value={selected.summary.present ?? "0"} />
               <ModalData label="Absent Days" value={selected.summary.absent ?? "0"} />
               <ModalData label="Leave Count" value={selected.summary.leaves ?? "0"} />
+
             </ModalGrid>
 
             <div className="flex justify-end pt-2 border-t border-slate-100">
@@ -259,6 +271,7 @@ export default function Attendance() {
           </div>
         )}
       </Modal>
+
 
       {/* ── Add Attendance Modal ───────────────────────────────────────────── */}
       <Modal id="mtl-hrm-add-attendance" title="Add Attendance" size="md">
@@ -378,6 +391,7 @@ export default function Attendance() {
           )}
         </div>
       </Modal>
+
 
     </div>
   );
