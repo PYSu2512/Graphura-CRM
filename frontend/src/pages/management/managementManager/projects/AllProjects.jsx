@@ -124,7 +124,7 @@ export default function AllProjects({ projects, updateProject, titleOverride, fi
         exportable
         exportFileName="projects_export"
         filters={[
-          { title: "Status",   type: "toggle", key: "status",   options: PROJECT_STATUSES },
+          { title: "Status",   type: "select", key: "status",   options: PROJECT_STATUSES },
           { title: "Priority", type: "toggle", key: "priority", options: PROJECT_PRIORITIES },
         ]}
         actions={[
