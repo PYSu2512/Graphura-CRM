@@ -1,20 +1,21 @@
-export const reportMetrics = [
-  { title: "Total Projects", value: "42", accent: "#2563eb" },
-  { title: "Active Projects", value: "18", accent: "#0891b2" },
-  { title: "Completed Projects", value: "16", accent: "#16a34a" },
-  { title: "Pending Projects", value: "8", accent: "#f59e0b" },
-  { title: "Delayed Projects", value: "5", accent: "#dc2626" },
-  { title: "Team Members Active Today", value: "23", accent: "#7c3aed" },
-  { title: "Team Productivity %", value: "86%", accent: "#0f766e" },
-  { title: "Overdue Tasks", value: "11", accent: "#ea580c" },
+export const dailyReportMetrics = [
+  { title: "Total Projects", value: "18", accent: "#2563eb" },
+  { title: "Completed Projects", value: "11", accent: "#16a34a" },
+  { title: "Pending Projects", value: "7", accent: "#f59e0b" },
 ];
 
-export const teamPerformanceRows = [
-  { id: "EMP-104", name: "Aarav Mehta", assigned: 7, completed: 5, pending: 1, delayed: 1, productivity: "91%", lastActivity: "Updated API handoff", quality: "94%" },
-  { id: "EMP-118", name: "Nisha Kapoor", assigned: 6, completed: 4, pending: 2, delayed: 0, productivity: "88%", lastActivity: "Submitted QA notes", quality: "90%" },
-  { id: "EMP-126", name: "Dev Arora", assigned: 8, completed: 4, pending: 2, delayed: 2, productivity: "72%", lastActivity: "Flagged blocker", quality: "81%" },
-  { id: "EMP-139", name: "Ira Shah", assigned: 5, completed: 4, pending: 1, delayed: 0, productivity: "93%", lastActivity: "Closed UI task", quality: "96%" },
-  { id: "EMP-145", name: "Kabir Sethi", assigned: 9, completed: 5, pending: 3, delayed: 1, productivity: "79%", lastActivity: "Awaiting approval", quality: "84%" },
+export const weeklyReportMetrics = [
+  { title: "Total Projects", value: "56", accent: "#2563eb" },
+  { title: "Completed Projects", value: "39", accent: "#16a34a" },
+  { title: "Pending Projects", value: "17", accent: "#f59e0b" },
+];
+
+export const projectReportRows = [
+  { id: "PRJ-210", project: "Vendor onboarding portal", employee: "Dev Arora", status: "Pending", reportType: "Daily", updatedOn: "2026-05-14" },
+  { id: "PRJ-184", project: "Finance approval workflow", employee: "Kabir Sethi", status: "Completed", reportType: "Daily", updatedOn: "2026-05-14" },
+  { id: "PRJ-197", project: "Employee mobile dashboard", employee: "Aarav Mehta", status: "Pending", reportType: "Weekly", updatedOn: "2026-05-13" },
+  { id: "PRJ-221", project: "Client document migration", employee: "Nisha Kapoor", status: "Completed", reportType: "Weekly", updatedOn: "2026-05-13" },
+  { id: "PRJ-233", project: "Payroll audit tracker", employee: "Ira Shah", status: "Pending", reportType: "Daily", updatedOn: "2026-05-12" },
 ];
 
 export const delayedProjectsRows = [
@@ -47,6 +48,14 @@ export const productivityTrend = [
   { name: "Fri", productivity: 89, completed: 14, delayed: 2 },
 ];
 
+export const completedPendingData = [
+  { name: "Mon", completed: 8, pending: 7 },
+  { name: "Tue", completed: 10, pending: 6 },
+  { name: "Wed", completed: 9, pending: 8 },
+  { name: "Thu", completed: 12, pending: 7 },
+  { name: "Fri", completed: 14, pending: 5 },
+];
+
 export const projectStatusData = [
   { name: "Completed", value: 16 },
   { name: "Pending", value: 8 },
@@ -67,6 +76,20 @@ export const workloadData = [
   { name: "Dev", assigned: 8, completed: 4 },
   { name: "Ira", assigned: 5, completed: 4 },
   { name: "Kabir", assigned: 9, completed: 5 },
+];
+
+export const employeePerformanceComparison = [
+  { name: "Aarav", completed: 5, pending: 1, delayed: 1, qualityIssues: 1 },
+  { name: "Nisha", completed: 4, pending: 2, delayed: 0, qualityIssues: 0 },
+  { name: "Dev", completed: 4, pending: 2, delayed: 2, qualityIssues: 3 },
+  { name: "Ira", completed: 4, pending: 1, delayed: 0, qualityIssues: 0 },
+  { name: "Kabir", completed: 5, pending: 3, delayed: 1, qualityIssues: 2 },
+];
+
+export const qualityIssueRows = [
+  { id: "QI-41", project: "Vendor onboarding portal", employee: "Dev Arora", issueType: "Review Rework", severity: "High", actionRequired: "Manager review" },
+  { id: "QI-38", project: "Finance approval workflow", employee: "Kabir Sethi", issueType: "Missing checklist", severity: "Medium", actionRequired: "Update task notes" },
+  { id: "QI-35", project: "Client document migration", employee: "Aarav Mehta", issueType: "Data mismatch", severity: "Low", actionRequired: "Recheck records" },
 ];
 
 export const weeklySummary = [

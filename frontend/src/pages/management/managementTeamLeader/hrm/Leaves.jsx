@@ -9,7 +9,7 @@ import {
 import DatePicker from "../../../../components/shared/DatePicker";
 import {
   Calendar, CheckCircle, Clock, XCircle,
-  Eye, Trash2, AlertCircle,
+  Eye, Trash2, AlertCircle, BadgeCheck, Ban,
 } from "lucide-react";
 import {
   kpiLeaves, myLeavesSeed, teamLeaveRequests, LEAVE_TYPES,
@@ -29,13 +29,24 @@ const MY_COLS = [
   { key: "status",    label: "Status",     width: "8%", align: "center" },
 ];
 
-const LEAVE_COLS = [
-  { key: "name",      label: "Employee Name", width: "22%" },
-  { key: "type",      label: "Leave Type",    width: "16%" },
-  { key: "appliedOn", label: "Applied On",    width: "16%", align: "center" },
-  { key: "from",      label: "From Date",     width: "14%", align: "center" },
-  { key: "to",        label: "To Date",       width: "14%", align: "center" },
-  { key: "status",    label: "Leave Status",  width: "18%", align: "center" },
+const PENDING_COLS = [
+  { key: "name",      label: "Employee Name", width: "16%" },
+  { key: "role",      label: "Role",          width: "12%" },
+  { key: "type",      label: "Leave Type",    width: "14%" },
+  { key: "reason",    label: "Reason",        width: "28%" },
+  { key: "dateRange", label: "Date Range",    width: "14%", align: "center" },
+  { key: "days",      label: "Days",          width: "6%",  align: "center" },
+  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center" },
+];
+
+const HISTORY_COLS = [
+  { key: "name",      label: "Employee Name", width: "16%" },
+  { key: "role",      label: "Role",          width: "12%" },
+  { key: "type",      label: "Leave Type",    width: "14%" },
+  { key: "reason",    label: "Reason",        width: "28%" },
+  { key: "dateRange", label: "Date Range",    width: "14%", align: "center" },
+  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center" },
+  { key: "status",    label: "Leave Status",  width: "6%",  align: "center" },
 ];
 
 const calcDays = (from, to) => {
@@ -66,6 +77,7 @@ export default function Leaves() {
   };
 
   const pendingRows = useMemo(() => teamReqs.filter((r) => r.status === "Pending"),  [teamReqs]);
+  const historyRows = useMemo(() => teamReqs.filter((r) => r.status !== "Pending"),  [teamReqs]);
 
   const validate = () => {
     const e = {};
@@ -192,21 +204,63 @@ export default function Leaves() {
         ]}
       />
 
-      {/* ── Leave Requests (Team Members) ──────────────────────────────────── */}
+      {/* ── Pending Leaves ─────────────────────────────────────────────────── */}
       <div id="mtl-pending-section">
         <DataTable
-          title="Leave Requests"
-          columns={LEAVE_COLS}
-          rows={teamReqs}
+          title="Pending Leaves"
+          columns={PENDING_COLS}
+          rows={pendingRows}
           userProfile="name"
           ellipse={3}
           size={12}
           pageSize={10}
           searchable
           exportable
-          exportFileName="leave_requests"
+          exportFileName="pending_leaves"
           filters={[
-            { title: "Leave Status", type: "toggle", key: "status", options: ["Approved", "Pending", "Rejected"] },
+            { title: "Leave Type", type: "toggle", key: "type", options: LEAVE_TYPES },
+          ]}
+          actions={[
+            {
+              icon: <Eye size={15} />,
+              tooltip: "View",
+              variant: "ghost",
+              onClick: (row) => {
+                setPendingView(teamReqs.find((r) => r.id === row.id) ?? row);
+                openModal("mtl-hrm-pending-view");
+              },
+            },
+            {
+              icon: <BadgeCheck size={15} />,
+              tooltip: "Accept",
+              variant: "primary",
+              onClick: (row) => setMemberStatus(row, "Approved"),
+            },
+            {
+              icon: <Ban size={15} />,
+              tooltip: "Reject",
+              variant: "danger",
+              onClick: (row) => setMemberStatus(row, "Rejected"),
+            },
+          ]}
+        />
+      </div>
+
+      {/* ── Leave History ──────────────────────────────────────────────────── */}
+      <div>
+        <DataTable
+          title="Leave History"
+          columns={HISTORY_COLS}
+          rows={historyRows}
+          userProfile="name"
+          ellipse={3}
+          size={12}
+          pageSize={10}
+          searchable
+          exportable
+          exportFileName="leave_history"
+          filters={[
+            { title: "Leave Status", type: "toggle", key: "status", options: ["Approved", "Rejected"] },
             { title: "Leave Type", type: "toggle", key: "type", options: LEAVE_TYPES },
           ]}
           actions={[
@@ -215,8 +269,8 @@ export default function Leaves() {
               tooltip: "View Details",
               variant: "ghost",
               onClick: (row) => {
-                setPendingView(teamReqs.find((r) => r.id === row.id) ?? row);
-                openModal("mtl-hrm-pending-view");
+                setHistoryView(teamReqs.find((r) => r.id === row.id) ?? row);
+                openModal("mtl-hrm-history-view");
               },
             },
           ]}

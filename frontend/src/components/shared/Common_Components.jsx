@@ -872,30 +872,27 @@ function ActionButton({ action, row, isIconOnly, actionVariantCls }) {
   const [tipPos, setTipPos] = useState(null);
   const btnRef = useRef(null);
 
-  // Support per-row visibility: action.show can be a function (row) => bool
-  if (action.show && !action.show(row)) {
-    return null;
-  }
+  const isHidden = action.show && !action.show(row);
 
   const showTip = () => {
-    if (!isIconOnly || !action.tooltip) return;
+    if (isHidden || !isIconOnly || !action.tooltip) return;
     const rect = btnRef.current?.getBoundingClientRect();
     if (rect) setTipPos({ top: rect.top - 8, left: rect.left + rect.width / 2 });
   };
   const hideTip = () => setTipPos(null);
 
   return (
-    <div className="relative">
+    <div className={`relative ${isHidden ? "invisible pointer-events-none" : ""}`}>
       <button
         ref={btnRef}
         type="button"
-        onClick={() => action.onClick(row)}
+        onClick={() => !isHidden && action.onClick(row)}
         onMouseEnter={showTip}
         onMouseLeave={hideTip}
         onFocus={showTip}
         onBlur={hideTip}
         className={`
-          flex flex-nowrap items-center justify-center gap-1.5
+          flex flex-nowrap items-center justify-center gap-1.5 flex-shrink-0
           transition duration-150 active:scale-95
           ${isIconOnly
             ? `w-8 h-8 rounded-xl ${actionVariantCls[action.variant ?? "ghost"]}`

@@ -1,8 +1,8 @@
-import { BarChart3, CheckCircle2, Clock, IndianRupee, PhoneCall, ShieldAlert, Target, Trash2, TrendingUp, UserCheck } from "lucide-react";
+import { AlertTriangle, BarChart3, CheckCircle2, Clock, FolderKanban, Gauge, ShieldAlert } from "lucide-react";
 import { DashGrid, EnhancedDashCard } from "../../../../../components/shared/Common_Components";
 import { progressStats } from "../data/progressData";
 
-const icons = [Target, TrendingUp, UserCheck, CheckCircle2, Trash2, Clock, PhoneCall, BarChart3, IndianRupee, Target, UserCheck, ShieldAlert];
+const icons = [FolderKanban, CheckCircle2, Clock, AlertTriangle, ShieldAlert, Gauge];
 
 export default function ProgressStats() {
   return (
@@ -16,7 +16,7 @@ export default function ProgressStats() {
             value={item.value}
             icon={<Icon size={20} />}
             accentColor={item.accent}
-            size={3}
+            size={4}
           />
         );
       })}

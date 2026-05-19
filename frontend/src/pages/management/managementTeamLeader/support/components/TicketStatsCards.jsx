@@ -1,8 +1,8 @@
-import { AlertOctagon, CheckCircle2, Flame, Inbox, Loader2 } from "lucide-react";
+import { AlertOctagon, CheckCircle2, Clock, Inbox } from "lucide-react";
 import { DashGrid, EnhancedDashCard } from "../../../../../components/shared/Common_Components";
 import { ticketMetrics } from "../supportData";
 
-const icons = [Inbox, Loader2, AlertOctagon, CheckCircle2, Flame];
+const icons = [Inbox, Clock, AlertOctagon, CheckCircle2];
 
 export default function TicketStatsCards() {
   return (

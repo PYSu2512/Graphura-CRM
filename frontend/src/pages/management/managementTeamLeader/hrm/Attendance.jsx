@@ -7,7 +7,7 @@ import {
 } from "../../../../components/shared/Common_Components";
 import SessionTimer from "../../../../components/shared/SessionTimer";
 import { useAttendance } from "../../../../context/AttendanceContext";
-import { Users, UserCheck, UserX, CalendarClock, Eye, Clock, TrendingUp } from "lucide-react";
+import { Users, UserCheck, UserX, CalendarClock, Eye, Clock, TrendingUp, History } from "lucide-react";
 import {
   kpiAttendance, attendanceRows, ATTENDANCE_STATUS, currentTL,
   weeklyAttendance, attendanceDistribution, myTimingLogs, employeeAttendanceSummary,
@@ -18,15 +18,16 @@ const KPI_ICONS   = [<Users size={20} />, <UserCheck size={20} />, <UserX size={
 const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f43f5e", "#f59e0b"];
 
 const COLS = [
-  { key: "employeeId", label: "Emp ID",      width: "10%" },
-  { key: "name",       label: "Member",      width: "16%" },
-  { key: "role",       label: "Role",        width: "12%" },
-  { key: "department", label: "Department",  width: "14%" },
-  { key: "date",       label: "Date",        width: "10%" },
-  { key: "clockIn",    label: "Clock In",    width: "10%" },
-  { key: "clockOut",   label: "Clock Out",   width: "10%" },
-  { key: "hours",      label: "Total Hours", width: "10%" },
-  { key: "status",     label: "Status",      width: "8%" },
+  { key: "teamName",   label: "Team Name" },
+  { key: "name",       label: "Member" },
+  { key: "role",       label: "Role" },
+  { key: "department", label: "Department" },
+  { key: "date",       label: "Date" },
+  { key: "clockIn",    label: "Clock In" },
+  { key: "clockOut",   label: "Clock Out" },
+  { key: "hours",      label: "Total Hours" },
+  { key: "status",     label: "Status" },
+  { key: "percentage", label: "Attendance %", align: "center" },
 ];
 
 
@@ -47,11 +48,7 @@ function MyAttendanceWidget() {
   return (
 
     <div className="flex flex-col gap-4">
-      {/* ── Page Action Buttons ────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center justify-end gap-3">
-        <Button text="+ Add Attendance" variant="primary" onClick={() => openModal("mtl-hrm-add-attendance")} />
-        <Button text="View Employee History" variant="ghost" onClick={() => openModal("mtl-hrm-emp-history")} />
-      </div>
+      {/* ── Page Action Buttons Removed ────────────────────────────────────── */}
 
       <SessionTimer
         label="Today's Attendance"
@@ -108,6 +105,25 @@ export default function Attendance() {
     };
   });
 
+  const enhancedAttendanceRows = attendanceRows.map((row) => {
+    const summary = employeeAttendanceSummary.find((s) => s.name === row.name);
+    const p = summary ? summary.percentage : 0;
+    let badgeColor = "bg-slate-100 text-slate-700";
+    if (p >= 95) badgeColor = "bg-emerald-100 text-emerald-700";
+    else if (p >= 80 && p < 95) badgeColor = "bg-amber-100 text-amber-700";
+    else if (p > 0) badgeColor = "bg-rose-100 text-rose-700";
+
+    return {
+      ...row,
+      teamName: row.team || "N/A",
+      percentage: summary ? (
+        <span className={`px-2 py-1 rounded-full text-xs font-bold ${badgeColor}`}>{p}%</span>
+      ) : (
+        <span className="text-slate-500 font-bold">N/A</span>
+      )
+    };
+  });
+
   return (
     <div className="flex flex-col gap-4 animate-in fade-in duration-500">
 
@@ -153,11 +169,18 @@ export default function Attendance() {
         />
       </Grid>
 
+      {/* ── Attendance History Button ────────────────────────────────────── */}
+      <div className="flex justify-end mt-2 mb-[-8px]">
+        <div className="w-fit">
+          <Button text="View Employee History" variant="primary" onClick={() => openModal("mtl-hrm-emp-history")} />
+        </div>
+      </div>
+
       {/* ── Team attendance table ─────────────────────────────────────────── */}
       <DataTable
-        title="Team Attendance Log"
+        title="Attendance Record"
         columns={COLS}
-        rows={attendanceRows}
+        rows={enhancedAttendanceRows}
         userProfile="name"
         size={12}
         pageSize={10}
@@ -175,63 +198,13 @@ export default function Attendance() {
             tooltip: "View Details",
             variant: "ghost",
             onClick: (row) => {
-              const log = attendanceRows.find((r) => r.id === row.id) || row;
-              const summary = employeeAttendanceSummary.find((s) => s.name === log.name) || {};
-              setSelected({ log, summary });
+              const summary = employeeAttendanceSummary.find((s) => s.name === row.name) || {};
+              setSelected({ log: row, summary });
               openModal("mtl-hrm-att-view");
             },
           },
         ]}
       />
-
-      {/* ── Employee Attendance Summary ────────────────────────────────────── */}
-      <DataTable
-        title="Employee Attendance Summary"
-        columns={SUMMARY_COLS}
-        rows={summaryRowsWithBadges}
-        userProfile="name"
-        size={12}
-        pageSize={10}
-        searchable
-        exportable
-        exportFileName="attendance_summary"
-        filters={[
-          { title: "Department", type: "toggle", key: "department", options: ["Engineering", "Design", "QA", "DevOps"] },
-          { title: "Attendance %", type: "toggle", key: "percentage", options: ["Above 90%", "70% - 90%", "Below 70%"], fn: (row, values) => {
-              const p = row.rawPercentage;
-              return values.some(value => {
-                if (value === "Above 90%") return p >= 90;
-                if (value === "70% - 90%") return p >= 70 && p < 90;
-                if (value === "Below 70%") return p < 70;
-                return false;
-              });
-            } 
-          },
-          { title: "Leave Count", type: "toggle", key: "leaves", options: ["0", "1", "2", "3", "4+"], fn: (row, values) => {
-              return values.some(value => {
-                if (value === "4+") return row.leaves >= 4;
-                return row.leaves === Number(value);
-              });
-            }
-          }
-
-        ]}
-        actions={[
-          {
-            icon: <Eye size={15} />,
-            tooltip: "View Details",
-            variant: "ghost",
-            onClick: (row) => {
-              const summary = row;
-              const log = attendanceRows.find((r) => r.name === summary.name) || {};
-              setSelected({ log, summary });
-              openModal("mtl-hrm-att-view");
-            },
-          },
-        ]}
-      />
-
-
 
       {/* ── View modal ───────────────────────────────────────────────────── */}
       <Modal id="mtl-hrm-att-view" title="Attendance Details" size="md">
@@ -240,7 +213,7 @@ export default function Attendance() {
             <ModalProfile
               name={selected.log.name || selected.summary.name}
               subtitle={`${selected.log.role || "Role N/A"} · ${selected.summary.department || selected.log.department || "Dept N/A"}`}
-              meta={`Emp ID: ${selected.log.employeeId || "N/A"}`}
+              meta={`Emp ID: ${selected.log.employeeId || "N/A"} · Team: ${selected.log.teamName || "N/A"}`}
             />
 
             <ModalGrid title="Daily Log" cols={2}>
@@ -258,11 +231,11 @@ export default function Attendance() {
 
             <ModalGrid title="Monthly Summary" cols={2}>
               <ModalData label="Working Days" value={selected.summary.workingDays ?? "0"} />
-              <ModalData label="Attendance %" value={selected.summary.rawPercentage ? `${selected.summary.rawPercentage}%` : "0%"} />
+              <ModalData label="Attendance %" value={selected.log.percentage || "0%"} />
               <ModalData label="Present Days" value={selected.summary.present ?? "0"} />
               <ModalData label="Absent Days" value={selected.summary.absent ?? "0"} />
               <ModalData label="Leave Count" value={selected.summary.leaves ?? "0"} />
-
+              <ModalData label="Remaining Leaves" value={selected.summary.remainingLeaves ?? "0"} />
             </ModalGrid>
 
             <div className="flex justify-end pt-2 border-t border-slate-100">
@@ -358,15 +331,18 @@ export default function Attendance() {
             </>
           ) : (
             <div className="animate-in fade-in zoom-in-95 duration-300">
-              {historyEmp && (
-                <div className="mb-4">
-                  <ModalProfile
-                    name={attendanceRows.find(r => r.id === historyEmp)?.name}
-                    subtitle={attendanceRows.find(r => r.id === historyEmp)?.role}
-                    meta="Attendance History - Last 30 Days"
-                  />
-                </div>
-              )}
+              {historyEmp && (() => {
+                const selectedEmp = attendanceRows.find(r => r.id === historyEmp);
+                return (
+                  <div className="mb-4">
+                    <ModalProfile
+                      name={selectedEmp?.name}
+                      subtitle={selectedEmp?.role}
+                      meta={`Team: ${selectedEmp?.team || "N/A"} · Team ID: T-101`}
+                    />
+                  </div>
+                );
+              })()}
               <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {myTimingLogs.map((log) => (
                   <div key={log.id} className="mb-3 p-3 rounded-xl border border-slate-100 bg-slate-50 flex justify-between items-center">

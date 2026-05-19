@@ -1,8 +1,11 @@
 import { useState } from "react";
-import { Filter, ShieldAlert } from "lucide-react";
+import { Eye, Filter, PencilLine } from "lucide-react";
 import {
   Button,
   DataField,
+  DataTable,
+  GBarChart,
+  GColumnChart,
   Grid,
   Heading,
   Modal,
@@ -11,27 +14,45 @@ import {
   Option,
   SelectField,
   closeModal,
+  openModal,
 } from "../../../../components/shared/Common_Components";
 import ProgressStats from "./components/ProgressStats";
-import ExecutivePerformanceTable from "./components/ExecutivePerformanceTable";
-import LeadPipelineChart from "./components/LeadPipelineChart";
-import ActivityTimeline from "./components/ActivityTimeline";
-import FollowupMonitor from "./components/FollowupMonitor";
-import ConversionAnalytics from "./components/ConversionAnalytics";
-import DumpInsights from "./components/DumpInsights";
-import TargetTracker from "./components/TargetTracker";
-import { filterOptions } from "./data/progressData";
+import {
+  completedPendingProjects,
+  delayQualityData,
+  employeeProgressRows,
+  filterOptions,
+  teamActivityRows,
+} from "./data/progressData";
+
+const progressColumns = [
+  { key: "project", label: "Project" },
+  { key: "employee", label: "Employee" },
+  { key: "status", label: "Status" },
+  { key: "progress", label: "Progress" },
+  { key: "completed", label: "Completed" },
+  { key: "pending", label: "Pending" },
+  { key: "delayDays", label: "Delay Days" },
+  { key: "qualityIssues", label: "Quality Issues" },
+  { key: "lastUpdate", label: "Last Update" },
+];
+
+const activityColumns = [
+  { key: "time", label: "Time" },
+  { key: "employee", label: "Employee" },
+  { key: "activity", label: "Activity" },
+  { key: "project", label: "Project" },
+  { key: "status", label: "Status" },
+];
 
 export default function ProgressPage() {
-  const [selectedExecutive, setSelectedExecutive] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [filters, setFilters] = useState({
     dateFrom: "",
     dateTo: "",
-    executive: "All",
-    team: "All",
+    employee: "All",
     status: "All",
     priority: "All",
-    source: "All",
   });
 
   const updateFilter = (key) => (event) => {
@@ -42,11 +63,9 @@ export default function ProgressPage() {
     setFilters({
       dateFrom: "",
       dateTo: "",
-      executive: "All",
-      team: "All",
+      employee: "All",
       status: "All",
       priority: "All",
-      source: "All",
     });
   };
 
@@ -54,7 +73,7 @@ export default function ProgressPage() {
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
       <Heading
         primaryText="Team Progress"
-        secondaryText="Command Center"
+        secondaryText="Tracking"
         showAnimations
       />
 
@@ -70,8 +89,8 @@ export default function ProgressPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-black text-blue-700">This Week</span>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">All Teams</span>
-            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">High Priority Included</span>
+            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">Project Status</span>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-black text-amber-700">Delays Included</span>
           </div>
         </div>
         <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
@@ -79,31 +98,20 @@ export default function ProgressPage() {
             <DataField label="Date From" type="date" size={2} value={filters.dateFrom} onChange={updateFilter("dateFrom")} />
             <DataField label="Date To" type="date" size={2} value={filters.dateTo} onChange={updateFilter("dateTo")} />
             <SelectField
-              label="Executive"
-              id="mtl-progress-executive"
-              size={2}
+              label="Employee"
+              id="mtl-progress-employee"
+              size={3}
               searchable={false}
-              placeholder="All executives"
-              value={filters.executive}
-              onChange={updateFilter("executive")}
+              placeholder="All employees"
+              value={filters.employee}
+              onChange={updateFilter("employee")}
             >
-              {filterOptions.executives.map((item) => <Option key={item} value={item} label={item} />)}
+              {filterOptions.employees.map((item) => <Option key={item} value={item} label={item} />)}
             </SelectField>
             <SelectField
-              label="Team"
-              id="mtl-progress-team"
-              size={2}
-              searchable={false}
-              placeholder="All teams"
-              value={filters.team}
-              onChange={updateFilter("team")}
-            >
-              {filterOptions.teams.map((item) => <Option key={item} value={item} label={item} />)}
-            </SelectField>
-            <SelectField
-              label="Lead Status"
+              label="Project Status"
               id="mtl-progress-status"
-              size={2}
+              size={3}
               searchable={false}
               placeholder="All statuses"
               value={filters.status}
@@ -114,24 +122,13 @@ export default function ProgressPage() {
             <SelectField
               label="Priority"
               id="mtl-progress-priority"
-              size={1}
+              size={2}
               searchable={false}
               placeholder="Any"
               value={filters.priority}
               onChange={updateFilter("priority")}
             >
               {filterOptions.priorities.map((item) => <Option key={item} value={item} label={item} />)}
-            </SelectField>
-            <SelectField
-              label="Source"
-              id="mtl-progress-source"
-              size={1}
-              searchable={false}
-              placeholder="Any"
-              value={filters.source}
-              onChange={updateFilter("source")}
-            >
-              {filterOptions.sources.map((item) => <Option key={item} value={item} label={item} />)}
             </SelectField>
           </Grid>
           <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-3">
@@ -146,70 +143,107 @@ export default function ProgressPage() {
       </section>
 
       <ProgressStats />
-      <ExecutivePerformanceTable onSelect={setSelectedExecutive} />
-      <LeadPipelineChart />
 
       <Grid cols={12} gap={6}>
-        <div className="col-span-12 xl:col-span-7">
-          <ActivityTimeline />
-        </div>
-        <div className="col-span-12 xl:col-span-5">
-          <FollowupMonitor />
-        </div>
+        <GColumnChart
+          title="Completed vs Pending Projects"
+          subtitle="Employee-wise task completion status"
+          data={completedPendingProjects}
+          bars={[
+            { key: "completed", label: "Completed", color: "#16a34a" },
+            { key: "pending", label: "Pending", color: "#f59e0b" },
+          ]}
+          size={6}
+          height={320}
+        />
+        <GBarChart
+          title="Delays & Quality Issues"
+          subtitle="Projects needing attention"
+          data={delayQualityData}
+          bars={[
+            { key: "delays", label: "Delay Days", color: "#dc2626" },
+            { key: "qualityIssues", label: "Quality Issues", color: "#7c3aed" },
+          ]}
+          size={6}
+          height={320}
+        />
       </Grid>
 
-      <ConversionAnalytics />
-      <DumpInsights />
-      <TargetTracker />
+      <DataTable
+        title="Employee Project Progress"
+        columns={progressColumns}
+        rows={employeeProgressRows}
+        size={12}
+        pageSize={8}
+        searchable
+        filters={[
+          { title: "Status", type: "toggle", key: "status", options: ["Completed", "Pending", "Delayed", "On Track"] },
+          { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High", "Critical"] },
+        ]}
+        actions={[
+          {
+            icon: <Eye size={15} />,
+            tooltip: "View Progress",
+            variant: "ghost",
+            onClick: (row) => {
+              setSelectedProject(row);
+              openModal("mtl-progress-project-details");
+            },
+          },
+          {
+            icon: <PencilLine size={15} />,
+            tooltip: "Update Progress",
+            variant: "primary",
+            onClick: (row) => {
+              setSelectedProject(row);
+              openModal("mtl-progress-update-project");
+            },
+          },
+        ]}
+      />
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div>
-            <h3 className="text-base font-black text-[#243b53]">Export & Reporting</h3>
-            <p className="mt-1 text-sm font-medium text-slate-500">
-              Download CSV, PDF, daily progress summary, or executive-level performance report.
-            </p>
-          </div>
-          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-4 xl:w-[720px]">
-            <Button text="Export CSV" variant="ghost" />
-            <Button text="Export PDF" variant="secondary" />
-            <Button text="Daily Report" variant="secondary" />
-            <Button text="Executive Report" variant="primary" />
-          </div>
-        </div>
-      </section>
+      <DataTable
+        title="Team Activity"
+        columns={activityColumns}
+        rows={teamActivityRows}
+        size={12}
+        pageSize={5}
+        searchable
+      />
 
-      <Modal id="mtl-progress-executive-details" title="Executive Activity" size="lg">
-        {selectedExecutive && (
+      <Modal id="mtl-progress-project-details" title="Project Progress Details" size="lg">
+        {selectedProject && (
           <ModalGrid>
-            <ModalData label="Executive" value={selectedExecutive.name} />
-            <ModalData label="Total Leads" value={selectedExecutive.totalLeads} />
-            <ModalData label="Calls Made" value={selectedExecutive.callsMade} />
-            <ModalData label="Interested Leads" value={selectedExecutive.interested} />
-            <ModalData label="Prospects Created" value={selectedExecutive.prospects} />
-            <ModalData label="Converted Leads" value={selectedExecutive.converted} />
-            <ModalData label="Dump Count" value={selectedExecutive.dumpCount} />
-            <ModalData label="Productivity Score" value={`${selectedExecutive.productivity}%`} />
-            <ModalData label="Status" value={selectedExecutive.status} />
-            <ModalData label="Last Activity" value={selectedExecutive.lastActivity} />
+            <ModalData label="Project" value={selectedProject.project} />
+            <ModalData label="Employee" value={selectedProject.employee} />
+            <ModalData label="Status" value={selectedProject.status} />
+            <ModalData label="Progress" value={selectedProject.progress} />
+            <ModalData label="Completed Tasks" value={selectedProject.completed} />
+            <ModalData label="Pending Tasks" value={selectedProject.pending} />
+            <ModalData label="Delay Days" value={selectedProject.delayDays} />
+            <ModalData label="Quality Issues" value={selectedProject.qualityIssues} />
+            <ModalData label="Last Update" value={selectedProject.lastUpdate} />
           </ModalGrid>
         )}
       </Modal>
 
-      <Modal id="mtl-progress-escalate-executive" title="Escalate Executive Risk" size="md">
-        <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-bold text-rose-700">
-          <ShieldAlert size={16} className="mr-2 inline" />
-          Escalation will be visible to the Management Manager.
-        </div>
+      <Modal id="mtl-progress-update-project" title="Update Project Progress" size="md">
         <Grid cols={12} gap={3}>
-          <DataField label="Executive" size={12} value={selectedExecutive?.name || ""} readOnly />
-          <DataField label="Reason" size={6} placeholder="Low activity / SLA violation" />
-          <DataField label="Urgency" size={6} placeholder="High / Critical" />
-          <DataField label="Notes" type="textarea" size={12} rows={4} placeholder="Mention follow-up issues, inactive leads, dump pattern, or conversion risk..." />
+          <DataField label="Project" size={12} value={selectedProject?.project || ""} readOnly />
+          <DataField label="Assigned Employee" size={6} value={selectedProject?.employee || ""} readOnly />
+          <DataField label="Progress %" type="number" size={6} placeholder="0" />
+          <SelectField label="Status" id="mtl-progress-update-status" size={6} placeholder="Select status">
+            <Option value="Completed" label="Completed" />
+            <Option value="Pending" label="Pending" />
+            <Option value="Delayed" label="Delayed" />
+            <Option value="On Track" label="On Track" />
+          </SelectField>
+          <DataField label="Quality Issues" type="number" size={6} placeholder="0" />
+          <DataField label="Update Notes" type="textarea" size={12} rows={4} placeholder="Add progress notes, blockers, delay reason, or quality concerns..." />
         </Grid>
         <div className="mt-5 flex justify-end gap-2">
-          <Button text="Cancel" variant="secondary" onClick={() => closeModal("mtl-progress-escalate-executive")} />
-          <Button text="Escalate" variant="danger" onClick={() => closeModal("mtl-progress-escalate-executive")} />
+          <Button text="Cancel" variant="secondary" onClick={() => closeModal("mtl-progress-update-project")} />
+          <Button text="Update" variant="primary" onClick={() => closeModal("mtl-progress-update-project")} />
         </div>
       </Modal>
     </div>

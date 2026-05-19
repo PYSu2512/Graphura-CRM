@@ -1,16 +1,41 @@
 export const progressStats = [
-  { title: "Total Assigned Leads", value: "1,248", accent: "#2563eb" },
-  { title: "Active Leads", value: "642", accent: "#0891b2" },
-  { title: "Interested Leads", value: "284", accent: "#16a34a" },
-  { title: "Converted Leads", value: "96", accent: "#0f766e" },
-  { title: "Dump Leads", value: "118", accent: "#64748b" },
-  { title: "Pending Follow-Ups", value: "73", accent: "#f59e0b" },
-  { title: "Total Calls Made", value: "2,814", accent: "#7c3aed" },
-  { title: "Team Conversion Rate %", value: "18.6%", accent: "#22c55e" },
-  { title: "Today's Revenue", value: "₹8.4L", accent: "#059669" },
-  { title: "Prospect Count", value: "156", accent: "#ea580c" },
-  { title: "Best Performing Executive", value: "Priya", accent: "#0284c7" },
-  { title: "SLA Violations", value: "9", accent: "#dc2626" },
+  { title: "Total Projects", value: "42", accent: "#2563eb" },
+  { title: "Completed Projects", value: "16", accent: "#16a34a" },
+  { title: "Pending Projects", value: "18", accent: "#f59e0b" },
+  { title: "Delayed Projects", value: "5", accent: "#dc2626" },
+  { title: "Quality Issues", value: "6", accent: "#7c3aed" },
+  { title: "Avg Progress", value: "74%", accent: "#0f766e" },
+];
+
+export const employeeProgressRows = [
+  { id: "PRJ-210", project: "Vendor onboarding portal", employee: "Dev Arora", status: "Delayed", progress: "64%", completed: 4, pending: 2, delayDays: 3, qualityIssues: 2, priority: "Critical", lastUpdate: "Blocked on approval" },
+  { id: "PRJ-184", project: "Finance approval workflow", employee: "Kabir Sethi", status: "Pending", progress: "72%", completed: 5, pending: 3, delayDays: 1, qualityIssues: 1, priority: "High", lastUpdate: "Awaiting review" },
+  { id: "PRJ-197", project: "Employee mobile dashboard", employee: "Aarav Mehta", status: "On Track", progress: "88%", completed: 7, pending: 1, delayDays: 0, qualityIssues: 0, priority: "High", lastUpdate: "UI fixes completed" },
+  { id: "PRJ-221", project: "Client document migration", employee: "Nisha Kapoor", status: "Pending", progress: "54%", completed: 3, pending: 4, delayDays: 2, qualityIssues: 1, priority: "Medium", lastUpdate: "Document validation pending" },
+  { id: "PRJ-233", project: "Payroll audit tracker", employee: "Ira Shah", status: "Completed", progress: "100%", completed: 8, pending: 0, delayDays: 0, qualityIssues: 0, priority: "Medium", lastUpdate: "Completed and verified" },
+];
+
+export const completedPendingProjects = [
+  { name: "Aarav", completed: 7, pending: 1 },
+  { name: "Nisha", completed: 3, pending: 4 },
+  { name: "Dev", completed: 4, pending: 2 },
+  { name: "Ira", completed: 8, pending: 0 },
+  { name: "Kabir", completed: 5, pending: 3 },
+];
+
+export const delayQualityData = [
+  { name: "Aarav", delays: 0, qualityIssues: 0 },
+  { name: "Nisha", delays: 2, qualityIssues: 1 },
+  { name: "Dev", delays: 3, qualityIssues: 2 },
+  { name: "Ira", delays: 0, qualityIssues: 0 },
+  { name: "Kabir", delays: 1, qualityIssues: 1 },
+];
+
+export const teamActivityRows = [
+  { id: "ACT-01", time: "11:50 AM", employee: "Dev Arora", activity: "Updated project status", project: "Vendor onboarding portal", status: "Delayed" },
+  { id: "ACT-02", time: "11:20 AM", employee: "Ira Shah", activity: "Completed task verification", project: "Payroll audit tracker", status: "Completed" },
+  { id: "ACT-03", time: "10:45 AM", employee: "Nisha Kapoor", activity: "Reported quality issue", project: "Client document migration", status: "Pending" },
+  { id: "ACT-04", time: "10:10 AM", employee: "Kabir Sethi", activity: "Requested review", project: "Finance approval workflow", status: "Pending" },
 ];
 
 export const executives = [
@@ -105,9 +130,7 @@ export const risks = [
 ];
 
 export const filterOptions = {
-  executives: ["All", "Priya Nair", "Rohit Shah", "Aman Verma", "Neha Kapoor", "Sahil Khan"],
-  teams: ["All", "North Team", "South Team", "Enterprise Team"],
-  statuses: ["All", "Untouched", "Talk", "Interested", "Prospect", "Converted", "Dump"],
+  employees: ["All", "Aarav Mehta", "Nisha Kapoor", "Dev Arora", "Ira Shah", "Kabir Sethi"],
+  statuses: ["All", "Completed", "Pending", "Delayed", "On Track"],
   priorities: ["All", "Low", "Medium", "High", "Critical"],
-  sources: ["All", "Website", "Referral", "Cold Call", "WhatsApp", "Campaign"],
 };

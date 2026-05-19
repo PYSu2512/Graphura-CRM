@@ -330,7 +330,7 @@ export default function NotificationsPage() {
             onClick: (row) => markAsRead(row.id),
           },
           {
-            icon: <Trash2 size={15} />, tooltip: "Delete", variant: "ghost",
+            icon: <Trash2 size={15} />, tooltip: "Delete", variant: "danger",
             onClick: (row) => deleteNotification(row.id),
           },
         ]}
