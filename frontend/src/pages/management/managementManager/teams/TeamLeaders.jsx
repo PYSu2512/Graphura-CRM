@@ -29,10 +29,18 @@ const cols = [
   { key: "delayedProjects", label: "Delayed Projects" },
 ];
 
-export default function TeamLeaders({ employees, moveEmployee }) {
+export default function TeamLeaders({ employees, moveEmployee, teamLeaders: propTeamLeaders, setTeamLeaders, setEmployees }) {
   const [selectedLeader, setSelectedLeader] = useState(null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [targetTL, setTargetTL] = useState("");
+  // Create Team form state
+  const [newName, setNewName] = useState("");
+  const [newRegion, setNewRegion] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newMemberIds, setNewMemberIds] = useState([]);
+
+  // Use prop-provided leaders when available (in-memory local override), otherwise fall back to canonical import
+  const leaders = propTeamLeaders || teamLeaders;
 
   const assignedEmployees = selectedLeader
     ? employees.filter((emp) => emp.teamLeaderId === selectedLeader.id)
@@ -40,7 +48,7 @@ export default function TeamLeaders({ employees, moveEmployee }) {
 
   const selectedEmployee = employees.find((emp) => emp.id === selectedEmployeeId);
 
-  const leaderRows = teamLeaders.map((tl) => {
+  const leaderRows = leaders.map((tl) => {
     const myEmployees = employees.filter((emp) => emp.teamLeaderId === tl.id);
     const myProjects = projects.filter((project) => project.assignedTL === tl.id);
 
@@ -58,7 +66,7 @@ export default function TeamLeaders({ employees, moveEmployee }) {
   });
 
   const kpis = teamLeaderKpiCards.map((card) => {
-    if (card.title === "Team Leaders") return { ...card, value: String(teamLeaders.length) };
+    if (card.title === "Team Leaders") return { ...card, value: String(leaders.length) };
     if (card.title === "Employees") return { ...card, value: String(employees.length) };
     if (card.title === "Active Projects")
       return {
@@ -72,7 +80,12 @@ export default function TeamLeaders({ employees, moveEmployee }) {
 
   return (
     <div className="space-y-6">
-      <Heading primaryText="Team Leaders" secondaryText="Overview" size={12} />
+      <div className="flex items-center justify-between">
+        <Heading primaryText="Team Leaders" secondaryText="Overview" size={12} />
+        <div>
+          <Button text="Create Team" variant="primary" size={3} onClick={() => openModal("mm-create-team")} />
+        </div>
+      </div>
 
       <DashGrid cols={12} gap={4}>
         <DashCard title="Team Leaders" value={kpis[0].value} icon={<UserCheck size={20} />} accentColor={kpis[0].accent} size={3} />
@@ -92,7 +105,7 @@ export default function TeamLeaders({ employees, moveEmployee }) {
         exportFileName="management_team_leaders"
         userProfile="name"
         filters={[
-          { title: "Region", type: "toggle", key: "region", options: [...new Set(teamLeaders.map((tl) => tl.region))] },
+          { title: "Region", type: "toggle", key: "region", options: [...new Set(leaders.map((tl) => tl.region))] },
           { title: "Status", type: "toggle", key: "status", options: ["Active", "On Leave"] },
         ]}
         actions={[
@@ -100,8 +113,8 @@ export default function TeamLeaders({ employees, moveEmployee }) {
             icon: <Eye size={15} />,
             tooltip: "View",
             variant: "ghost",
-            onClick: (row) => {
-              const leader = teamLeaders.find((tl) => tl.id === row.id);
+              onClick: (row) => {
+              const leader = leaders.find((tl) => tl.id === row.id);
               setSelectedLeader(leader);
               openModal("mm-tl-view");
             },
@@ -111,7 +124,7 @@ export default function TeamLeaders({ employees, moveEmployee }) {
             tooltip: "Reassign Employee",
             variant: "primary",
             onClick: (row) => {
-              const leader = teamLeaders.find((tl) => tl.id === row.id);
+              const leader = leaders.find((tl) => tl.id === row.id);
               setSelectedLeader(leader);
               setSelectedEmployeeId(
                 employees.find((emp) => emp.teamLeaderId === leader.id)?.id || "",
@@ -122,6 +135,67 @@ export default function TeamLeaders({ employees, moveEmployee }) {
           },
         ]}
       />
+
+      {/* Create Team modal */}
+      <Modal id="mm-create-team" title="Create Team" size="md">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-600">Team Leader Name *</label>
+            <input value={newName} onChange={(e) => setNewName(e.target.value)} className="mt-1 block w-full rounded-md border px-3 py-2" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-600">Region</label>
+            <input value={newRegion} onChange={(e) => setNewRegion(e.target.value)} className="mt-1 block w-full rounded-md border px-3 py-2" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-600">Phone</label>
+            <input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} className="mt-1 block w-full rounded-md border px-3 py-2" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-600">Assign Employees (optional)</label>
+            <div className="mt-2 max-h-40 overflow-auto border rounded-md p-2">
+              {employees.map((emp) => (
+                <label key={emp.id} className="flex items-center gap-2 py-1">
+                  <input
+                    type="checkbox"
+                    checked={newMemberIds.includes(emp.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setNewMemberIds((p) => [...p, emp.id]);
+                      else setNewMemberIds((p) => p.filter((id) => id !== emp.id));
+                    }}
+                  />
+                  <span className="text-sm">{emp.name} — {emp.phone || emp.mobile || "—"}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3">
+            <Button text="Cancel" variant="secondary" size={3} onClick={() => closeModal("mm-create-team")} />
+            <Button
+              text="Create"
+              variant="primary"
+              size={3}
+              onClick={() => {
+                if (!newName.trim()) return;
+                const newId = `TL-${Date.now()}`;
+                const newLeader = { id: newId, name: newName.trim(), region: newRegion || "-", phone: newPhone || "-", status: "Active" };
+                if (setTeamLeaders) setTeamLeaders((p) => [...p, newLeader]);
+                if (newMemberIds.length && setEmployees) {
+                  setEmployees((prev) => prev.map((emp) => (newMemberIds.includes(emp.id) ? { ...emp, teamLeaderId: newId } : emp)));
+                }
+                // reset form
+                setNewName("");
+                setNewRegion("");
+                setNewPhone("");
+                setNewMemberIds([]);
+                closeModal("mm-create-team");
+              }}
+            />
+          </div>
+        </div>
+      </Modal>
 
       <Modal id="mm-tl-view" title="Team Leader Profile" size="md">
         {selectedLeader && (

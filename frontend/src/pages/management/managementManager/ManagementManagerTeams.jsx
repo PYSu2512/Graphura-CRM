@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Heading } from "../../../components/shared/Common_Components.jsx";
 import Employees from "./teams/Employees";
 import TeamLeaders from "./teams/TeamLeaders";
-import { employees as initialEmployees } from "./teams/teamsStore";
+import { employees as initialEmployees, teamLeaders as initialTeamLeaders } from "./teams/teamsStore";
 import TeamStructure from "./teams/TeamStructure";
 
 const TABS = [
@@ -15,6 +15,7 @@ const TABS = [
 export default function ManagementManagerTeams() {
   const [active, setActive] = useState("Team Leaders");
   const [employees, setEmployees] = useState(initialEmployees);
+  const [teamLeaders, setTeamLeaders] = useState(initialTeamLeaders);
 
   const moveEmployeeToTL = (employeeId, newTLId) => {
     setEmployees((prev) =>
@@ -49,7 +50,13 @@ export default function ManagementManagerTeams() {
 
       {/* ── Section content ──────────────────────────────────────────────── */}
       {active === "Team Leaders" && (
-        <TeamLeaders employees={employees} moveEmployee={moveEmployeeToTL} />
+        <TeamLeaders
+          employees={employees}
+          moveEmployee={moveEmployeeToTL}
+          teamLeaders={teamLeaders}
+          setTeamLeaders={setTeamLeaders}
+          setEmployees={setEmployees}
+        />
       )}
       {active === "Employees" && (
         <Employees employees={employees} moveEmployee={moveEmployeeToTL} />
