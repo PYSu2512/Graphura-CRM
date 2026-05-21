@@ -30,7 +30,7 @@ export default function DeliveryReports() {
       <Grid cols={12} gap={4}>
         <DashGrid cols={12} gap={4}>
           <DashCard
-            title="Total Delivered"
+            title="Total Completed"
             value={deliveryMetrics.totalDelivered}
             icon={<CheckCircle size={20} />}
             accentColor="#10b981"
@@ -38,7 +38,7 @@ export default function DeliveryReports() {
           />
 
           <DashCard
-            title="On-Time Delivery %"
+            title="On-Time %"
             value={`${deliveryMetrics.onTimePercentage.toFixed(
               1
             )}%`}
@@ -48,7 +48,7 @@ export default function DeliveryReports() {
           />
 
           <DashCard
-            title="Delayed Deliveries"
+            title="Late Completions"
             value={deliveryMetrics.delayedDelivered}
             icon={<AlertCircle size={20} />}
             accentColor="#ef4444"
@@ -72,16 +72,16 @@ export default function DeliveryReports() {
           bars={[
             {
               key: "delivered",
-              label: "Delivered",
+              label: "Completed",
               color: "#10b981",
             },
             {
               key: "delayed",
-              label: "Delayed",
+              label: "Late",
               color: "#ef4444",
             },
           ]}
-          title="Monthly Delivery Trend"
+          title="Monthly Completion Trend"
           height={320}
           size={12}
         />
@@ -91,11 +91,11 @@ export default function DeliveryReports() {
           lines={[
             {
               key: "delivered",
-              label: "Delivery Growth",
+              label: "Completion Growth",
               color: "#2563eb",
             },
           ]}
-          title="Delivery Growth Analysis"
+          title="Completion Growth Analysis"
           height={300}
           size={6}
         />
@@ -119,7 +119,7 @@ export default function DeliveryReports() {
       <Grid cols={12} gap={4}>
         <div className="col-span-12 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
           <h2 className="text-lg font-bold text-[#2a465a] mb-4">
-            Delivery Insights
+            Completion Insights
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -145,7 +145,7 @@ export default function DeliveryReports() {
 
             <div className="bg-slate-50 rounded-xl p-4">
               <p className="text-sm text-slate-500">
-                Total Delayed
+                Late Completions
               </p>
 
               <h3 className="text-xl font-bold text-red-500 mt-2">

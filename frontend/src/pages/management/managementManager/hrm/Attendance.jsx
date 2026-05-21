@@ -6,11 +6,11 @@ import {
 } from "../../../../components/shared/Common_Components";
 import SessionTimer from "../../../../components/shared/SessionTimer";
 import { useAttendance } from "../../../../context/AttendanceContext";
-import { Users, UserCheck, UserX, Palmtree, Eye } from "lucide-react";
+import { Users, UserCheck, UserX, Palmtree, CalendarDays, Eye } from "lucide-react";
 import { currentMM, attendanceRecords, todayAttendance } from "./hrmStore";
 
-const KPI_ICONS   = [<Users size={22} />, <UserCheck size={22} />, <UserX size={22} />, <Palmtree size={22} />];
-const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f43f5e", "#f59e0b"];
+const KPI_ICONS   = [<Users size={22} />, <UserCheck size={22} />, <UserX size={22} />, <Palmtree size={22} />, <CalendarDays size={22} />];
+const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f43f5e", "#f59e0b", "#8b5cf6"];
 
 const COLS = [
   { key: "name",     label: "Member" },
@@ -46,11 +46,20 @@ export default function Attendance() {
     const onTimeCount  = todayAttendance.filter((r) => r.status === "Present").length;
     const absentCount  = todayAttendance.filter((r) => r.status === "Absent").length;
     const leaveCount   = todayAttendance.filter((r) => r.status === "Leave").length;
+    // Brief Section 16: Manager sees "Total Working Days" at Dept scope.
+    // Count = distinct (member, date) pairs across the dept attendance log
+    // where the member was actually present (Present / Late / Half Day).
+    const workingDays = new Set(
+      attendanceRecords
+        .filter((r) => ["Present", "Late", "Half Day"].includes(r.status))
+        .map((r) => `${r.name}|${r.date}`),
+    ).size;
     return [
-      { title: "Present Today", value: String(presentCount) },
-      { title: "On Time",       value: String(onTimeCount)  },
-      { title: "Absent Today",  value: String(absentCount)  },
-      { title: "On Leave",      value: String(leaveCount)   },
+      { title: "Present Today",      value: String(presentCount) },
+      { title: "On Time",            value: String(onTimeCount)  },
+      { title: "Absent Today",       value: String(absentCount)  },
+      { title: "On Leave",           value: String(leaveCount)   },
+      { title: "Total Working Days", value: String(workingDays)  },
     ];
   }, []);
 
@@ -61,7 +70,7 @@ export default function Attendance() {
         <Heading primaryText="Attendance" secondaryText={`${currentMM.department} Department`} size={12} />
         {kpis.map((k, i) => (
           <DashCard key={k.title} title={k.title} value={k.value}
-            icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={3} />
+            icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={2} />
         ))}
       </DashGrid>
 

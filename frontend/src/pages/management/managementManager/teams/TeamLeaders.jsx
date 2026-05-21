@@ -25,7 +25,7 @@ const cols = [
   { key: "status", label: "Status" },
   { key: "employees", label: "Employees" },
   { key: "activeProjects", label: "Active Projects" },
-  { key: "deliveredProjects", label: "Delivered Projects" },
+  { key: "deliveredProjects", label: "Completed Projects" },
   { key: "delayedProjects", label: "Delayed Projects" },
 ];
 
@@ -60,7 +60,7 @@ export default function TeamLeaders({ employees, moveEmployee, teamLeaders: prop
       status: tl.status,
       employees: myEmployees.length,
       activeProjects: myProjects.filter((p) => ["In Progress", "Work Started", "Review Stage", "Finalization"].includes(p.status)).length,
-      deliveredProjects: myProjects.filter((p) => p.status === "Delivered").length,
+      deliveredProjects: myProjects.filter((p) => p.status === "Completed").length,
       delayedProjects: myProjects.filter((p) => p.status === "Delayed").length,
     };
   });
@@ -221,8 +221,8 @@ export default function TeamLeaders({ employees, moveEmployee, teamLeaders: prop
                 )}
               />
               <ModalData
-                label="Delivered"
-                value={String(projects.filter((p) => p.assignedTL === selectedLeader.id && p.status === "Delivered").length)}
+                label="Completed"
+                value={String(projects.filter((p) => p.assignedTL === selectedLeader.id && p.status === "Completed").length)}
               />
               <ModalData
                 label="Delayed"

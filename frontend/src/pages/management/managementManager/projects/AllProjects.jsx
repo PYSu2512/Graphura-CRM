@@ -17,11 +17,12 @@ import {
   Eye,
   Pencil,
   UserPlus,
+  Users,
   CheckCircle2,
   AlertTriangle,
-  Plus,
+  MessageSquarePlus,
 } from "lucide-react";
-import { teamLeaders, clientList, employeeName } from "../managementManagerStore";
+import { teamLeaders, clientList, employees, employeeName } from "../managementManagerStore";
 import { PROJECT_COLS, PROJECT_STATUSES, PROJECT_PRIORITIES, deliveryBlockedReasons, asTableRow } from "./projectsStore";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -36,12 +37,30 @@ const BLANK_CREATE = {
   assignedTL: "",
 };
 
+const BLANK_UPDATE = { status: "In Progress", note: "" };
+
+const formatINR = (n) =>
+  typeof n === "number"
+    ? `₹${n.toLocaleString("en-IN")}`
+    : "—";
+
+const paymentBadge = (p) => {
+  if (!p.totalCost) return "Pending";
+  if (p.paidAmount >= p.totalCost) return "Paid";
+  if (p.paidAmount > 0)            return "Partially Paid";
+  return "Pending";
+};
+
 export default function AllProjects({ projects, updateProject, addProject }) {
   const [viewRow,    setViewRow]    = useState(null);
   const [editRow,    setEditRow]    = useState(null);
   const [editForm,   setEditForm]   = useState({});
   const [assignRow,  setAssignRow]  = useState(null);
   const [assignTL,   setAssignTL]   = useState("");
+  const [empRow,     setEmpRow]     = useState(null);
+  const [empSel,     setEmpSel]     = useState([]);
+  const [updateRow,  setUpdateRow]  = useState(null);
+  const [updateForm, setUpdateForm] = useState(BLANK_UPDATE);
   const [blockedRow, setBlockedRow] = useState(null);
   const [blockedReasons, setBlockedReasons] = useState([]);
 
@@ -79,6 +98,20 @@ export default function AllProjects({ projects, updateProject, addProject }) {
     openModal("mm-project-assign");
   };
 
+  const openReassignEmp = (row) => {
+    const full = projects.find((p) => p.id === row.id);
+    setEmpRow(full);
+    setEmpSel([...(full.assignedEmployees ?? [])]);
+    openModal("mm-project-reassign-emp");
+  };
+
+  const openAddUpdate = (row) => {
+    const full = projects.find((p) => p.id === row.id);
+    setUpdateRow(full);
+    setUpdateForm({ status: full.status, note: "" });
+    openModal("mm-project-add-update");
+  };
+
   const tryDeliver = (row) => {
     const full = projects.find((p) => p.id === row.id);
     const missing = deliveryBlockedReasons(full);
@@ -88,11 +121,16 @@ export default function AllProjects({ projects, updateProject, addProject }) {
       openModal("mm-deliver-blocked");
       return;
     }
+    const stamp = today();
     updateProject(full.id, {
-      status:        "Delivered",
+      status:        "Completed",
       progress:      100,
-      deliveredDate: today(),
-      lastUpdated:   today(),
+      deliveredDate: stamp,
+      lastUpdated:   stamp,
+      updates: [
+        ...(full.updates ?? []),
+        { date: stamp, status: "Completed", note: "Marked completed; handover link shared." },
+      ],
     });
   };
 
@@ -120,6 +158,32 @@ export default function AllProjects({ projects, updateProject, addProject }) {
       lastUpdated:    today(),
     });
     closeModal("mm-project-assign");
+  };
+
+  const saveReassignEmp = () => {
+    updateProject(empRow.id, {
+      assignedEmployees: empSel,
+      lastUpdated:       today(),
+    });
+    closeModal("mm-project-reassign-emp");
+  };
+
+  const toggleEmp = (id) =>
+    setEmpSel((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const saveAddUpdate = () => {
+    if (!updateForm.note.trim()) return;
+    const stamp = today();
+    updateProject(updateRow.id, {
+      status:      updateForm.status,
+      lastUpdated: stamp,
+      updates: [
+        ...(updateRow.updates ?? []),
+        { date: stamp, status: updateForm.status, note: updateForm.note.trim() },
+      ],
+    });
+    setUpdateForm(BLANK_UPDATE);
+    closeModal("mm-project-add-update");
   };
 
   const jumpToFix = () => {
@@ -167,12 +231,25 @@ export default function AllProjects({ projects, updateProject, addProject }) {
       handoverLink:      null,
       deliveredDate:     null,
       lastUpdated:       today(),
+      totalCost:         0,
+      paidAmount:        0,
+      paymentType:       "Partial",
+      woGenerated:       false,
+      woSigned:          false,
+      woSignedDate:      null,
+      updates:           [],
     });
 
     setCreateForm(BLANK_CREATE);
     setCreateErr({});
     closeModal("mm-project-create");
   };
+
+  // ── Employees grouped by their current TL (for the Reassign-Employees picker) ──
+  const empByTL = teamLeaders.map((tl) => ({
+    tl,
+    members: employees.filter((e) => e.teamLeaderId === tl.id),
+  }));
 
   return (
     <>
@@ -199,10 +276,12 @@ export default function AllProjects({ projects, updateProject, addProject }) {
           { title: "Priority", type: "toggle", key: "priority", options: PROJECT_PRIORITIES },
         ]}
         actions={[
-          { icon: <Eye size={15} />,          tooltip: "View",            variant: "ghost",   onClick: openView },
-          { icon: <Pencil size={15} />,       tooltip: "Edit",            variant: "ghost",   onClick: openEdit },
-          { icon: <UserPlus size={15} />,     tooltip: "Reassign TL",     variant: "ghost",   onClick: openAssign },
-          { icon: <CheckCircle2 size={15} />, tooltip: "Mark Delivered",  variant: "success", onClick: tryDeliver },
+          { icon: <Eye size={15} />,                tooltip: "View",                variant: "ghost",   onClick: openView },
+          { icon: <Pencil size={15} />,             tooltip: "Edit",                variant: "ghost",   onClick: openEdit },
+          { icon: <UserPlus size={15} />,           tooltip: "Reassign TL",         variant: "ghost",   onClick: openAssign },
+          { icon: <Users size={15} />,              tooltip: "Reassign Employees",  variant: "ghost",   onClick: openReassignEmp },
+          { icon: <MessageSquarePlus size={15} />,  tooltip: "Add Update",          variant: "ghost",   onClick: openAddUpdate },
+          { icon: <CheckCircle2 size={15} />,       tooltip: "Mark Completed",      variant: "success", onClick: tryDeliver },
         ]}
       />
 
@@ -324,12 +403,12 @@ export default function AllProjects({ projects, updateProject, addProject }) {
               meta={`${viewRow.id} · Deadline ${viewRow.deadline}`}
             />
             <ModalGrid title="Overview" cols={3}>
-              <ModalData label="Status"     value={viewRow.status} />
-              <ModalData label="Priority"   value={viewRow.priority} />
-              <ModalData label="Progress"   value={`${viewRow.progress}%`} />
-              <ModalData label="Start Date" value={viewRow.startDate} />
-              <ModalData label="Deadline"   value={viewRow.deadline} />
-              <ModalData label="Delivered"  value={viewRow.deliveredDate ?? "—"} />
+              <ModalData label="Status"        value={viewRow.status} />
+              <ModalData label="Priority"      value={viewRow.priority} />
+              <ModalData label="Progress"      value={`${viewRow.progress}%`} />
+              <ModalData label="Start Date"    value={viewRow.startDate} />
+              <ModalData label="Deadline"      value={viewRow.deadline} />
+              <ModalData label="Completed On"  value={viewRow.deliveredDate ?? "—"} />
             </ModalGrid>
             <ModalGrid title="Client" cols={2}>
               <ModalData label="Name"   value={viewRow.clientName} />
@@ -341,8 +420,46 @@ export default function AllProjects({ projects, updateProject, addProject }) {
             </ModalGrid>
             <ModalGrid title="Links" cols={1}>
               <ModalData label="Drive Link"    value={viewRow.driveLink    ?? "—"} />
-              <ModalData label="Handover Link" value={viewRow.handoverLink ?? "— (mandatory before delivery)"} />
+              <ModalData label="Handover Link" value={viewRow.handoverLink ?? "— (mandatory before completion)"} />
             </ModalGrid>
+            <ModalGrid title="Payment (Finance-owned, read-only)" cols={3}>
+              <ModalData label="Total Cost"  value={formatINR(viewRow.totalCost)} />
+              <ModalData label="Amount Paid" value={formatINR(viewRow.paidAmount)} />
+              <ModalData label="Remaining"   value={formatINR(Math.max(0, (viewRow.totalCost ?? 0) - (viewRow.paidAmount ?? 0)))} />
+              <ModalData label="Type"        value={viewRow.paymentType ?? "—"} />
+              <ModalData label="Status"      value={paymentBadge(viewRow)} />
+              <ModalData label=""            value="" />
+            </ModalGrid>
+            <ModalGrid title="Work Order (Finance-owned, read-only)" cols={3}>
+              <ModalData label="Generated"   value={viewRow.woGenerated ? "Yes" : "No"} />
+              <ModalData label="Signed"      value={viewRow.woSigned ? "Yes" : "No"} />
+              <ModalData label="Signed Date" value={viewRow.woSignedDate ?? "—"} />
+            </ModalGrid>
+
+            {/* ── Project Updates feed (Brief Section 9 + 14) ── */}
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400 px-1 mb-2">
+                Project Updates ({(viewRow.updates ?? []).length})
+              </p>
+              {(viewRow.updates ?? []).length === 0 ? (
+                <p className="text-sm text-slate-500 px-1">No updates posted yet.</p>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {[...(viewRow.updates ?? [])].reverse().map((u, i) => (
+                    <div key={i} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-[#2a465a]">{u.date}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600">
+                          {u.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-700">{u.note}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end pt-2">
               <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("mm-project-view")} />
             </div>
@@ -397,8 +514,101 @@ export default function AllProjects({ projects, updateProject, addProject }) {
         )}
       </Modal>
 
+      {/* ── Reassign Employees modal ───────────────────────────────────── */}
+      <Modal id="mm-project-reassign-emp" title="Reassign Employees" size="lg">
+        {empRow && (
+          <div className="flex flex-col gap-4">
+            <ModalProfile
+              name={empRow.name}
+              subtitle={`Current TL: ${empRow.assignedTLName}`}
+              meta={`${empRow.id} · ${empSel.length} selected`}
+            />
+            <p className="text-xs text-slate-500 px-1">
+              Employees listed under their current Team Leader. Toggle to add/remove from this project.
+              Reassigning an employee here does NOT change which TL they report to (do that in Teams → Structure).
+            </p>
+            <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
+              {empByTL.map(({ tl, members }) => (
+                <div key={tl.id} className="rounded-xl border border-slate-200 p-3">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    {tl.name} · {members.length}
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {members.map((emp) => {
+                      const on = empSel.includes(emp.id);
+                      return (
+                        <button
+                          key={emp.id}
+                          type="button"
+                          onClick={() => toggleEmp(emp.id)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition ${
+                            on
+                              ? "bg-[#2a465a] text-white border-[#2a465a] shadow"
+                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
+                          }`}
+                        >
+                          <span className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${on ? "bg-white border-white" : "border-slate-300"}`}>
+                            {on && <span className="block w-2 h-2 rounded bg-[#2a465a]" />}
+                          </span>
+                          <span className="text-left flex-1 truncate">{emp.name}</span>
+                          <span className={`text-[10px] uppercase tracking-wider ${on ? "text-slate-300" : "text-slate-400"}`}>{emp.role}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Grid cols={12} gap={2}>
+              <Button text="Cancel" variant="secondary" size={6} onClick={() => closeModal("mm-project-reassign-emp")} />
+              <Button text="Save"   variant="primary"   size={6} onClick={saveReassignEmp} />
+            </Grid>
+          </div>
+        )}
+      </Modal>
+
+      {/* ── Add Update modal ───────────────────────────────────────────── */}
+      <Modal id="mm-project-add-update" title="Add Project Update" size="md">
+        {updateRow && (
+          <div className="flex flex-col gap-4">
+            <ModalProfile
+              name={updateRow.name}
+              subtitle={`Current status: ${updateRow.status}`}
+              meta={`${updateRow.id} · Update will be visible on the client tracking page`}
+            />
+            <Grid cols={12} gap={3}>
+              <SelectField
+                label="Status (at this update)"
+                id="mm-upd-status"
+                value={updateForm.status}
+                onChange={(e) => setUpdateForm({ ...updateForm, status: e.target.value })}
+                size={12}
+              >
+                {PROJECT_STATUSES.map((s) => <Option key={s} value={s} label={s} />)}
+              </SelectField>
+              <div className="col-span-12">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Description / Note *
+                </label>
+                <textarea
+                  placeholder="What changed? What's next? (Visible on the client tracking page.)"
+                  value={updateForm.note}
+                  onChange={(e) => setUpdateForm({ ...updateForm, note: e.target.value })}
+                  rows={4}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/90 px-4 py-3 text-sm text-[#2a465a] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40 resize-none transition duration-200"
+                />
+              </div>
+            </Grid>
+            <Grid cols={12} gap={2}>
+              <Button text="Cancel"     variant="secondary" size={6} onClick={() => { setUpdateForm(BLANK_UPDATE); closeModal("mm-project-add-update"); }} />
+              <Button text="Post Update" variant="primary"  size={6} onClick={saveAddUpdate} disabled={!updateForm.note.trim()} />
+            </Grid>
+          </div>
+        )}
+      </Modal>
+
       {/* ── Delivery-blocked modal (mandatory drive-link gate) ─────────── */}
-      <Modal id="mm-deliver-blocked" title="Cannot Mark Delivered" size="sm">
+      <Modal id="mm-deliver-blocked" title="Cannot Mark Completed" size="sm">
         {blockedRow && (
           <div className="flex flex-col gap-4">
             <div className="flex items-start gap-3 p-3 rounded-xl bg-rose-50 border border-rose-200">
@@ -406,7 +616,7 @@ export default function AllProjects({ projects, updateProject, addProject }) {
               <div className="flex-1">
                 <p className="text-sm font-bold text-rose-700">Mandatory fields are missing</p>
                 <p className="text-xs text-rose-600 mt-1">
-                  Per spec, both the project drive link and the final handover link must be set before delivery.
+                  Per spec, both the project drive link and the final handover link must be set before completion.
                 </p>
               </div>
             </div>

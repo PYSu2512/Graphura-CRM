@@ -1,5 +1,5 @@
 // projectsStore.js
-// Helpers and shared constants for the Projects tab pages.
+// Helpers and shared constants for the Projects page.
 // Canonical project rows live in `../managementManagerStore.js` — do NOT redefine.
 
 import {
@@ -16,7 +16,7 @@ export {
   PROJECT_PRIORITIES,
 };
 
-// Columns reused across All / Active / Delivered / Delayed tables.
+// Columns reused by the All Projects DataTable.
 export const PROJECT_COLS = [
   { key: "id",             label: "ID" },
   { key: "name",           label: "Project" },
@@ -28,8 +28,8 @@ export const PROJECT_COLS = [
   { key: "status",         label: "Status" },
 ];
 
-// "Mark Delivered" gate — see TEAM_GUIDE.md Appendix B.
-// Returns the list of missing mandatory fields. Empty array = OK to deliver.
+// "Mark Completed" gate — see TEAM_GUIDE.md Appendix B.
+// Returns the list of missing mandatory fields. Empty array = OK to complete.
 export function deliveryBlockedReasons(project) {
   const missing = [];
   if (!project.driveLink)    missing.push("Project details drive link");

@@ -17,7 +17,7 @@ const getDaysDifference = (start, end) => {
 
 const deliveredProjects = projects.filter(
   (project) =>
-    project.status === "Delivered" &&
+    project.status === "Completed" &&
     project.deliveredDate
 );
 
@@ -70,7 +70,7 @@ export const teamReports = teamLeaders.map((tl) => {
   );
 
   const delivered = tlProjects.filter(
-    (project) => project.status === "Delivered"
+    (project) => project.status === "Completed"
   ).length;
 
   const delayed = tlProjects.filter(
@@ -174,7 +174,7 @@ projects.forEach((project) => {
     };
   }
 
-  if (project.status === "Delivered") {
+  if (project.status === "Completed") {
     dailyMap[date].delivered++;
   }
 

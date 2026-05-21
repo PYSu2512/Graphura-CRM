@@ -37,6 +37,7 @@ export const employees = [
 ];
 
 // ─── Clients (mobile = primary key per Brief Section 12 / 22) ────────────────
+// Note: `clients` page lifts this into local state so MM can Add / Edit / Update drive link.
 export const clientList = [
   { id: "CL-001", name: "Acme Corp",        mobile: "+91 99001 10001", email: "ops@acme.in",        driveLink: "https://drive.google.com/folder/acme" },
   { id: "CL-002", name: "Bluewave Studios", mobile: "+91 99001 10002", email: "hello@bluewave.io",  driveLink: "https://drive.google.com/folder/bluewave" },
@@ -48,43 +49,251 @@ export const clientList = [
   { id: "CL-008", name: "Hexane Labs",      mobile: "+91 99001 10008", email: "dev@hexane.dev",     driveLink: "https://drive.google.com/folder/hexane" },
 ];
 
-// ─── Projects — canonical row shape (see TEAM_GUIDE.md Section 8 / Packet 1) ─
-// status = Not Started | In Progress | Work Started | Review Stage | Finalization | Delivered | Delayed
+// ─── Projects — canonical row shape ─────────────────────────────────────────
+// status enum aligns with Brief Section 14 tracking page: "Completed" (not "Delivered").
 // driveLink is MANDATORY at create-time.
-// handoverLink is MANDATORY before status="Delivered".
+// handoverLink is MANDATORY before status="Completed".
+// updates[] is the append-only milestone log fed to the tracking page.
+// totalCost/paidAmount/paymentType/woGenerated/woSigned/woSignedDate are Finance-owned
+// placeholders — MM displays them read-only; Finance dept owns the write path.
 export const projects = [
-  { id: "PRJ-001", name: "Acme Website Redesign",       clientId: "CL-001", clientName: "Acme Corp",        clientMobile: "+91 99001 10001", driveLink: "https://drive.google.com/folder/acme/website",          startDate: "2026-03-10", deadline: "2026-05-20", priority: "High",   assignedTL: "TL-101", assignedTLName: "Ravi Khanna",  assignedEmployees: ["EM-201","EM-202"],          status: "In Progress",   progress: 45, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-08" },
-  { id: "PRJ-002", name: "Bluewave Mobile App",         clientId: "CL-002", clientName: "Bluewave Studios", clientMobile: "+91 99001 10002", driveLink: "https://drive.google.com/folder/bluewave/app",          startDate: "2026-02-18", deadline: "2026-05-30", priority: "High",   assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-204","EM-205","EM-206"], status: "Review Stage",  progress: 78, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-09" },
-  { id: "PRJ-003", name: "CrispEdu LMS Phase 2",        clientId: "CL-003", clientName: "Crisp Edu",        clientMobile: "+91 99001 10003", driveLink: "https://drive.google.com/folder/crispedu/phase2",       startDate: "2026-01-05", deadline: "2026-04-30", priority: "Medium", assignedTL: "TL-101", assignedTLName: "Ravi Khanna",  assignedEmployees: ["EM-203"],                   status: "Delivered",     progress: 100, handoverLink: "https://drive.google.com/folder/crispedu/phase2/handover", deliveredDate: "2026-04-28", lastUpdated: "2026-04-28" },
-  { id: "PRJ-004", name: "Delta Fleet Dashboard",       clientId: "CL-004", clientName: "Delta Logistics",  clientMobile: "+91 99001 10004", driveLink: "https://drive.google.com/folder/delta/fleet",           startDate: "2026-02-22", deadline: "2026-04-15", priority: "High",   assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-207","EM-208"],          status: "Delayed",       progress: 62, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-04" },
-  { id: "PRJ-005", name: "Evermore Property Portal",    clientId: "CL-005", clientName: "Evermore Realty",  clientMobile: "+91 99001 10005", driveLink: "https://drive.google.com/folder/evermore/portal",       startDate: "2026-04-01", deadline: "2026-06-15", priority: "Medium", assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-204","EM-205"],          status: "Work Started",  progress: 25, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-07" },
-  { id: "PRJ-006", name: "Fjord Coffee Order App",      clientId: "CL-006", clientName: "Fjord Coffee",     clientMobile: "+91 99001 10006", driveLink: "https://drive.google.com/folder/fjord/order-app",       startDate: "2026-03-25", deadline: "2026-05-10", priority: "Low",    assignedTL: "TL-104", assignedTLName: "Pooja Reddy",  assignedEmployees: ["EM-211","EM-212"],          status: "Finalization",  progress: 92, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-09" },
-  { id: "PRJ-007", name: "GreenLeaf Donation Site",     clientId: "CL-007", clientName: "GreenLeaf NGO",    clientMobile: "+91 99001 10007", driveLink: "https://drive.google.com/folder/greenleaf/site",        startDate: "2026-04-10", deadline: "2026-06-30", priority: "Low",    assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-209"],                   status: "Not Started",   progress: 0,  handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-04-10" },
-  { id: "PRJ-008", name: "Hexane Labs API Gateway",     clientId: "CL-008", clientName: "Hexane Labs",      clientMobile: "+91 99001 10008", driveLink: "https://drive.google.com/folder/hexane/gateway",        startDate: "2026-02-01", deadline: "2026-04-20", priority: "High",   assignedTL: "TL-101", assignedTLName: "Ravi Khanna",  assignedEmployees: ["EM-202","EM-203"],          status: "Delivered",     progress: 100, handoverLink: "https://drive.google.com/folder/hexane/gateway/handover", deliveredDate: "2026-04-19", lastUpdated: "2026-04-19" },
-  { id: "PRJ-009", name: "Acme Marketing Microsite",    clientId: "CL-001", clientName: "Acme Corp",        clientMobile: "+91 99001 10001", driveLink: "https://drive.google.com/folder/acme/microsite",        startDate: "2026-04-15", deadline: "2026-05-25", priority: "Medium", assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-204"],                   status: "In Progress",   progress: 38, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-09" },
-  { id: "PRJ-010", name: "Bluewave Brand Refresh",      clientId: "CL-002", clientName: "Bluewave Studios", clientMobile: "+91 99001 10002", driveLink: "https://drive.google.com/folder/bluewave/brand",        startDate: "2026-03-05", deadline: "2026-04-25", priority: "Medium", assignedTL: "TL-104", assignedTLName: "Pooja Reddy",  assignedEmployees: ["EM-210"],                   status: "Delivered",     progress: 100, handoverLink: null /* missing — flags MM action */,         deliveredDate: "2026-04-23", lastUpdated: "2026-04-23" },
-  { id: "PRJ-011", name: "CrispEdu Mobile Quizzes",     clientId: "CL-003", clientName: "Crisp Edu",        clientMobile: "+91 99001 10003", driveLink: "https://drive.google.com/folder/crispedu/quizzes",      startDate: "2026-04-20", deadline: "2026-07-10", priority: "Medium", assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-208","EM-209"],          status: "In Progress",   progress: 30, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-06" },
-  { id: "PRJ-012", name: "Delta Driver App",            clientId: "CL-004", clientName: "Delta Logistics",  clientMobile: "+91 99001 10004", driveLink: "https://drive.google.com/folder/delta/driver",          startDate: "2026-04-25", deadline: "2026-06-20", priority: "High",   assignedTL: "TL-101", assignedTLName: "Ravi Khanna",  assignedEmployees: ["EM-201"],                   status: "Work Started",  progress: 15, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-08" },
-  { id: "PRJ-013", name: "Evermore CRM Integration",    clientId: "CL-005", clientName: "Evermore Realty",  clientMobile: "+91 99001 10005", driveLink: "https://drive.google.com/folder/evermore/crm",          startDate: "2026-03-12", deadline: "2026-04-30", priority: "High",   assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-205","EM-206"],          status: "Delayed",       progress: 70, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-05" },
-  { id: "PRJ-014", name: "Fjord Coffee POS Sync",       clientId: "CL-006", clientName: "Fjord Coffee",     clientMobile: "+91 99001 10006", driveLink: "https://drive.google.com/folder/fjord/pos-sync",        startDate: "2026-04-08", deadline: "2026-05-18", priority: "Medium", assignedTL: "TL-104", assignedTLName: "Pooja Reddy",  assignedEmployees: ["EM-211"],                   status: "Review Stage",  progress: 80, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-09" },
-  { id: "PRJ-015", name: "GreenLeaf Volunteer Portal",  clientId: "CL-007", clientName: "GreenLeaf NGO",    clientMobile: "+91 99001 10007", driveLink: "https://drive.google.com/folder/greenleaf/volunteer",   startDate: "2026-02-05", deadline: "2026-04-10", priority: "Low",    assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-207"],                   status: "Delivered",     progress: 100, handoverLink: "https://drive.google.com/folder/greenleaf/volunteer/handover", deliveredDate: "2026-04-09", lastUpdated: "2026-04-09" },
-  { id: "PRJ-016", name: "Hexane Labs Docs Portal",     clientId: "CL-008", clientName: "Hexane Labs",      clientMobile: "+91 99001 10008", driveLink: "https://drive.google.com/folder/hexane/docs",           startDate: "2026-04-22", deadline: "2026-06-05", priority: "Low",    assignedTL: "TL-101", assignedTLName: "Ravi Khanna",  assignedEmployees: ["EM-203"],                   status: "Not Started",   progress: 0,  handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-04-22" },
-  { id: "PRJ-017", name: "Acme Internal Tooling",       clientId: "CL-001", clientName: "Acme Corp",        clientMobile: "+91 99001 10001", driveLink: "https://drive.google.com/folder/acme/internal",         startDate: "2026-01-20", deadline: "2026-03-25", priority: "Medium", assignedTL: "TL-104", assignedTLName: "Pooja Reddy",  assignedEmployees: ["EM-210","EM-212"],          status: "Delivered",     progress: 100, handoverLink: "https://drive.google.com/folder/acme/internal/handover",   deliveredDate: "2026-03-24", lastUpdated: "2026-03-24" },
-  { id: "PRJ-018", name: "Bluewave Analytics V1",       clientId: "CL-002", clientName: "Bluewave Studios", clientMobile: "+91 99001 10002", driveLink: "https://drive.google.com/folder/bluewave/analytics",    startDate: "2026-04-30", deadline: "2026-06-25", priority: "High",   assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-208"],                   status: "Work Started",  progress: 18, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-07" },
-  { id: "PRJ-019", name: "CrispEdu Parent Portal",      clientId: "CL-003", clientName: "Crisp Edu",        clientMobile: "+91 99001 10003", driveLink: "https://drive.google.com/folder/crispedu/parent",       startDate: "2026-02-28", deadline: "2026-04-05", priority: "Medium", assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-204","EM-206"],          status: "Delayed",       progress: 55, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-02" },
-  { id: "PRJ-020", name: "Delta Warehouse Tracker",     clientId: "CL-004", clientName: "Delta Logistics",  clientMobile: "+91 99001 10004", driveLink: "https://drive.google.com/folder/delta/warehouse",       startDate: "2026-03-30", deadline: "2026-05-22", priority: "Medium", assignedTL: "TL-104", assignedTLName: "Pooja Reddy",  assignedEmployees: ["EM-211","EM-212"],          status: "In Progress",   progress: 50, handoverLink: null,                                            deliveredDate: null,         lastUpdated: "2026-05-09" },
+  {
+    id: "PRJ-001", name: "Acme Website Redesign", clientId: "CL-001", clientName: "Acme Corp", clientMobile: "+91 99001 10001",
+    driveLink: "https://drive.google.com/folder/acme/website",
+    startDate: "2026-03-10", deadline: "2026-05-20", priority: "High",
+    assignedTL: "TL-101", assignedTLName: "Ravi Khanna", assignedEmployees: ["EM-201","EM-202"],
+    status: "In Progress", progress: 45, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-08",
+    totalCost: 350000, paidAmount: 175000, paymentType: "Partial",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-03-09",
+    updates: [
+      { date: "2026-03-10", status: "Work Started",  note: "Kickoff meeting; access shared on drive." },
+      { date: "2026-04-15", status: "In Progress",   note: "Homepage + 3 inner pages done, awaiting client feedback." },
+      { date: "2026-05-08", status: "In Progress",   note: "Client requested colour palette tweak; incorporated." },
+    ],
+  },
+  {
+    id: "PRJ-002", name: "Bluewave Mobile App", clientId: "CL-002", clientName: "Bluewave Studios", clientMobile: "+91 99001 10002",
+    driveLink: "https://drive.google.com/folder/bluewave/app",
+    startDate: "2026-02-18", deadline: "2026-05-30", priority: "High",
+    assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-204","EM-205","EM-206"],
+    status: "Review Stage", progress: 78, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-09",
+    totalCost: 600000, paidAmount: 300000, paymentType: "Partial",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-02-17",
+    updates: [
+      { date: "2026-02-18", status: "Work Started",  note: "Design system locked; backend scaffolded." },
+      { date: "2026-04-22", status: "In Progress",   note: "Auth + push notifications integrated." },
+      { date: "2026-05-09", status: "Review Stage",  note: "Client QA round 1 in progress." },
+    ],
+  },
+  {
+    id: "PRJ-003", name: "CrispEdu LMS Phase 2", clientId: "CL-003", clientName: "Crisp Edu", clientMobile: "+91 99001 10003",
+    driveLink: "https://drive.google.com/folder/crispedu/phase2",
+    startDate: "2026-01-05", deadline: "2026-04-30", priority: "Medium",
+    assignedTL: "TL-101", assignedTLName: "Ravi Khanna", assignedEmployees: ["EM-203"],
+    status: "Completed", progress: 100,
+    handoverLink: "https://drive.google.com/folder/crispedu/phase2/handover",
+    deliveredDate: "2026-04-28", lastUpdated: "2026-04-28",
+    totalCost: 200000, paidAmount: 200000, paymentType: "Full",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-01-04",
+    updates: [
+      { date: "2026-01-05", status: "Work Started", note: "Phase 2 spec confirmed." },
+      { date: "2026-03-12", status: "Review Stage", note: "Final UAT round started." },
+      { date: "2026-04-28", status: "Completed",    note: "Handover link shared; project delivered." },
+    ],
+  },
+  {
+    id: "PRJ-004", name: "Delta Fleet Dashboard", clientId: "CL-004", clientName: "Delta Logistics", clientMobile: "+91 99001 10004",
+    driveLink: "https://drive.google.com/folder/delta/fleet",
+    startDate: "2026-02-22", deadline: "2026-04-15", priority: "High",
+    assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-207","EM-208"],
+    status: "Delayed", progress: 62, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-04",
+    totalCost: 450000, paidAmount: 225000, paymentType: "Partial",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-02-21",
+    updates: [
+      { date: "2026-02-22", status: "Work Started", note: "Project kickoff." },
+      { date: "2026-04-10", status: "Delayed",     note: "Client side data integration delays — push deadline." },
+    ],
+  },
+  {
+    id: "PRJ-005", name: "Evermore Property Portal", clientId: "CL-005", clientName: "Evermore Realty", clientMobile: "+91 99001 10005",
+    driveLink: "https://drive.google.com/folder/evermore/portal",
+    startDate: "2026-04-01", deadline: "2026-06-15", priority: "Medium",
+    assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-204","EM-205"],
+    status: "Work Started", progress: 25, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-07",
+    totalCost: 380000, paidAmount: 100000, paymentType: "Partial",
+    woGenerated: true, woSigned: false, woSignedDate: null,
+    updates: [
+      { date: "2026-04-01", status: "Work Started", note: "Project kickoff." },
+    ],
+  },
+  {
+    id: "PRJ-006", name: "Fjord Coffee Order App", clientId: "CL-006", clientName: "Fjord Coffee", clientMobile: "+91 99001 10006",
+    driveLink: "https://drive.google.com/folder/fjord/order-app",
+    startDate: "2026-03-25", deadline: "2026-05-10", priority: "Low",
+    assignedTL: "TL-104", assignedTLName: "Pooja Reddy", assignedEmployees: ["EM-211","EM-212"],
+    status: "Finalization", progress: 92, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-09",
+    totalCost: 180000, paidAmount: 180000, paymentType: "Full",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-03-24",
+    updates: [],
+  },
+  {
+    id: "PRJ-007", name: "GreenLeaf Donation Site", clientId: "CL-007", clientName: "GreenLeaf NGO", clientMobile: "+91 99001 10007",
+    driveLink: "https://drive.google.com/folder/greenleaf/site",
+    startDate: "2026-04-10", deadline: "2026-06-30", priority: "Low",
+    assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-209"],
+    status: "Not Started", progress: 0, handoverLink: null, deliveredDate: null, lastUpdated: "2026-04-10",
+    totalCost: 120000, paidAmount: 0, paymentType: "Partial",
+    woGenerated: false, woSigned: false, woSignedDate: null,
+    updates: [],
+  },
+  {
+    id: "PRJ-008", name: "Hexane Labs API Gateway", clientId: "CL-008", clientName: "Hexane Labs", clientMobile: "+91 99001 10008",
+    driveLink: "https://drive.google.com/folder/hexane/gateway",
+    startDate: "2026-02-01", deadline: "2026-04-20", priority: "High",
+    assignedTL: "TL-101", assignedTLName: "Ravi Khanna", assignedEmployees: ["EM-202","EM-203"],
+    status: "Completed", progress: 100,
+    handoverLink: "https://drive.google.com/folder/hexane/gateway/handover",
+    deliveredDate: "2026-04-19", lastUpdated: "2026-04-19",
+    totalCost: 520000, paidAmount: 520000, paymentType: "Full",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-01-31",
+    updates: [],
+  },
+  {
+    id: "PRJ-009", name: "Acme Marketing Microsite", clientId: "CL-001", clientName: "Acme Corp", clientMobile: "+91 99001 10001",
+    driveLink: "https://drive.google.com/folder/acme/microsite",
+    startDate: "2026-04-15", deadline: "2026-05-25", priority: "Medium",
+    assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-204"],
+    status: "In Progress", progress: 38, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-09",
+    totalCost: 150000, paidAmount: 50000, paymentType: "Partial",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-04-14",
+    updates: [],
+  },
+  {
+    id: "PRJ-010", name: "Bluewave Brand Refresh", clientId: "CL-002", clientName: "Bluewave Studios", clientMobile: "+91 99001 10002",
+    driveLink: "https://drive.google.com/folder/bluewave/brand",
+    startDate: "2026-03-05", deadline: "2026-04-25", priority: "Medium",
+    assignedTL: "TL-104", assignedTLName: "Pooja Reddy", assignedEmployees: ["EM-210"],
+    status: "Completed", progress: 100,
+    handoverLink: null /* missing — flags MM action */,
+    deliveredDate: "2026-04-23", lastUpdated: "2026-04-23",
+    totalCost: 220000, paidAmount: 220000, paymentType: "Full",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-03-04",
+    updates: [],
+  },
+  {
+    id: "PRJ-011", name: "CrispEdu Mobile Quizzes", clientId: "CL-003", clientName: "Crisp Edu", clientMobile: "+91 99001 10003",
+    driveLink: "https://drive.google.com/folder/crispedu/quizzes",
+    startDate: "2026-04-20", deadline: "2026-07-10", priority: "Medium",
+    assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-208","EM-209"],
+    status: "In Progress", progress: 30, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-06",
+    totalCost: 280000, paidAmount: 100000, paymentType: "Partial",
+    woGenerated: true, woSigned: false, woSignedDate: null,
+    updates: [],
+  },
+  {
+    id: "PRJ-012", name: "Delta Driver App", clientId: "CL-004", clientName: "Delta Logistics", clientMobile: "+91 99001 10004",
+    driveLink: "https://drive.google.com/folder/delta/driver",
+    startDate: "2026-04-25", deadline: "2026-06-20", priority: "High",
+    assignedTL: "TL-101", assignedTLName: "Ravi Khanna", assignedEmployees: ["EM-201"],
+    status: "Work Started", progress: 15, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-08",
+    totalCost: 410000, paidAmount: 0, paymentType: "Partial",
+    woGenerated: false, woSigned: false, woSignedDate: null,
+    updates: [],
+  },
+  {
+    id: "PRJ-013", name: "Evermore CRM Integration", clientId: "CL-005", clientName: "Evermore Realty", clientMobile: "+91 99001 10005",
+    driveLink: "https://drive.google.com/folder/evermore/crm",
+    startDate: "2026-03-12", deadline: "2026-04-30", priority: "High",
+    assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-205","EM-206"],
+    status: "Delayed", progress: 70, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-05",
+    totalCost: 330000, paidAmount: 165000, paymentType: "Partial",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-03-11",
+    updates: [],
+  },
+  {
+    id: "PRJ-014", name: "Fjord Coffee POS Sync", clientId: "CL-006", clientName: "Fjord Coffee", clientMobile: "+91 99001 10006",
+    driveLink: "https://drive.google.com/folder/fjord/pos-sync",
+    startDate: "2026-04-08", deadline: "2026-05-18", priority: "Medium",
+    assignedTL: "TL-104", assignedTLName: "Pooja Reddy", assignedEmployees: ["EM-211"],
+    status: "Review Stage", progress: 80, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-09",
+    totalCost: 165000, paidAmount: 100000, paymentType: "Partial",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-04-07",
+    updates: [],
+  },
+  {
+    id: "PRJ-015", name: "GreenLeaf Volunteer Portal", clientId: "CL-007", clientName: "GreenLeaf NGO", clientMobile: "+91 99001 10007",
+    driveLink: "https://drive.google.com/folder/greenleaf/volunteer",
+    startDate: "2026-02-05", deadline: "2026-04-10", priority: "Low",
+    assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-207"],
+    status: "Completed", progress: 100,
+    handoverLink: "https://drive.google.com/folder/greenleaf/volunteer/handover",
+    deliveredDate: "2026-04-09", lastUpdated: "2026-04-09",
+    totalCost: 140000, paidAmount: 140000, paymentType: "Full",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-02-04",
+    updates: [],
+  },
+  {
+    id: "PRJ-016", name: "Hexane Labs Docs Portal", clientId: "CL-008", clientName: "Hexane Labs", clientMobile: "+91 99001 10008",
+    driveLink: "https://drive.google.com/folder/hexane/docs",
+    startDate: "2026-04-22", deadline: "2026-06-05", priority: "Low",
+    assignedTL: "TL-101", assignedTLName: "Ravi Khanna", assignedEmployees: ["EM-203"],
+    status: "Not Started", progress: 0, handoverLink: null, deliveredDate: null, lastUpdated: "2026-04-22",
+    totalCost: 110000, paidAmount: 0, paymentType: "Partial",
+    woGenerated: false, woSigned: false, woSignedDate: null,
+    updates: [],
+  },
+  {
+    id: "PRJ-017", name: "Acme Internal Tooling", clientId: "CL-001", clientName: "Acme Corp", clientMobile: "+91 99001 10001",
+    driveLink: "https://drive.google.com/folder/acme/internal",
+    startDate: "2026-01-20", deadline: "2026-03-25", priority: "Medium",
+    assignedTL: "TL-104", assignedTLName: "Pooja Reddy", assignedEmployees: ["EM-210","EM-212"],
+    status: "Completed", progress: 100,
+    handoverLink: "https://drive.google.com/folder/acme/internal/handover",
+    deliveredDate: "2026-03-24", lastUpdated: "2026-03-24",
+    totalCost: 290000, paidAmount: 290000, paymentType: "Full",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-01-19",
+    updates: [],
+  },
+  {
+    id: "PRJ-018", name: "Bluewave Analytics V1", clientId: "CL-002", clientName: "Bluewave Studios", clientMobile: "+91 99001 10002",
+    driveLink: "https://drive.google.com/folder/bluewave/analytics",
+    startDate: "2026-04-30", deadline: "2026-06-25", priority: "High",
+    assignedTL: "TL-103", assignedTLName: "Imran Sheikh", assignedEmployees: ["EM-208"],
+    status: "Work Started", progress: 18, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-07",
+    totalCost: 480000, paidAmount: 100000, paymentType: "Partial",
+    woGenerated: true, woSigned: false, woSignedDate: null,
+    updates: [],
+  },
+  {
+    id: "PRJ-019", name: "CrispEdu Parent Portal", clientId: "CL-003", clientName: "Crisp Edu", clientMobile: "+91 99001 10003",
+    driveLink: "https://drive.google.com/folder/crispedu/parent",
+    startDate: "2026-02-28", deadline: "2026-04-05", priority: "Medium",
+    assignedTL: "TL-102", assignedTLName: "Anjali Sinha", assignedEmployees: ["EM-204","EM-206"],
+    status: "Delayed", progress: 55, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-02",
+    totalCost: 210000, paidAmount: 100000, paymentType: "Partial",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-02-27",
+    updates: [],
+  },
+  {
+    id: "PRJ-020", name: "Delta Warehouse Tracker", clientId: "CL-004", clientName: "Delta Logistics", clientMobile: "+91 99001 10004",
+    driveLink: "https://drive.google.com/folder/delta/warehouse",
+    startDate: "2026-03-30", deadline: "2026-05-22", priority: "Medium",
+    assignedTL: "TL-104", assignedTLName: "Pooja Reddy", assignedEmployees: ["EM-211","EM-212"],
+    status: "In Progress", progress: 50, handoverLink: null, deliveredDate: null, lastUpdated: "2026-05-09",
+    totalCost: 260000, paidAmount: 100000, paymentType: "Partial",
+    woGenerated: true, woSigned: true, woSignedDate: "2026-03-29",
+    updates: [],
+  },
 ];
 
 // ─── Dashboard KPIs (6 metrics — see TEAM_GUIDE.md Section 8 / Packet 1) ─────
-// These are pre-computed for the reference dashboard. For "live" cards inside
-// pages, derive from `projects` directly so edits reflect immediately.
 export const dashboardKPIs = [
   { title: "Total Projects",         value: String(projects.length),                                                                                          accent: "#3b82f6" },
   { title: "Active Projects",        value: String(projects.filter(p => ["In Progress","Work Started","Review Stage","Finalization"].includes(p.status)).length), accent: "#14b8a6" },
-  { title: "Delivered (This Month)", value: String(projects.filter(p => p.status === "Delivered" && p.deliveredDate?.startsWith("2026-04")).length),         accent: "#22c55e" },
+  { title: "Completed (This Month)", value: String(projects.filter(p => p.status === "Completed" && p.deliveredDate?.startsWith("2026-04")).length),         accent: "#22c55e" },
   { title: "Delayed",                value: String(projects.filter(p => p.status === "Delayed").length),                                                      accent: "#f43f5e" },
   { title: "On-time Delivery %",     value: "83%",                                                                                                            accent: "#8b5cf6" },
-  { title: "Pending Handover Links", value: String(projects.filter(p => p.status === "Delivered" && !p.handoverLink).length),                                accent: "#f59e0b" },
+  { title: "Pending Handover Links", value: String(projects.filter(p => p.status === "Completed" && !p.handoverLink).length),                                accent: "#f59e0b" },
 ];
 
 // ─── Project status funnel (pie / doughnut chart) ────────────────────────────
@@ -94,7 +303,7 @@ export const projectStatusFunnel = [
   { name: "In Progress",   value: projects.filter(p => p.status === "In Progress").length },
   { name: "Review Stage",  value: projects.filter(p => p.status === "Review Stage").length },
   { name: "Finalization",  value: projects.filter(p => p.status === "Finalization").length },
-  { name: "Delivered",     value: projects.filter(p => p.status === "Delivered").length },
+  { name: "Completed",     value: projects.filter(p => p.status === "Completed").length },
   { name: "Delayed",       value: projects.filter(p => p.status === "Delayed").length },
 ];
 
@@ -120,13 +329,12 @@ export const tlLoad = teamLeaders.map(tl => {
   return {
     name: tl.name.split(" ")[0],
     active:    tlProjects.filter(p => ["In Progress","Work Started","Review Stage","Finalization"].includes(p.status)).length,
-    delivered: tlProjects.filter(p => p.status === "Delivered").length,
+    completed: tlProjects.filter(p => p.status === "Completed").length,
     delayed:   tlProjects.filter(p => p.status === "Delayed").length,
   };
 });
 
 // ─── Recent / leaderboard rows for the dashboard ─────────────────────────────
-// Sort by lastUpdated desc, take 8.
 export const recentProjects = [...projects]
   .sort((a, b) => (a.lastUpdated < b.lastUpdated ? 1 : -1))
   .slice(0, 8)
@@ -143,7 +351,7 @@ export const recentProjects = [...projects]
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 export const ACTIVE_STATUSES   = ["In Progress", "Work Started", "Review Stage", "Finalization"];
-export const PROJECT_STATUSES  = ["Not Started", "Work Started", "In Progress", "Review Stage", "Finalization", "Delivered", "Delayed"];
+export const PROJECT_STATUSES  = ["Not Started", "Work Started", "In Progress", "Review Stage", "Finalization", "Completed", "Delayed"];
 export const PROJECT_PRIORITIES = ["High", "Medium", "Low"];
 
 export const employeesForTL = (tlId) => employees.filter(e => e.teamLeaderId === tlId);

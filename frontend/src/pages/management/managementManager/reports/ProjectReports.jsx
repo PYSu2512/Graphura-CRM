@@ -33,7 +33,7 @@ export default function ProjectReports() {
       <Grid cols={12} gap={4}>
         <div className="col-span-12 md:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
           <p className="text-sm font-medium text-slate-500">
-            Total Delivered
+            Total Completed
           </p>
 
           <h2 className="text-3xl font-bold text-emerald-600 mt-2">
@@ -69,7 +69,7 @@ export default function ProjectReports() {
           lines={[
             {
               key: "delivered",
-              label: "Delivered",
+              label: "Completed",
               color: "#10b981",
             },
             {
@@ -93,11 +93,11 @@ export default function ProjectReports() {
           lines={[
             {
               key: "delivered",
-              label: "Delivered Growth",
+              label: "Completion Growth",
               color: "#2563eb",
             },
           ]}
-          title="Delivered Projects Growth"
+          title="Completed Projects Growth"
           height={300}
           size={6}
         />

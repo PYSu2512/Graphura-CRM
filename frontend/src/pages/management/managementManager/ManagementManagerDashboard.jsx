@@ -117,11 +117,11 @@ export default function ManagementManagerDashboard() {
       <Grid cols={12} gap={4}>
         <GColumnChart
           title="Team Leader Load"
-          subtitle="Active vs delivered vs delayed projects per TL"
+          subtitle="Active vs completed vs delayed projects per TL"
           data={tlLoad}
           bars={[
             { key: "active",    label: "Active",    color: "#3b82f6" },
-            { key: "delivered", label: "Delivered", color: "#22c55e" },
+            { key: "completed", label: "Completed", color: "#22c55e" },
             { key: "delayed",   label: "Delayed",   color: "#f43f5e" },
           ]}
           size={12}
@@ -149,7 +149,7 @@ export default function ManagementManagerDashboard() {
           exportable
           exportFileName="recent_projects"
           filters={[
-            { title: "Status",   type: "toggle", key: "status",   options: ["Not Started","Work Started","In Progress","Review Stage","Finalization","Delivered","Delayed"] },
+            { title: "Status",   type: "toggle", key: "status",   options: ["Not Started","Work Started","In Progress","Review Stage","Finalization","Completed","Delayed"] },
             { title: "Priority", type: "toggle", key: "priority", options: ["High","Medium","Low"] },
           ]}
         />
@@ -170,7 +170,7 @@ export default function ManagementManagerDashboard() {
               <ModalData label="Progress"   value={`${selectedProject.progress ?? "—"}${typeof selectedProject.progress === "number" ? "%" : ""}`} />
               <ModalData label="Start Date" value={selectedProject.startDate ?? "—"} />
               <ModalData label="Deadline"   value={selectedProject.deadline ?? "—"} />
-              <ModalData label="Delivered"  value={selectedProject.deliveredDate ?? "—"} />
+              <ModalData label="Completed On" value={selectedProject.deliveredDate ?? "—"} />
             </ModalGrid>
             <ModalGrid title="Client" cols={2}>
               <ModalData label="Name"   value={selectedProject.clientName ?? "—"} />

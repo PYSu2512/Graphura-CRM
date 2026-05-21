@@ -40,7 +40,7 @@ export default function Employees({ employees, moveEmployee }) {
       teamLeader: leaderById.get(emp.teamLeaderId) ?? "Unassigned",
       status: emp.status,
       activeProjects: assignedProjects.filter((p) => ["In Progress", "Work Started", "Review Stage", "Finalization"].includes(p.status)).length,
-      completedProjects: assignedProjects.filter((p) => p.status === "Delivered").length,
+      completedProjects: assignedProjects.filter((p) => p.status === "Completed").length,
       delayedProjects: assignedProjects.filter((p) => p.status === "Delayed").length,
     };
   });
