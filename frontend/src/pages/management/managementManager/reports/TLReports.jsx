@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
   Grid,
   DataTable,
-  GColumnChart,
+  GBarChart,
   GLineChart,
 } from "../../../../components/shared/Common_Components";
 
@@ -134,7 +134,7 @@ export default function TLReports() {
             <FilterButtons />
           </div>
 
-          <GColumnChart
+          <GBarChart
             data={chartData}
             bars={[
               {

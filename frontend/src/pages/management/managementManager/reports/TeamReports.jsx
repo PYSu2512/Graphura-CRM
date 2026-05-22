@@ -4,7 +4,7 @@ import {
   Grid,
   DataTable,
   GLineChart,
-  GColumnChart,
+  GBarChart,
 } from "../../../../components/shared/Common_Components";
 
 import { teamReports } from "../reportsStore";
@@ -126,7 +126,7 @@ export default function TeamReports() {
             <FilterButtons />
           </div>
 
-          <GColumnChart
+          <GBarChart
             data={chartData}
             bars={[
               {
