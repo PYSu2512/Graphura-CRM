@@ -84,6 +84,20 @@ exports.createUser = catchAsync(async (req, res, next) => {
     return next(new AppError('Email is already registered in your organization', 409));
   }
 
+  // 4. One Manager per Department Constraint
+  if (role.endsWith('_MANAGER')) {
+    const existingManager = await User.findOne({
+      admin: adminId,
+      department: departmentId,
+      role: role,
+      isDeleted: false
+    });
+
+    if (existingManager) {
+      return next(new AppError(`A manager for the ${department.name} department already exists.`, 409));
+    }
+  }
+
   // 5. Team validation (Optional)
   if (teamId) {
     const team = await Team.findOne({ _id: teamId, admin: adminId, department: departmentId });

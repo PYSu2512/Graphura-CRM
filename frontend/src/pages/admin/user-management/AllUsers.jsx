@@ -506,7 +506,7 @@ export default function AllUsers() {
               label="Auto-generated Password" 
               id="quick-password" 
               size={12} 
-              value={quickMobile.length >= 5 ? `Test@${quickMobile.slice(-5)}` : "Test@*****"} 
+              value={quickMobile.length >= 5 ? `Email@${quickMobile.slice(-5)}` : "Email@*****"} 
               readOnly 
               className="bg-slate-50 border-slate-200 text-slate-500 font-mono"
             />

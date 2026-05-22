@@ -205,8 +205,16 @@ exports.processUploadPreview = async (uploadId) => {
     const existingUsers  = await User.findActive({ admin: upload.admin }, 'email');
     const existingEmails = new Set(existingUsers.map((u) => u.email.toLowerCase()));
 
+    // Existing managers in DB
+    const existingManagers = await User.findActive({
+      admin: upload.admin,
+      role: { $regex: /_MANAGER$/ }
+    }, 'department role');
+    const managerKeys = new Set(existingManagers.map(m => `${m.department}:${m.role}`));
+
     // ── Per-row validation ────────────────────────────────────
     const seenEmailsInFile = new Set();
+    const seenManagersInFile = new Set();
     const failedRows       = [];
     let validCount      = 0;
     let duplicateInFile = 0;
@@ -217,8 +225,23 @@ exports.processUploadPreview = async (uploadId) => {
       const row       = normalizeUserRow(rawRows[i]);
       const rowNumber = i + 2; // row 1 = header
       const email     = row.email ? row.email.toLowerCase() : '';
+      const roleName  = row.role ? row.role.toUpperCase() : '';
+      const deptName  = row.department ? row.department.toUpperCase() : '';
+      const deptId    = deptMap.get(deptName);
 
       const fieldErrors = validateRow(row, { deptMap, allowedRoles });
+
+      // ── Manager Constraint ───────────────────────────────
+      if (roleName.endsWith('_MANAGER') && deptId) {
+        const managerKey = `${deptId}:${roleName}`;
+        if (managerKeys.has(managerKey)) {
+          fieldErrors.push({ field: 'role', message: 'Manager already exists for this department in the system' });
+        } else if (seenManagersInFile.has(managerKey)) {
+          fieldErrors.push({ field: 'role', message: 'Duplicate manager for this department found in the uploaded file' });
+        } else {
+          seenManagersInFile.add(managerKey);
+        }
+      }
 
       // ── Duplicate detection ───────────────────────────────
       let isDuplicate = false;
@@ -371,8 +394,16 @@ exports.commitUpload = async (uploadId, importMode) => {
     const existingUsersAtCommit = await User.findActive({ admin: upload.admin }, 'email');
     const existingEmails        = new Set(existingUsersAtCommit.map((u) => u.email.toLowerCase()));
 
+    // Fresh manager snapshot at commit time
+    const existingManagersAtCommit = await User.findActive({
+      admin: upload.admin,
+      role: { $regex: /_MANAGER$/ }
+    }, 'department role');
+    const managerKeys = new Set(existingManagersAtCommit.map(m => `${m.department}:${m.role}`));
+
     const usersToInsert      = [];
     const fileProcessedEmails = new Set();
+    const fileProcessedManagers = new Set();
     let   importedCount      = 0;
 
     for (let i = 0; i < rawRows.length; i++) {
@@ -395,12 +426,25 @@ exports.commitUpload = async (uploadId, importMode) => {
       const roleName = row.role ? row.role.toUpperCase() : '';
       const deptName = row.department ? row.department.toUpperCase() : '';
       const phone    = row.phone ? String(row.phone).replace(/\D/g, '') : '';
+      const deptId   = deptMap.get(deptName);
 
       // ── Re-validate row (idempotency — file may have changed on disk) ──
       const errors = validateRow(
         { ...row, phone }, // use normalized phone
         { deptMap, allowedRoles },
       );
+
+      // ── Manager Constraint at commit time ─────────────────
+      if (roleName.endsWith('_MANAGER') && deptId) {
+        const managerKey = `${deptId}:${roleName}`;
+        if (managerKeys.has(managerKey)) {
+          errors.push({ field: 'role', message: 'Manager already exists for this department in the system' });
+        } else if (fileProcessedManagers.has(managerKey)) {
+          errors.push({ field: 'role', message: 'Duplicate manager for this department found in the uploaded file' });
+        } else {
+          fileProcessedManagers.add(managerKey);
+        }
+      }
 
       // ── Duplicate detection at commit time ────────────────
       if (email) {
@@ -438,7 +482,6 @@ exports.commitUpload = async (uploadId, importMode) => {
       fileProcessedEmails.add(email);
 
       // ── Build user document ───────────────────────────────
-      const deptId  = deptMap.get(deptName);
       const defaultPassword = buildDefaultUserPassword(email, row.phone);
       const hashedPassword = await hashPassword(defaultPassword);
 
