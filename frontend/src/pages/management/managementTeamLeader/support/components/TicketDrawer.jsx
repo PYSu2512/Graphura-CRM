@@ -21,6 +21,8 @@ export default function TicketDrawer({ ticket }) {
               <ModalData label="Ticket ID" value={ticket.id || ticket.source} />
               <ModalData label="Issue" value={ticket.title || ticket.item} />
               <ModalData label="Raised By" value={ticket.raisedBy || ticket.owner} />
+              <ModalData label="Ticket Type" value={ticket.ticketType || "-"} />
+              <ModalData label="Issue Type" value={ticket.issueType || "-"} />
               <ModalData label="Priority" value={ticket.priority || ticket.urgency} />
               <ModalData label="Status" value={ticket.status || "Escalation Queue"} />
               <ModalData label="Related Project" value={ticket.project || "-"} />

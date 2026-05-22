@@ -1,21 +1,53 @@
 export const dailyReportMetrics = [
-  { title: "Total Projects", value: "18", accent: "#2563eb" },
-  { title: "Completed Projects", value: "11", accent: "#16a34a" },
-  { title: "Pending Projects", value: "7", accent: "#f59e0b" },
+  { title: "Total Reports", value: "18", accent: "#2563eb" },
+  { title: "Pending Reports", value: "7", accent: "#f59e0b" },
+  { title: "Completed Reports", value: "11", accent: "#16a34a" },
+  { title: "Submitted Reports", value: "14", accent: "#7c3aed" },
 ];
 
 export const weeklyReportMetrics = [
-  { title: "Total Projects", value: "56", accent: "#2563eb" },
-  { title: "Completed Projects", value: "39", accent: "#16a34a" },
-  { title: "Pending Projects", value: "17", accent: "#f59e0b" },
+  { title: "Total Weekly Reports", value: "5", accent: "#2563eb" },
+  { title: "Excellent Updates", value: "1", accent: "#16a34a" },
+  { title: "Delayed Updates", value: "1", accent: "#dc2626" },
+  { title: "Avg Productivity", value: "81%", accent: "#7c3aed" },
 ];
 
 export const projectReportRows = [
-  { id: "PRJ-210", project: "Vendor onboarding portal", employee: "Dev Arora", status: "Pending", reportType: "Daily", updatedOn: "2026-05-14" },
-  { id: "PRJ-184", project: "Finance approval workflow", employee: "Kabir Sethi", status: "Completed", reportType: "Daily", updatedOn: "2026-05-14" },
-  { id: "PRJ-197", project: "Employee mobile dashboard", employee: "Aarav Mehta", status: "Pending", reportType: "Weekly", updatedOn: "2026-05-13" },
-  { id: "PRJ-221", project: "Client document migration", employee: "Nisha Kapoor", status: "Completed", reportType: "Weekly", updatedOn: "2026-05-13" },
-  { id: "PRJ-233", project: "Payroll audit tracker", employee: "Ira Shah", status: "Pending", reportType: "Daily", updatedOn: "2026-05-12" },
+  { id: "PRJ-210", projectName: "Vendor onboarding portal", employee: "Dev Arora", status: "Delayed", progress: 64, deadline: "2026-05-22", priority: "Critical", notes: "Approval is pending from manager.", submittedDate: "2026-05-14" },
+  { id: "PRJ-184", projectName: "Finance approval workflow", employee: "Kabir Sethi", status: "Completed", progress: 100, deadline: "2026-05-20", priority: "High", notes: "Workflow verified and submitted.", submittedDate: "2026-05-14" },
+  { id: "PRJ-197", projectName: "Employee mobile dashboard", employee: "Aarav Mehta", status: "Pending", progress: 78, deadline: "2026-05-24", priority: "High", notes: "UI changes are under review.", submittedDate: "2026-05-13" },
+  { id: "PRJ-221", projectName: "Client document migration", employee: "Nisha Kapoor", status: "Completed", progress: 100, deadline: "2026-05-21", priority: "Medium", notes: "Migration completed successfully.", submittedDate: "2026-05-13" },
+  { id: "PRJ-233", projectName: "Payroll audit tracker", employee: "Ira Shah", status: "Pending", progress: 72, deadline: "2026-05-25", priority: "Medium", notes: "Audit checklist is pending.", submittedDate: "2026-05-12" },
+];
+
+export const weeklyPerformanceRows = [
+  { id: "WEEK-01", employee: "Aarav Mehta", totalProjects: 8, completed: 6, pending: 2, productivity: "88%", weeklyStatus: "Good" },
+  { id: "WEEK-02", employee: "Nisha Kapoor", totalProjects: 7, completed: 5, pending: 2, productivity: "84%", weeklyStatus: "Good" },
+  { id: "WEEK-03", employee: "Dev Arora", totalProjects: 9, completed: 4, pending: 5, productivity: "62%", weeklyStatus: "Delayed" },
+  { id: "WEEK-04", employee: "Ira Shah", totalProjects: 6, completed: 6, pending: 0, productivity: "96%", weeklyStatus: "Excellent" },
+  { id: "WEEK-05", employee: "Kabir Sethi", totalProjects: 8, completed: 5, pending: 3, productivity: "76%", weeklyStatus: "Average" },
+];
+
+export const reportStatusData = [
+  { name: "Completed", value: 11 },
+  { name: "Pending", value: 7 },
+  { name: "Delayed", value: 3 },
+];
+
+export const weeklyProductivityData = [
+  { name: "Aarav", productivity: 88 },
+  { name: "Nisha", productivity: 84 },
+  { name: "Dev", productivity: 62 },
+  { name: "Ira", productivity: 96 },
+  { name: "Kabir", productivity: 76 },
+];
+
+export const weeklyEmployeePerformanceData = [
+  { name: "Aarav", completed: 6, pending: 2 },
+  { name: "Nisha", completed: 5, pending: 2 },
+  { name: "Dev", completed: 4, pending: 5 },
+  { name: "Ira", completed: 6, pending: 0 },
+  { name: "Kabir", completed: 5, pending: 3 },
 ];
 
 export const delayedProjectsRows = [

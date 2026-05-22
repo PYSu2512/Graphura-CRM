@@ -5,12 +5,40 @@ export const ticketMetrics = [
   { title: "Resolved Issues", value: "31", accent: "#16a34a" },
 ];
 
+export const ticketTypeOptions = ["Project", "Technical", "Employee", "Client", "Resource"];
+
+export const issueTypesByTicketType = {
+  Project: ["Project Delay", "Deadline Risk", "Approval Blocker"],
+  Technical: ["Staging Issue", "Deployment Issue", "System Error"],
+  Employee: ["Workload Issue", "Attendance Issue", "Performance Concern"],
+  Client: ["Document Missing", "Client Dependency", "Approval Pending"],
+  Resource: ["Resource Blocker", "QA Capacity", "Access Required"],
+};
+
+export const assignedToByIssueType = {
+  "Project Delay": "Management Manager",
+  "Deadline Risk": "Management Manager",
+  "Approval Blocker": "Management Manager",
+  "Staging Issue": "Technical Support",
+  "Deployment Issue": "Technical Support",
+  "System Error": "Technical Support",
+  "Workload Issue": "Management TL",
+  "Attendance Issue": "HR Team",
+  "Performance Concern": "Management Manager",
+  "Document Missing": "Operations Team",
+  "Client Dependency": "Management Manager",
+  "Approval Pending": "Management Manager",
+  "Resource Blocker": "Management TL",
+  "QA Capacity": "QA Lead",
+  "Access Required": "Admin Team",
+};
+
 export const tickets = [
-  { id: "MTL-TK-1042", title: "Deployment approval blocked", raisedBy: "Dev Arora", priority: "Critical", status: "Escalated", createdDate: "2026-05-14", assignedTo: "Management TL", type: "Deadline Risk", project: "Vendor onboarding portal", description: "Release is waiting for manager approval and vendor credentials." },
-  { id: "MTL-TK-1038", title: "QA retest queue overloaded", raisedBy: "Nisha Kapoor", priority: "High", status: "Pending", createdDate: "2026-05-13", assignedTo: "Management TL", type: "Resource Blocker", project: "Employee mobile dashboard", description: "Regression queue has delayed two mobile fixes." },
-  { id: "MTL-TK-1031", title: "Client document missing", raisedBy: "Kabir Sethi", priority: "Medium", status: "Open", createdDate: "2026-05-12", assignedTo: "Management TL", type: "Client Issue", project: "Client document migration", description: "Client has not shared signed authorization document." },
-  { id: "MTL-TK-1027", title: "Employee workload imbalance", raisedBy: "Ira Shah", priority: "High", status: "Open", createdDate: "2026-05-12", assignedTo: "Management TL", type: "Employee Issue", project: "Finance approval workflow", description: "Two employees are blocked while one owner carries overlapping delivery tasks." },
-  { id: "MTL-TK-1019", title: "Staging server timeout", raisedBy: "Aarav Mehta", priority: "Low", status: "Resolved", createdDate: "2026-05-11", assignedTo: "Management TL", type: "Technical Issue", project: "Payroll audit tracker", description: "Timeout fixed after configuration change." },
+  { id: "MTL-TK-1042", title: "Deployment approval blocked", raisedBy: "Dev Arora", priority: "Critical", status: "Escalated", createdDate: "2026-05-14", ticketType: "Project", issueType: "Deadline Risk", assignedTo: "Management Manager", project: "Vendor onboarding portal", description: "Release is waiting for manager approval and vendor credentials." },
+  { id: "MTL-TK-1038", title: "QA retest queue overloaded", raisedBy: "Nisha Kapoor", priority: "High", status: "Pending", createdDate: "2026-05-13", ticketType: "Resource", issueType: "QA Capacity", assignedTo: "QA Lead", project: "Employee mobile dashboard", description: "Regression queue has delayed two mobile fixes." },
+  { id: "MTL-TK-1031", title: "Client document missing", raisedBy: "Kabir Sethi", priority: "Medium", status: "Open", createdDate: "2026-05-12", ticketType: "Client", issueType: "Document Missing", assignedTo: "Operations Team", project: "Client document migration", description: "Client has not shared signed authorization document." },
+  { id: "MTL-TK-1027", title: "Employee workload imbalance", raisedBy: "Ira Shah", priority: "High", status: "Open", createdDate: "2026-05-12", ticketType: "Employee", issueType: "Workload Issue", assignedTo: "Management TL", project: "Finance approval workflow", description: "Two employees are blocked while one owner carries overlapping delivery tasks." },
+  { id: "MTL-TK-1019", title: "Staging server timeout", raisedBy: "Aarav Mehta", priority: "Low", status: "Resolved", createdDate: "2026-05-11", ticketType: "Technical", issueType: "Staging Issue", assignedTo: "Technical Support", project: "Payroll audit tracker", description: "Timeout fixed after configuration change." },
 ];
 
 export const escalationQueue = [

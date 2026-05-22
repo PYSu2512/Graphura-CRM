@@ -15,7 +15,7 @@ export default function ReportStatsCards({ metrics }) {
             value={metric.value}
             icon={<Icon size={20} />}
             accentColor={metric.accent}
-            size={metrics.length > 6 ? 3 : 4}
+            size={metrics.length === 4 || metrics.length > 6 ? 3 : 4}
           />
         );
       })}

@@ -21,11 +21,12 @@ export default function SupportPage() {
         showAnimations
       />
 
+      <TicketStatsCards />
+
       <div className="flex justify-end">
         <Button text="Raise Ticket" variant="primary" onClick={() => openModal("mtl-support-raise-ticket")} />
       </div>
 
-      <TicketStatsCards />
       <TicketsTable onSelect={setSelectedTicket} />
 
       <TicketDrawer ticket={selectedTicket} />

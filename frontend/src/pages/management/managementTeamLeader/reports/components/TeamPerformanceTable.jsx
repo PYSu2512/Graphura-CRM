@@ -6,19 +6,23 @@ const columns = [
   { key: "project", label: "Project" },
   { key: "employee", label: "Assigned Employee" },
   { key: "status", label: "Status" },
-  { key: "reportType", label: "Report Type" },
+  { key: "progress", label: "Progress %" },
+  { key: "deadline", label: "Deadline" },
+  { key: "priority", label: "Priority" },
   { key: "updatedOn", label: "Updated On" },
 ];
 
-export default function TeamPerformanceTable({ onSelect }) {
+export default function TeamPerformanceTable({ onSelect, rows = projectReportRows }) {
   return (
     <DataTable
-      title="Project Reports"
+      title="Daily Project Report"
       columns={columns}
-      rows={projectReportRows}
+      rows={rows}
       size={12}
       pageSize={8}
       searchable
+      exportable
+      exportFileName="management-tl-daily-project-report"
       actions={[
         {
           icon: <Eye size={15} />,

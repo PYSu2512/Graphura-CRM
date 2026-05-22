@@ -7,6 +7,8 @@ const columns = [
   { key: "title", label: "Issue Title" },
   { key: "raisedBy", label: "Raised By" },
   { key: "project", label: "Project" },
+  { key: "ticketType", label: "Ticket Type" },
+  { key: "issueType", label: "Issue Type" },
   { key: "priority", label: "Priority" },
   { key: "status", label: "Status" },
   { key: "createdDate", label: "Created Date" },
@@ -25,6 +27,7 @@ export default function TicketsTable({ onSelect }) {
       filters={[
         { title: "Status", type: "toggle", key: "status", options: ["Open", "Pending", "Escalated", "Resolved"] },
         { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High", "Critical"] },
+        { title: "Ticket Type", type: "select", key: "ticketType", options: ["Project", "Technical", "Employee", "Client", "Resource"] },
       ]}
       actions={[
         {
