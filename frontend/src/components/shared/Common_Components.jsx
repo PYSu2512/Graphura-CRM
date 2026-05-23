@@ -1222,7 +1222,27 @@ export const DataTable = ({
 
     // Build data rows — stringify each cell, wrap in quotes if it contains comma/newline
     const escape = (val) => {
-      const str = val == null ? "" : String(val);
+      let str = "";
+      if (val == null) {
+        str = "";
+      } else if (Array.isArray(val)) {
+        if (val.length > 0 && typeof val[0] === "object") {
+          str = val.map(item => {
+            if (item && item.title) {
+              const costStr = item.cost ? ` (₹${Number(item.cost).toLocaleString("en-IN")})` : "";
+              return `${item.title}${costStr}`;
+            }
+            return JSON.stringify(item);
+          }).join(" | ");
+        } else {
+          str = val.map(item => typeof item === "object" ? JSON.stringify(item) : String(item)).join(" | ");
+        }
+      } else if (typeof val === "object") {
+        str = JSON.stringify(val);
+      } else {
+        str = String(val);
+      }
+
       return str.includes(",") || str.includes("\n") || str.includes('"')
         ? `"${str.replace(/"/g, '""')}"`
         : str;
