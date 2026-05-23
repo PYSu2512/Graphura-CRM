@@ -5,6 +5,7 @@
 const express = require('express');
 const authController = require('../controllers/auth.controller');
 const validate = require('../middleware/validate');
+const { requireUser } = require('../middleware/auth');
 const {
   sendOTPSchema,
   verifyOTPSchema,
@@ -15,6 +16,7 @@ const {
 const {
   forgetPasswordSchema,
   resetPasswordSchema,
+  changePasswordSchema,
 } = require('../validators/passwordValidator');
 const { passwordResetLimiter } = require('../middleware/rateLimiter');
 
@@ -107,6 +109,18 @@ router.post(
   '/reset-password',
   validate(resetPasswordSchema, 'body'),
   authController.resetPassword
+);
+
+/**
+ * PATCH /api/auth/change-password
+ * Change password for authenticated users
+ * Body: { currentPassword, newPassword, confirmPassword }
+ */
+router.patch(
+  '/change-password',
+  requireUser,
+  validate(changePasswordSchema, 'body'),
+  authController.changePassword
 );
 
 module.exports = router;

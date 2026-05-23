@@ -1,29 +1,28 @@
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const path = require("path");
 
-dotenv.config();
+dotenv.config({
+  path: path.resolve(__dirname, "../../.env"),
+});
 
-const {
-  Admin,
-  Client,
-  Lead,
-} = require('../models/index');
+const { Admin, Client, Lead } = require("../models/index");
 
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {
-  console.error('MONGODB_URI is not defined in .env');
+  console.error("MONGODB_URI is not defined in .env");
   process.exit(1);
 }
 
 const run = async () => {
   try {
     await mongoose.connect(MONGODB_URI, { serverSelectionTimeoutMS: 10000 });
-    console.log('Connected to MongoDB');
+    console.log("Connected to MongoDB");
 
     const admin = await Admin.findOneActive();
     if (!admin) {
-      console.error('No admin found in DB. Please create an Admin first.');
+      console.error("No admin found in DB. Please create an Admin first.");
       process.exit(1);
     }
 
@@ -38,40 +37,44 @@ const run = async () => {
         email: `test.lead${i}@example.com`,
         mobile,
         companyName: `TestCorp ${i}`,
-        source: 'MANUAL',
+        source: "MANUAL",
         addedBy: null,
       };
 
       const client = await Client.findOneAndUpdate(
         { admin: admin._id, mobile },
         { $setOnInsert: clientData },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
 
       const leadData = {
         admin: admin._id,
         client: client._id,
-        status: 'UNTOUCHED',
+        status: "UNTOUCHED",
       };
 
       const lead = await Lead.findOneAndUpdate(
         { admin: admin._id, client: client._id },
         { $setOnInsert: leadData },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
 
-      created.push({ mobile, clientId: client._id.toString(), leadId: lead._id.toString() });
+      created.push({
+        mobile,
+        clientId: client._id.toString(),
+        leadId: lead._id.toString(),
+      });
       console.log(`Created/Found lead ${i}: mobile=${mobile} lead=${lead._id}`);
     }
 
-    console.log('Summary:');
+    console.log("Summary:");
     console.table(created);
 
     await mongoose.disconnect();
-    console.log('Disconnected from MongoDB');
+    console.log("Disconnected from MongoDB");
     process.exit(0);
   } catch (err) {
-    console.error('Error seeding test leads:', err.message);
+    console.error("Error seeding test leads:", err.message);
     process.exit(1);
   }
 };

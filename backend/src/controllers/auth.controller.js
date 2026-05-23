@@ -920,4 +920,112 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
     );
 });
 
+// ────────────────────────────────────────────────────────────
+// CHANGE PASSWORD
+// ────────────────────────────────────────────────────────────
+exports.changePassword = catchAsync(async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+  const ipAddress = getClientIp(req);
+
+  // 1. Fetch authenticated user
+  const user = await User.findOne({
+    _id: req.user._id,
+    isDeleted: false,
+    isActive: true
+  });
+
+  if (!user) {
+    return next(new AppError('User not found or inactive', 404));
+  }
+
+  // 2. Verify current password
+  const isCurrentPasswordValid = await comparePassword(
+    currentPassword,
+    user.password
+  );
+
+  if (!isCurrentPasswordValid) {
+    return next(new AppError('Current password is incorrect', 401));
+  }
+
+  // 3. Prevent password reuse
+  const isSameAsCurrent = await comparePassword(newPassword, user.password);
+  if (isSameAsCurrent) {
+    return next(new AppError('New password cannot be the same as your current password', 422));
+  }
+
+  if (user.passwordHistory && user.passwordHistory.length > 0) {
+    for (const past of user.passwordHistory) {
+      const isReused = await bcrypt.compare(newPassword, past.hash);
+      if (isReused) {
+        return next(new AppError('Cannot reuse a recently used password', 422));
+      }
+    }
+  }
+
+  // 4. Hash new password
+  const newHashedPassword = await hashPassword(newPassword);
+
+  // 5. Update user
+  user.password = newHashedPassword;
+  user.mustChangePassword = false;
+  user.isFirstLogin = false;
+  user.lastPasswordResetAt = new Date();
+  user.passwordResetCount = (user.passwordResetCount || 0) + 1;
+
+  // 6. Password History Maintenance
+  if (!user.passwordHistory) {
+    user.passwordHistory = [];
+  }
+  user.passwordHistory.unshift({
+    hash: newHashedPassword,
+    changedAt: new Date()
+  });
+  if (user.passwordHistory.length > 5) {
+    user.passwordHistory = user.passwordHistory.slice(0, 5);
+  }
+
+  // 7. Save user
+  await user.save();
+
+  // 8. Revoke Refresh Tokens
+  await RefreshToken.updateMany(
+    {
+      holderId: user._id,
+      holderType: 'USER',
+      isRevoked: false
+    },
+    {
+      $set: {
+        isRevoked: true,
+        revokedAt: new Date(),
+        revokedReason: 'PASSWORD_CHANGED'
+      }
+    }
+  );
+
+  // 9. Audit Log
+  await AuditLog.create({
+    admin: user.admin,
+    performedBy: user._id,
+    performerType: 'USER',
+    action: 'PASSWORD_CHANGED',
+    targetModel: 'User',
+    targetId: user._id,
+    ipAddress: req.ip || ipAddress,
+    note: 'Password changed from profile settings'
+  });
+
+  // 10. Response
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        forceLogout: true
+      },
+      'Password changed successfully. Please login again.'
+    )
+  );
+});
+
 module.exports = exports;

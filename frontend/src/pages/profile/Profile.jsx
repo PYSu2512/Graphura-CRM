@@ -67,6 +67,7 @@ import {
 
 import { ProfileSection, SecurityRow } from "./ProfileLayout";
 import { defaultProfile } from "./profileData";
+import { changePassword, logout } from "../../services/authService";
 
 import {
   Camera,
@@ -294,6 +295,7 @@ export default function Profile({
   const [showCurrentPw, setShowCurrentPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
   const [showConfirmPw, setShowConfirmPw] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // ── Field-level validation errors ─────────────────────────────────────────
   const [fieldErrors, setFieldErrors] = useState({});
@@ -425,7 +427,9 @@ export default function Profile({
   };
 
   // ── Change Password ───────────────────────────────────────────────────────
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
+    if (isChangingPassword) return;
+
     const errs = validatePasswords(pwForm);
     setPwErrors(errs);
     if (Object.keys(errs).length) return;
@@ -433,13 +437,38 @@ export default function Profile({
       setPwErrors({ confirm: "Both password fields are required" });
       return;
     }
-    setPwSuccess(true);
-    setTimeout(() => {
-      setPwForm({ current: "", next: "", confirm: "" });
-      setPwSuccess(false);
-      closeModal("pw-modal");
-      showToast("🔒 Password changed successfully!");
-    }, 1000);
+
+    try {
+      setIsChangingPassword(true);
+      const response = await changePassword({
+        currentPassword: pwForm.current,
+        newPassword: pwForm.next,
+        confirmPassword: pwForm.confirm
+      });
+      
+      setPwSuccess(true);
+      setTimeout(() => {
+        setPwForm({ current: "", next: "", confirm: "" });
+        setPwSuccess(false);
+        closeModal("pw-modal");
+        showToast("🔒 Password changed successfully! Please login again.");
+        if (response?.data?.forceLogout || response?.forceLogout) {
+          logout();
+          window.location.href = '/login';
+        }
+      }, 1500);
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || "Failed to change password.";
+      if (errorMsg.toLowerCase().includes("current password")) {
+        setPwErrors((prev) => ({ ...prev, current: errorMsg }));
+      } else if (errorMsg.toLowerCase().includes("new password") || errorMsg.toLowerCase().includes("reuse")) {
+        setPwErrors((prev) => ({ ...prev, next: errorMsg }));
+      } else {
+        showToast(errorMsg, "error");
+      }
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   // ── Logout ────────────────────────────────────────────────────────────────
@@ -1104,10 +1133,11 @@ export default function Profile({
             <div className="flex gap-3 pt-1">
               <Grid cols={12} gap={3}>
                 <Button
-                  text="Update Password"
+                  text={isChangingPassword ? "Updating..." : "Update Password"}
                   variant="primary"
                   size={7}
                   onClick={handleChangePassword}
+                  disabled={isChangingPassword}
                 />
                 <Button
                   text="Cancel"

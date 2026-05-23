@@ -150,6 +150,20 @@ export const loginSuperAdmin = async (payload) => {
 };
 
 /**
+ * Change authenticated user's password
+ * @param {Object} payload - { currentPassword, newPassword, confirmPassword }
+ * @returns {Promise<Object>} Response from server
+ */
+export const changePassword = async (payload) => {
+  try {
+    const response = await apiClient.patch('/auth/change-password', payload);
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
  * Logout — Clear tokens
  */
 export const logout = () => {
