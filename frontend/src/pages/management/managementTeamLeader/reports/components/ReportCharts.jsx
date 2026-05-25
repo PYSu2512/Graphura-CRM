@@ -1,16 +1,12 @@
 import {
+  GAreaChart,
   GBarChart,
-  GColumnChart,
   GLineChart,
   GPieChart,
   Grid,
 } from "../../../../../components/shared/Common_Components";
 
-const completedPendingData = [
-  { name: "Reports", completed: 11, pending: 7 },
-];
-
-export default function ReportCharts({ type = "daily", statusData = [], productivityData = [], performanceData = [] }) {
+export default function ReportCharts({ type = "daily", completionData = [], statusData = [], productivityData = [], performanceData = [] }) {
   if (type === "weekly") {
     return (
       <Grid cols={12} gap={4}>
@@ -37,10 +33,10 @@ export default function ReportCharts({ type = "daily", statusData = [], producti
 
   return (
     <Grid cols={12} gap={4}>
-      <GColumnChart
-        title="Completed vs Pending"
-        data={completedPendingData}
-        bars={[
+      <GAreaChart
+        title="Daily Completion Trend"
+        data={completionData}
+        areas={[
           { key: "completed", label: "Completed", color: "#16a34a" },
           { key: "pending", label: "Pending", color: "#f59e0b" },
         ]}

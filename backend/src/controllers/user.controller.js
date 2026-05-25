@@ -31,16 +31,18 @@ const getDepartmentNextRoute = (role, user) => {
     return "/department";
   }
 
-  if (role === "SALES_MANAGER") return "/sales-manager";
-  if (role === "SALES_TL" || role === "SALES_EXECUTIVE") return "/department";
-  if (role === "FINANCE_MANAGER") return "/department";
-  if (
-    role === "MANAGEMENT_MANAGER" ||
-    role === "MANAGEMENT_TL" ||
-    role === "MANAGEMENT_EMPLOYEE"
-  ) {
-    return "/department";
-  }
+  // Sales Department
+  if (role === 'SALES_MANAGER') return '/sales-manager';
+  if (role === 'SALES_TL') return '/sales-team-leader';
+  if (role === 'SALES_EXECUTIVE') return '/sales-executive';
+  
+  // Finance Department
+  if (role === 'FINANCE_MANAGER' || role === 'FINANCE_EXECUTIVE') return '/finance';
+  
+  // Management Department
+  if (role === 'MANAGEMENT_MANAGER') return '/management-manager';
+  if (role === 'MANAGEMENT_TL') return '/management-team-leader';
+  if (role === 'MANAGEMENT_EMPLOYEE') return '/management-employee';
 
   return "/department";
 };
@@ -121,6 +123,20 @@ exports.createUser = catchAsync(async (req, res, next) => {
     return next(
       new AppError("Email is already registered in your organization", 409),
     );
+  }
+
+  // 4. One Manager per Department Constraint
+  if (role.endsWith('_MANAGER')) {
+    const existingManager = await User.findOne({
+      admin: adminId,
+      department: departmentId,
+      role: role,
+      isDeleted: false
+    });
+
+    if (existingManager) {
+      return next(new AppError(`A manager for the ${department.name} department already exists.`, 409));
+    }
   }
 
   // 5. Team validation (Optional)
@@ -628,5 +644,64 @@ exports.setupBankDetails = catchAsync(async (req, res, next) => {
 
   res.status(200).json(
     new ApiResponse(200, { user }, 'Bank details saved successfully. Onboarding complete.')
+  );
+});
+
+/**
+ * Handle bank details submission for department users
+ * (Completes the second step of onboarding)
+ */
+exports.updateBankDetails = catchAsync(async (req, res, next) => {
+  const { bankName, accountNumber, ifscCode, upiId, branch, beneficiaryName } = req.body;
+  const userId = req.user?._id;
+
+  if (!userId) {
+    return next(new AppError('Authentication required', 401));
+  }
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  // 1. Update bank details
+  user.bankDetails = {
+    bankName,
+    accountNumber,
+    ifscCode,
+    upiId: upiId || user.bankDetails?.upiId,
+    branch: branch || user.bankDetails?.branch,
+    beneficiaryName: beneficiaryName || user.bankDetails?.beneficiaryName || user.name,
+    verified: false // Defaults to false until admin/finance verifies
+  };
+
+  // 2. Complete onboarding profile
+  user.isProfileComplete = true;
+  user.prereqCompleted = true;
+  user.prereqStep = 'completed';
+
+  await user.save();
+
+  // 3. Log the activity
+  await AuditLog.create({
+    admin: user.admin,
+    performedBy: user._id,
+    performerType: 'USER',
+    action: 'USER_UPDATED',
+    targetModel: 'User',
+    targetId: user._id,
+    note: 'User completed onboarding by providing bank details'
+  });
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      user: {
+        id: user._id,
+        isProfileComplete: user.isProfileComplete,
+        prereqStep: user.prereqStep,
+        prereqCompleted: user.prereqCompleted
+      },
+      nextRoute: getDepartmentNextRoute(user.role, user)
+    }, 'Bank details updated. Onboarding complete!')
   );
 });

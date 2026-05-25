@@ -1,125 +1,157 @@
+import { useState } from "react";
+
 import {
   Grid,
   DataTable,
   GLineChart,
+  GBarChart,
 } from "../../../../components/shared/Common_Components";
 
 import { teamReports } from "../reportsStore";
 
 export default function TeamReports() {
-  const totalProjects = teamReports.reduce(
-    (acc, item) => acc + item.totalProjects,
-    0
-  );
+  const [filter, setFilter] = useState("Today");
 
-  const totalCompleted = teamReports.reduce(
-    (acc, item) => acc + item.completed,
-    0
-  );
+  /* FILTER DATA */
+  const dataMap = {
+    Today: teamReports.map((team) => ({
+      name: team.name,
+      completed: team.completed,
+      delayed: team.delayed,
+      inProgress: team.inProgress,
+    })),
 
-  const totalDelayed = teamReports.reduce(
-    (acc, item) => acc + item.delayed,
-    0
-  );
+    Week: teamReports.map((team) => ({
+      name: team.name,
+      completed: team.completed + 2,
+      delayed: team.delayed + 1,
+      inProgress: team.inProgress + 1,
+    })),
 
-  const chartData = teamReports.map((team) => ({
-    name: team.name,
-    completed: team.completed,
-    delayed: team.delayed,
-    inProgress: team.inProgress,
-  }));
+    Month: teamReports.map((team) => ({
+      name: team.name,
+      completed: team.completed + 5,
+      delayed: team.delayed + 2,
+      inProgress: team.inProgress + 3,
+    })),
+
+    Year: teamReports.map((team) => ({
+      name: team.name,
+      completed: team.completed + 12,
+      delayed: team.delayed + 4,
+      inProgress: team.inProgress + 7,
+    })),
+  };
+
+  const chartData = dataMap[filter];
+
+  /* FILTER BUTTONS */
+  const FilterButtons = () => (
+    <div className="flex gap-2 flex-wrap">
+      {["Today", "Week", "Month", "Year"].map((item) => (
+        <button
+          key={item}
+          onClick={() => setFilter(item)}
+          className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+            filter === item
+              ? "bg-[#2a465a] text-white"
+              : "bg-slate-100 text-slate-600"
+          }`}
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Summary Cards */}
-      <Grid cols={12} gap={4}>
-        <div className="col-span-12 md:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-sm text-slate-500 font-medium">
-            Total Projects
-          </p>
-
-          <h2 className="text-3xl font-bold text-[#2a465a] mt-2">
-            {totalProjects}
-          </h2>
-        </div>
-
-        <div className="col-span-12 md:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-sm text-slate-500 font-medium">
-            Completed Projects
-          </p>
-
-          <h2 className="text-3xl font-bold text-emerald-600 mt-2">
-            {totalCompleted}
-          </h2>
-        </div>
-
-        <div className="col-span-12 md:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <p className="text-sm text-slate-500 font-medium">
-            Delayed Projects
-          </p>
-
-          <h2 className="text-3xl font-bold text-red-500 mt-2">
-            {totalDelayed}
-          </h2>
-        </div>
-      </Grid>
-
-      {/* Charts */}
+      {/* CHARTS */}
       <Grid cols={12} gap={6}>
-        <GLineChart
-          data={chartData}
-          lines={[
-            {
-              key: "completed",
-              label: "Completed",
-              color: "#10b981",
-            },
-            {
-              key: "inProgress",
-              label: "In Progress",
-              color: "#f59e0b",
-            },
-            {
-              key: "delayed",
-              label: "Delayed",
-              color: "#ef4444",
-            },
-          ]}
-          title="Team Performance Analytics"
-          height={320}
-          size={12}
-        />
+        {/* COMPLETION TREND */}
+        <div className="col-span-12 md:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-[#2a465a]">
+              Completed Projects by Team
+            </h2>
 
-        <GLineChart
-          data={chartData}
-          lines={[
-            {
-              key: "completed",
-              label: "Completion Trend",
-              color: "#2563eb",
-            },
-          ]}
-          title="Completed Projects by Team"
-          height={300}
-          size={6}
-        />
+            <FilterButtons />
+          </div>
 
-        <GLineChart
-          data={chartData}
-          lines={[
-            {
-              key: "delayed",
-              label: "Delay Trend",
-              color: "#dc2626",
-            },
-          ]}
-          title="Delayed Projects by Team"
-          height={300}
-          size={6}
-        />
+          <GLineChart
+            data={chartData}
+            lines={[
+              {
+                key: "completed",
+                label: "Completion Trend",
+                color: "#2563eb",
+              },
+            ]}
+            height={260}
+            size={12}
+          />
+        </div>
+
+        {/* DELAY TREND */}
+        <div className="col-span-12 md:col-span-6 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-[#2a465a]">
+              Delayed Projects by Team
+            </h2>
+
+            <FilterButtons />
+          </div>
+
+          <GLineChart
+            data={chartData}
+            lines={[
+              {
+                key: "delayed",
+                label: "Delay Trend",
+                color: "#dc2626",
+              },
+            ]}
+            height={260}
+            size={12}
+          />
+        </div>
+
+        {/* TEAM PERFORMANCE */}
+        <div className="col-span-12 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-[#2a465a]">
+              Team Performance Analytics
+            </h2>
+
+            <FilterButtons />
+          </div>
+
+          <GBarChart
+            data={chartData}
+            bars={[
+              {
+                key: "completed",
+                label: "Completed",
+                color: "#10b981",
+              },
+              {
+                key: "inProgress",
+                label: "In Progress",
+                color: "#f59e0b",
+              },
+              {
+                key: "delayed",
+                label: "Delayed",
+                color: "#ef4444",
+              },
+            ]}
+            height={320}
+            size={12}
+          />
+        </div>
       </Grid>
 
-      {/* Data Table */}
+      {/* TABLE */}
       <Grid cols={12} gap={4}>
         <DataTable
           title="Team Performance Report"

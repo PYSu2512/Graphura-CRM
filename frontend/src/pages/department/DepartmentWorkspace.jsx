@@ -134,6 +134,29 @@ export default function DepartmentWorkspace() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // Redirect if already completed setup
+    try {
+      const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+      if (user.isProfileComplete && !user.mustChangePassword) {
+        // Find role-based route
+        const role = user.role;
+        let route = "/department";
+        if (role === 'SALES_MANAGER') route = '/sales-manager';
+        else if (role === 'SALES_TL') route = '/sales-team-leader';
+        else if (role === 'SALES_EXECUTIVE') route = '/sales-executive';
+        else if (role === 'FINANCE_MANAGER' || role === 'FINANCE_EXECUTIVE') route = '/finance';
+        else if (role === 'MANAGEMENT_MANAGER') route = '/management-manager';
+        else if (role === 'MANAGEMENT_TL') route = '/management-team-leader';
+        else if (role === 'MANAGEMENT_EMPLOYEE') route = '/management-employee';
+        
+        navigate(route);
+      }
+    } catch (err) {
+      console.error("Session parse error:", err);
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     if (!status.type) return;
     const t = setTimeout(() => setStatus({ type: "", message: "" }), 4000);
     return () => clearTimeout(t);
@@ -176,21 +199,38 @@ export default function DepartmentWorkspace() {
     return !Object.keys(e).length;
   };
 
-  const nextStep = () => {
-    if (step === 0 && !validatePassword()) {
-      setStatus({
-        type: "alert",
-        message: "Please fix the errors before continuing.",
-      });
+  const nextStep = async () => {
+    if (step === 0) {
+      if (!validatePassword()) {
+        setStatus({ type: "alert", message: "Please fix the errors before continuing." });
+        return;
+      }
+      try {
+        setIsSubmitting(true);
+        setStatus({ type: "info", message: "Updating password..." });
+        await userService.setupAccount({ newPassword: password, confirmPassword });
+        setStatus({ type: "success", message: "Password updated! Now provide your bank details." });
+        setErrors({});
+        setStep(1);
+      } catch (err) {
+        setStatus({ type: "error", message: err?.response?.data?.message || "Failed to update password." });
+      } finally {
+        setIsSubmitting(false);
+      }
       return;
     }
-    if (step === 1 && !validateBank()) {
-      setStatus({
-        type: "alert",
-        message: "Please fix the errors before continuing.",
-      });
+
+    if (step === 1) {
+      if (!validateBank()) {
+        setStatus({ type: "alert", message: "Please fix the errors before continuing." });
+        return;
+      }
+      setErrors({});
+      setStatus({ type: "", message: "" });
+      setStep(2);
       return;
     }
+
     setErrors({});
     setStatus({ type: "", message: "" });
     setStep((s) => s + 1);

@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { Eye, Pencil, Link as LinkIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Eye, Pencil, Link as LinkIcon, Users, Briefcase, FolderOpen, FileCheck2 } from "lucide-react";
 import {
   Heading,
   Grid,
+  DashGrid,
+  DashCard,
   DataTable,
   DataField,
   Button,
@@ -14,7 +16,10 @@ import {
   closeModal,
 } from "../../../components/shared/Common_Components";
 import { clients as initialClients } from "./clientsStore";
-import { projects } from "./managementManagerStore";
+import { projects, ACTIVE_STATUSES } from "./managementManagerStore";
+
+const KPI_ICONS   = [<Users size={20} />, <Briefcase size={20} />, <FolderOpen size={20} />, <FileCheck2 size={20} />];
+const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#8b5cf6", "#f59e0b"];
 
 const BLANK_FORM = { id: null, name: "", mobile: "", email: "", driveLink: "" };
 
@@ -118,9 +123,37 @@ export default function ManagementManagerClients() {
     projectCount: projects.filter((p) => p.clientId === c.id).length,
   }));
 
+  // ── Live KPIs ────────────────────────────────────────────────────────
+  const kpis = useMemo(() => {
+    const activeClients = clients.filter((c) =>
+      projects.some((p) => p.clientId === c.id && ACTIVE_STATUSES.includes(p.status)),
+    ).length;
+    const totalProjects   = projects.filter((p) => clients.some((c) => c.id === p.clientId)).length;
+    const driveLinksSet   = clients.filter((c) => !!c.driveLink).length;
+    return [
+      { title: "Total Clients",   value: String(clients.length) },
+      { title: "Active Clients",  value: String(activeClients)  },
+      { title: "Total Projects",  value: String(totalProjects)  },
+      { title: "Drive Links Set", value: `${driveLinksSet}/${clients.length}` },
+    ];
+  }, [clients]);
+
   return (
     <div className="flex flex-col gap-6">
       <Heading primaryText="Client" secondaryText="Directory" size={12} />
+
+      <DashGrid cols={12} gap={4}>
+        {kpis.map((k, i) => (
+          <DashCard
+            key={k.title}
+            title={k.title}
+            value={k.value}
+            icon={KPI_ICONS[i]}
+            accentColor={KPI_ACCENTS[i]}
+            size={3}
+          />
+        ))}
+      </DashGrid>
 
       {/* ── + Add Client button ───────────────────────────────────────── */}
       <div className="flex justify-end">

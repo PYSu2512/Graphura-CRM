@@ -31,6 +31,7 @@ import {
   Users,
   Webhook,
   Activity,
+  User2,
 } from "lucide-react";
 import logo from "../assets/Logo/Graphura_Logo.webp";
 
@@ -238,7 +239,7 @@ const MENUS = {
       {
         label: "Finance",
         items: [
-          { name: "Deals", path: "/finance/deals", icon: Briefcase },
+          { name: "Clients", path: "/finance/clients", icon: User2 },
           { name: "Payments", path: "/finance/payments", icon: CreditCard },
           { name: "Work Orders", path: "/finance/work-orders", icon: ClipboardList },
           { name: "Invoices", path: "/finance/invoices", icon: FileText },

@@ -11,6 +11,7 @@ import SubmitReportModal from "./components/SubmitReportModal";
 import ViewReportModal from "./components/ViewReportModal";
 import WeeklyPerformanceTable from "./components/WeeklyPerformanceTable";
 import {
+  completedPendingData,
   dailyReportMetrics,
   projectReportRows,
   reportStatusData,
@@ -60,7 +61,7 @@ export default function ReportsPage() {
       {reportType === "daily" && (
         <section className="space-y-4 rounded-2xl border border-slate-200 bg-white/60 p-4 shadow-sm">
           <ReportStatsCards metrics={dailyReportMetrics} />
-          <ReportCharts type="daily" statusData={reportStatusData} />
+          <ReportCharts type="daily" completionData={completedPendingData} statusData={reportStatusData} />
           <DailyReportTable rows={projectReportRows} onSelect={setSelected} />
         </section>
       )}

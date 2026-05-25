@@ -4,7 +4,7 @@ import {
   Heading,
   DashCard,
   GAreaChart,
-  GColumnChart,
+  GBarChart,
   GPieChart,
   DataTable,
   Modal,
@@ -115,7 +115,7 @@ export default function ManagementManagerDashboard() {
 
       {/* ── 4. Per-TL Load ────────────────────────────────────────────────── */}
       <Grid cols={12} gap={4}>
-        <GColumnChart
+        <GBarChart
           title="Team Leader Load"
           subtitle="Active vs completed vs delayed projects per TL"
           data={tlLoad}
@@ -125,7 +125,7 @@ export default function ManagementManagerDashboard() {
             { key: "delayed",   label: "Delayed",   color: "#f43f5e" },
           ]}
           size={12}
-          height={300}
+          height={320}
         />
       </Grid>
 

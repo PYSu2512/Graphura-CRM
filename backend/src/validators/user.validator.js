@@ -72,4 +72,5 @@ module.exports = {
   departmentLoginSchema,
   setupAccountSchema,
   setupBankDetailsSchema,
+  updateBankDetailsSchema,
 };

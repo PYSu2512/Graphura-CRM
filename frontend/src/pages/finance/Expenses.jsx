@@ -87,30 +87,28 @@ export default function Expenses() {
         <DashCard title="Returned" value={returned} icon={<RotateCcw size={22} />} accentColor="#8b5cf6" size={2} />
         <DashCard title="Monthly Expenses" value={`₹${monthly.toLocaleString()}`} icon={<Calendar size={22} />} accentColor="#f59e0b" size={3} />
       </DashGrid>
-
       <DashGrid cols={12} gap={4}>
-        <GPieChart title="Expense by Category" data={pieData} size={4} />
-        <div className="col-span-12 lg:col-span-8">
-          <div className="flex justify-end mb-3">
-            <button
+
+      <GPieChart title="Expense by Category" data={pieData} size={4} />
+      </DashGrid>
+      <DashGrid cols={12} gap={4}>
+          <div className="col-span-12 flex justify-end w-full">
+            <Button
+              text="+ Add Expense"
               onClick={openAdd}
-              className="bg-[#2a465a] text-white px-5 py-2.5 rounded-2xl text-sm font-bold hover:bg-[#1e3a52] transition"
-            >
-              + Add Expense
-            </button>
+            />
           </div>
           <DataTable
             title="All Expenses"
             columns={columns}
             rows={expenses}
-            pageSize={8}
+            pageSize={12}
             actions={[
               { icon: <Eye size={15}/>,    tooltip: "View Details", variant: "ghost",   onClick: openView     },
               { icon: <Pencil size={15}/>, tooltip: "Edit",         variant: "primary", onClick: openEdit     },
               { icon: <Trash2 size={15}/>, tooltip: "Delete",       variant: "danger",  onClick: confirmDelete},
             ]}
           />
-        </div>
       </DashGrid>
 
       {/* View Modal */}

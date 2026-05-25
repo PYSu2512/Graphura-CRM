@@ -1,7 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import FinanceDashboard    from "../pages/finance/FinanceDashboard";
-import Deals               from "../pages/finance/Deals";
 import Payments            from "../pages/finance/Payments";
 import WorkOrders          from "../pages/finance/WorkOrders";
 import Invoices            from "../pages/finance/Invoices";
@@ -11,13 +10,14 @@ import FinanceNotifications from "../pages/finance/FinanceNotifications";
 import FinanceLoginLogs    from "../pages/finance/FinanceLoginLogs";
 import FinanceHRM          from "../pages/finance/FinanceHRM";
 import FinanceProfile from "../pages/finance/FinanceProfile";
+import Clients from "../pages/finance/Clients";
 
 function FinanceRoutes() {
   return (
     <Routes>
       <Route element={<MainLayout />}>
         <Route index                  element={<FinanceDashboard />}     />
-        <Route path="deals"           element={<Deals />}                />
+        <Route path="clients"           element={<Clients />}                />
         <Route path="payments"        element={<Payments />}             />
         <Route path="work-orders"     element={<WorkOrders />}           />
         <Route path="invoices"        element={<Invoices />}             />

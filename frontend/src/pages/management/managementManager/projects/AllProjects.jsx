@@ -17,12 +17,11 @@ import {
   Eye,
   Pencil,
   UserPlus,
-  Users,
   CheckCircle2,
   AlertTriangle,
   MessageSquarePlus,
 } from "lucide-react";
-import { teamLeaders, clientList, employees, employeeName } from "../managementManagerStore";
+import { teamLeaders, clientList, employeeName } from "../managementManagerStore";
 import { PROJECT_COLS, PROJECT_STATUSES, PROJECT_PRIORITIES, deliveryBlockedReasons, asTableRow } from "./projectsStore";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -57,8 +56,6 @@ export default function AllProjects({ projects, updateProject, addProject }) {
   const [editForm,   setEditForm]   = useState({});
   const [assignRow,  setAssignRow]  = useState(null);
   const [assignTL,   setAssignTL]   = useState("");
-  const [empRow,     setEmpRow]     = useState(null);
-  const [empSel,     setEmpSel]     = useState([]);
   const [updateRow,  setUpdateRow]  = useState(null);
   const [updateForm, setUpdateForm] = useState(BLANK_UPDATE);
   const [blockedRow, setBlockedRow] = useState(null);
@@ -96,13 +93,6 @@ export default function AllProjects({ projects, updateProject, addProject }) {
     setAssignRow(full);
     setAssignTL(full.assignedTL);
     openModal("mm-project-assign");
-  };
-
-  const openReassignEmp = (row) => {
-    const full = projects.find((p) => p.id === row.id);
-    setEmpRow(full);
-    setEmpSel([...(full.assignedEmployees ?? [])]);
-    openModal("mm-project-reassign-emp");
   };
 
   const openAddUpdate = (row) => {
@@ -159,17 +149,6 @@ export default function AllProjects({ projects, updateProject, addProject }) {
     });
     closeModal("mm-project-assign");
   };
-
-  const saveReassignEmp = () => {
-    updateProject(empRow.id, {
-      assignedEmployees: empSel,
-      lastUpdated:       today(),
-    });
-    closeModal("mm-project-reassign-emp");
-  };
-
-  const toggleEmp = (id) =>
-    setEmpSel((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   const saveAddUpdate = () => {
     if (!updateForm.note.trim()) return;
@@ -245,12 +224,6 @@ export default function AllProjects({ projects, updateProject, addProject }) {
     closeModal("mm-project-create");
   };
 
-  // ── Employees grouped by their current TL (for the Reassign-Employees picker) ──
-  const empByTL = teamLeaders.map((tl) => ({
-    tl,
-    members: employees.filter((e) => e.teamLeaderId === tl.id),
-  }));
-
   return (
     <>
       {/* ── Add Project button ─────────────────────────────────────────── */}
@@ -276,12 +249,11 @@ export default function AllProjects({ projects, updateProject, addProject }) {
           { title: "Priority", type: "toggle", key: "priority", options: PROJECT_PRIORITIES },
         ]}
         actions={[
-          { icon: <Eye size={15} />,                tooltip: "View",                variant: "ghost",   onClick: openView },
-          { icon: <Pencil size={15} />,             tooltip: "Edit",                variant: "ghost",   onClick: openEdit },
-          { icon: <UserPlus size={15} />,           tooltip: "Reassign TL",         variant: "ghost",   onClick: openAssign },
-          { icon: <Users size={15} />,              tooltip: "Reassign Employees",  variant: "ghost",   onClick: openReassignEmp },
-          { icon: <MessageSquarePlus size={15} />,  tooltip: "Add Update",          variant: "ghost",   onClick: openAddUpdate },
-          { icon: <CheckCircle2 size={15} />,       tooltip: "Mark Completed",      variant: "success", onClick: tryDeliver },
+          { icon: <Eye size={15} />,                tooltip: "View",            variant: "ghost",   onClick: openView },
+          { icon: <Pencil size={15} />,             tooltip: "Edit",            variant: "ghost",   onClick: openEdit },
+          { icon: <UserPlus size={15} />,           tooltip: "Reassign TL",     variant: "ghost",   onClick: openAssign },
+          { icon: <MessageSquarePlus size={15} />,  tooltip: "Add Update",      variant: "ghost",   onClick: openAddUpdate },
+          { icon: <CheckCircle2 size={15} />,       tooltip: "Mark Completed",  variant: "success", onClick: tryDeliver },
         ]}
       />
 
@@ -509,59 +481,6 @@ export default function AllProjects({ projects, updateProject, addProject }) {
             <Grid cols={12} gap={2}>
               <Button text="Cancel"   variant="secondary" size={6} onClick={() => closeModal("mm-project-assign")} />
               <Button text="Reassign" variant="primary"   size={6} onClick={saveAssign} />
-            </Grid>
-          </div>
-        )}
-      </Modal>
-
-      {/* ── Reassign Employees modal ───────────────────────────────────── */}
-      <Modal id="mm-project-reassign-emp" title="Reassign Employees" size="lg">
-        {empRow && (
-          <div className="flex flex-col gap-4">
-            <ModalProfile
-              name={empRow.name}
-              subtitle={`Current TL: ${empRow.assignedTLName}`}
-              meta={`${empRow.id} · ${empSel.length} selected`}
-            />
-            <p className="text-xs text-slate-500 px-1">
-              Employees listed under their current Team Leader. Toggle to add/remove from this project.
-              Reassigning an employee here does NOT change which TL they report to (do that in Teams → Structure).
-            </p>
-            <div className="max-h-72 overflow-y-auto space-y-3 pr-1">
-              {empByTL.map(({ tl, members }) => (
-                <div key={tl.id} className="rounded-xl border border-slate-200 p-3">
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-                    {tl.name} · {members.length}
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {members.map((emp) => {
-                      const on = empSel.includes(emp.id);
-                      return (
-                        <button
-                          key={emp.id}
-                          type="button"
-                          onClick={() => toggleEmp(emp.id)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-xl border text-sm font-medium transition ${
-                            on
-                              ? "bg-[#2a465a] text-white border-[#2a465a] shadow"
-                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                          }`}
-                        >
-                          <span className={`flex-shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center ${on ? "bg-white border-white" : "border-slate-300"}`}>
-                            {on && <span className="block w-2 h-2 rounded bg-[#2a465a]" />}
-                          </span>
-                          <span className="text-left flex-1 truncate">{emp.name}</span>
-                          <span className={`text-[10px] uppercase tracking-wider ${on ? "text-slate-300" : "text-slate-400"}`}>{emp.role}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Grid cols={12} gap={2}>
-              <Button text="Cancel" variant="secondary" size={6} onClick={() => closeModal("mm-project-reassign-emp")} />
-              <Button text="Save"   variant="primary"   size={6} onClick={saveReassignEmp} />
             </Grid>
           </div>
         )}
