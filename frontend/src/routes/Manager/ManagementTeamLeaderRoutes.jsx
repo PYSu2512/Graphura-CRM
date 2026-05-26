@@ -6,6 +6,7 @@ import NotificationsPage from "../../pages/management/managementTeamLeader/notif
 import ReportsPage from "../../pages/management/managementTeamLeader/reports/ReportsPage";
 import SupportPage from "../../pages/management/managementTeamLeader/support/SupportPage";
 import ProgressPage from "../../pages/management/managementTeamLeader/progress/ProgressPage";
+import ProjectsPage from "../../pages/management/managementTeamLeader/projects/ProjectsPage";
 
 function ManagementTeamLeaderRoutes() {
   return (
@@ -17,6 +18,7 @@ function ManagementTeamLeaderRoutes() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="support" element={<SupportPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="projects" element={<ProjectsPage />} />
         <Route path="*" element={<Navigate to="/management-team-leader" replace />} />
       </Route>
     </Routes>
