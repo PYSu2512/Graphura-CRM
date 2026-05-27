@@ -31,6 +31,35 @@ const data = [
 ];
 
 export default function ManagementEmployeeDeadlines() {
+  const handleExport = () => {
+    const csvData = [
+      ["Project ID", "Project Name", "Client", "Status", "Progress", "Deadline", "Tag"],
+      ...data.map((item) => [
+        item.id,
+        item.title,
+        item.client,
+        item.status,
+        item.progress + "%",
+        item.deadline,
+        item.tag,
+      ]),
+    ];
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      csvData.map((e) => e.join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "deadlines-report.csv");
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
 
@@ -39,6 +68,7 @@ export default function ManagementEmployeeDeadlines() {
         <h1 className="text-2xl font-semibold text-gray-800">
           Upcoming Deadlines
         </h1>
+
         <p className="text-sm text-gray-500">
           Track all your project deadlines in one place
         </p>
@@ -49,13 +79,17 @@ export default function ManagementEmployeeDeadlines() {
 
         {/* TOP BAR */}
         <div className="flex justify-between items-center p-4 border-b">
+
           <input
             type="text"
             placeholder="Search projects..."
-            className="border px-3 py-1 rounded-lg text-sm w-64"
+            className="border px-3 py-2 rounded-lg text-sm w-64 outline-none"
           />
 
-          <button className="px-3 py-1 text-sm bg-black text-white rounded-lg">
+          <button
+            onClick={handleExport}
+            className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:opacity-90 transition"
+          >
             Export
           </button>
         </div>
@@ -77,18 +111,27 @@ export default function ManagementEmployeeDeadlines() {
 
             <tbody>
               {data.map((item, index) => (
-                <tr key={index} className="border-t hover:bg-gray-50">
+                <tr
+                  key={index}
+                  className="border-t hover:bg-gray-50 transition"
+                >
 
                   <td className="p-3 font-medium">
-                    {item.id} <br />
+                    {item.id}
+                    <br />
+
                     <span className="text-gray-500 font-normal">
                       {item.title}
                     </span>
                   </td>
 
-                  <td className="p-3 text-gray-600">{item.client}</td>
+                  <td className="p-3 text-gray-600">
+                    {item.client}
+                  </td>
 
-                  <td className="p-3">{item.status}</td>
+                  <td className="p-3">
+                    {item.status}
+                  </td>
 
                   <td className="p-3">
                     <div className="w-full bg-gray-200 rounded-full h-2">
@@ -97,12 +140,15 @@ export default function ManagementEmployeeDeadlines() {
                         style={{ width: `${item.progress}%` }}
                       ></div>
                     </div>
+
                     <span className="text-xs text-gray-500">
                       {item.progress}%
                     </span>
                   </td>
 
-                  <td className="p-3">{item.deadline}</td>
+                  <td className="p-3">
+                    {item.deadline}
+                  </td>
 
                   <td className="p-3">
                     <span

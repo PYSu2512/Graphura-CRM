@@ -1,111 +1,150 @@
-import React from "react";
-
-const reminders = [
-  {
-    id: 1,
-    title: "Submit daily status update",
-    priority: "High",
-    time: "8:00 PM",
-    status: "Pending",
-  },
-  {
-    id: 2,
-    title: "Client follow-up call",
-    priority: "Medium",
-    time: "3:00 PM",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    title: "Update project documentation",
-    priority: "Low",
-    time: "Tomorrow",
-    status: "Completed",
-  },
-];
+import React, { useState } from "react";
 
 export default function ManagementEmployeeReminders() {
+  const [reminders, setReminders] = useState([
+    {
+      id: 1,
+      title: "Submit UI Report",
+      date: "2026-05-28",
+      status: "Pending",
+    },
+    {
+      id: 2,
+      title: "Client Meeting",
+      date: "2026-05-30",
+      status: "Completed",
+    },
+  ]);
+
+  const [newReminder, setNewReminder] = useState("");
+
+  const handleAddReminder = () => {
+    if (!newReminder.trim()) return;
+
+    const reminder = {
+      id: Date.now(),
+      title: newReminder,
+      date: new Date().toISOString().split("T")[0],
+      status: "Pending",
+    };
+
+    setReminders([reminder, ...reminders]);
+    setNewReminder("");
+  };
+
+  const handleDelete = (id) => {
+    setReminders(reminders.filter((item) => item.id !== id));
+  };
+
+  const handleToggleStatus = (id) => {
+    setReminders(
+      reminders.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              status:
+                item.status === "Pending"
+                  ? "Completed"
+                  : "Pending",
+            }
+          : item
+      )
+    );
+  };
+
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gray-100 p-6">
 
       {/* HEADER */}
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-800">
+        <h1 className="text-3xl font-bold text-gray-800">
           Reminders
         </h1>
-        <p className="text-sm text-gray-500">
-          Stay updated with your daily tasks & alerts
+
+        <p className="text-gray-500 mt-1">
+          Manage your important reminders and tasks
         </p>
       </div>
 
-      {/* CARD */}
-      <div className="bg-white rounded-xl border shadow-sm">
+      {/* ADD REMINDER CARD */}
+      <div className="bg-white rounded-2xl shadow-sm border p-5 mb-6">
 
-        {/* TOP BAR */}
-        <div className="flex justify-between items-center p-4 border-b">
+        <div className="flex flex-col md:flex-row gap-3">
+
           <input
             type="text"
-            placeholder="Search reminders..."
-            className="border px-3 py-1 rounded-lg text-sm w-64"
+            placeholder="Enter reminder..."
+            value={newReminder}
+            onChange={(e) => setNewReminder(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-black"
           />
 
-          <button className="px-3 py-1 text-sm bg-black text-white rounded-lg">
-            Add Reminder
+          <button
+            onClick={handleAddReminder}
+            className="bg-black text-white px-6 py-3 rounded-xl font-medium hover:opacity-90 transition"
+          >
+            + Add Reminder
           </button>
+
         </div>
+      </div>
 
-        {/* LIST */}
-        <div className="divide-y">
+      {/* REMINDER LIST */}
+      <div className="grid gap-4">
 
-          {reminders.map((item) => (
-            <div
-              key={item.id}
-              className="flex justify-between items-center p-4 hover:bg-gray-50"
-            >
+        {reminders.map((item) => (
+          <div
+            key={item.id}
+            className="bg-white border rounded-2xl shadow-sm p-5 hover:shadow-md transition"
+          >
+
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
 
               {/* LEFT */}
               <div>
-                <h3 className="font-medium text-gray-800">
+                <h2 className="text-lg font-semibold text-gray-800">
                   {item.title}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  Time: {item.time}
+                </h2>
+
+                <p className="text-sm text-gray-500 mt-1">
+                  Date: {item.date}
                 </p>
               </div>
 
               {/* RIGHT */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
 
-                {/* PRIORITY */}
                 <span
-                  className={`px-2 py-1 text-xs rounded-full ${
-                    item.priority === "High"
-                      ? "bg-red-100 text-red-600"
-                      : item.priority === "Medium"
-                      ? "bg-yellow-100 text-yellow-700"
-                      : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {item.priority}
-                </span>
-
-                {/* STATUS */}
-                <span
-                  className={`px-2 py-1 text-xs rounded-full ${
+                  className={`px-3 py-1 text-xs font-medium rounded-full ${
                     item.status === "Completed"
                       ? "bg-green-100 text-green-700"
-                      : "bg-gray-100 text-gray-600"
+                      : "bg-yellow-100 text-yellow-700"
                   }`}
                 >
                   {item.status}
                 </span>
 
+                <button
+                  onClick={() => handleToggleStatus(item.id)}
+                  className="px-4 py-2 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700 transition"
+                >
+                  {item.status === "Pending"
+                    ? "Mark Done"
+                    : "Undo"}
+                </button>
+
+                <button
+                  onClick={() => handleDelete(item.id)}
+                  className="px-4 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700 transition"
+                >
+                  Delete
+                </button>
+
               </div>
-
             </div>
-          ))}
+          </div>
+        ))}
 
-        </div>
       </div>
     </div>
   );
