@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { FolderOpen, CheckCircle2, Percent, Clock } from "lucide-react";
-import { Heading, DashGrid, DashCard } from "../../../components/shared/Common_Components";
+import { Heading, DashGrid, EnhancedDashCard } from "../../../components/shared/Common_Components";
 import { reportKPIs } from "./reportsStore";
 
 import ProjectReports  from "./reports/ProjectReports";
@@ -34,7 +34,7 @@ export default function ManagementManagerReports() {
 
       <DashGrid cols={12} gap={4}>
         {kpis.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}

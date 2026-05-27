@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from "react";
 import {
-  DashGrid, DashCard, DataTable, Grid, DataField,
+  DashGrid, EnhancedDashCard, DataTable, Grid, DataField,
   openModal, closeModal, Modal, Select, Option,
   Heading, Button, UserChat,
 } from "../../../../components/shared/Common_Components";
@@ -160,7 +160,7 @@ export default function AllTickets() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Support Ticket" secondaryText="Management" size={12} />
         {kpiLabels.map((label, i) => (
-          <DashCard key={label} title={label} value={String(stats[i])}
+          <EnhancedDashCard key={label} title={label} value={String(stats[i])}
             icon={kpiIcons[i]} accentColor={kpiAccents[i]} size={3} />
         ))}
       </DashGrid>

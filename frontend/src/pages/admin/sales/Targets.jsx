@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   GBarChart,
   PanelModal as Modal,
   openModal,

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   Modal, ModalGrid, ModalData, ModalProfile, Button,
   openModal, closeModal,
 } from "../../../../components/shared/Common_Components";
@@ -69,7 +69,7 @@ export default function Attendance() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Attendance" secondaryText={`${currentMM.department} Department`} size={12} />
         {kpis.map((k, i) => (
-          <DashCard key={k.title} title={k.title} value={k.value}
+          <EnhancedDashCard key={k.title} title={k.title} value={k.value}
             icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={2} />
         ))}
       </DashGrid>

@@ -6,7 +6,7 @@ import {
   Shield, BarChart3,
 } from "lucide-react";
 import {
-  Heading, DashGrid, EnhancedDashCard as DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   GAreaChart, GBarChart, Button,
   PanelModal as Modal, openModal, closeModal,
 } from "../../components/shared/Common_Components";
@@ -218,10 +218,10 @@ export default function Projects() {
 
       {/* ── 2. KPI Cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Active Projects" value={String(activeCount)} icon={<Briefcase size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Completed" value={String(completedCount)} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="At Risk" value={String(atRiskCount)} icon={<Shield size={22} />} accentColor="#ef4444" size={3} />
-        <DashCard title="Revenue" value="₹1.84Cr" icon={<DollarSign size={22} />} accentColor="#8b5cf6" size={3} />
+        <EnhancedDashCard title="Active Projects" value={String(activeCount)} icon={<Briefcase size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Completed" value={String(completedCount)} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="At Risk" value={String(atRiskCount)} icon={<Shield size={22} />} accentColor="#ef4444" size={3} />
+        <EnhancedDashCard title="Revenue" value="₹1.84Cr" icon={<DollarSign size={22} />} accentColor="#8b5cf6" size={3} />
       </DashGrid>
 
       {/* ── 3. AI Insights ── */}

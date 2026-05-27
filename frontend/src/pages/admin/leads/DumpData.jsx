@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DataTable,
 } from "../../../components/shared/Common_Components";
 
@@ -103,10 +103,10 @@ export default function DumpData() {
       </div>
 
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Total Dumped" value={String(totalDumped)} icon={<Trash2 size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="3× Not Talk" value={String(notTalk)} icon={<PhoneOff size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Vault Restore" value="12" icon={<RefreshCw size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Archived Index" value="48" icon={<History size={22} />} accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="Total Dumped" value={String(totalDumped)} icon={<Trash2 size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="3× Not Talk" value={String(notTalk)} icon={<PhoneOff size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Vault Restore" value="12" icon={<RefreshCw size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Archived Index" value="48" icon={<History size={22} />} accentColor="#38bdf8" size={3} />
       </DashGrid>
 
       <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">

@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Heading,
   DashGrid,
-  DashCard,
+  EnhancedDashCard,
   DataTable,
   Button,
   Modal,
@@ -309,35 +309,35 @@ export default function Invoices() {
 
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Invoices" secondaryText="Management" size={12} />
-        <DashCard
+        <EnhancedDashCard
           title="Total Invoices"
           value={total}
           icon={<FileText size={22} />}
           accentColor="#3b82f6"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Paid"
           value={paid}
           icon={<CheckCircle size={22} />}
           accentColor="#22c55e"
           size={2}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Unpaid"
           value={unpaid}
           icon={<XCircle size={22} />}
           accentColor="#f43f5e"
           size={2}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Pending"
           value={pending}
           icon={<Clock size={22} />}
           accentColor="#f59e0b"
           size={2}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Total Invoice Amt"
           value={`₹${(totalAmt / 100000).toFixed(1)}L`}
           icon={<DollarSign size={22} />}

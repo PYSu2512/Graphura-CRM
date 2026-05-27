@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DataTable,
   Button,
   PanelModal as Modal,
@@ -305,28 +305,28 @@ export default function AllUsers() {
 
       {/* ── Stat Cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard
+        <EnhancedDashCard
           title="Total Users"
           value={String(totalUsers)}
           icon={<Users size={22} />}
           accentColor="#38bdf8"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Active Users"
           value={String(activeUsers)}
           icon={<UserCheck size={22} />}
           accentColor="#22c55e"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Inactive Users"
           value={String(inactiveUsers)}
           icon={<UserX size={22} />}
           accentColor="#f43f5e"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Sales Team"
           value={String(salesTeam)}
           icon={<Target size={22} />}

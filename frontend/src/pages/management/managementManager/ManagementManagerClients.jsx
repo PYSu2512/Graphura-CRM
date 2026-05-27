@@ -4,7 +4,7 @@ import {
   Heading,
   Grid,
   DashGrid,
-  DashCard,
+  EnhancedDashCard,
   DataTable,
   DataField,
   Button,
@@ -144,7 +144,7 @@ export default function ManagementManagerClients() {
 
       <DashGrid cols={12} gap={4}>
         {kpis.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable, Button,
+  Heading, DashGrid, EnhancedDashCard, DataTable, Button,
   Modal, ModalProfile, ModalGrid, ModalData,
   DataField, SelectField, Option,
   openModal, closeModal,
@@ -81,11 +81,11 @@ export default function Expenses() {
     <div className="flex flex-col gap-6">
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Expenses" secondaryText="Management" size={12} />
-        <DashCard title="Total Expenses" value={total} icon={<Receipt size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Paid" value={paid} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={2} />
-        <DashCard title="Unpaid" value={unpaid} icon={<XCircle size={22} />} accentColor="#f43f5e" size={2} />
-        <DashCard title="Returned" value={returned} icon={<RotateCcw size={22} />} accentColor="#8b5cf6" size={2} />
-        <DashCard title="Monthly Expenses" value={`₹${monthly.toLocaleString()}`} icon={<Calendar size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Total Expenses" value={total} icon={<Receipt size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Paid" value={paid} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={2} />
+        <EnhancedDashCard title="Unpaid" value={unpaid} icon={<XCircle size={22} />} accentColor="#f43f5e" size={2} />
+        <EnhancedDashCard title="Returned" value={returned} icon={<RotateCcw size={22} />} accentColor="#8b5cf6" size={2} />
+        <EnhancedDashCard title="Monthly Expenses" value={`₹${monthly.toLocaleString()}`} icon={<Calendar size={22} />} accentColor="#f59e0b" size={3} />
       </DashGrid>
       <DashGrid cols={12} gap={4}>
 

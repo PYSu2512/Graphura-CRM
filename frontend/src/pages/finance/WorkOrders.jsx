@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable, Button,
+  Heading, DashGrid, EnhancedDashCard, DataTable, Button,
   Modal, ModalProfile, ModalGrid, ModalData,
   DataField, SelectField, Option,
   openModal, closeModal,
@@ -614,10 +614,10 @@ export default function WorkOrders() {
       {/* KPIs */}
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Work Orders" secondaryText="Management" size={12} />
-        <DashCard title="Total Work Orders" value={total}          icon={<FileText   size={22}/>} accentColor="#3b82f6" size={3} />
-        <DashCard title="Signed"            value={signed}         icon={<CheckCircle size={22}/>} accentColor="#22c55e" size={3} />
-        <DashCard title="Pending Approval"  value={pendingApproval}icon={<Clock      size={22}/>} accentColor="#f59e0b" size={3} />
-        <DashCard title="Approved"          value={approved}       icon={<ThumbsUp   size={22}/>} accentColor="#14b8a6" size={3} />
+        <EnhancedDashCard title="Total Work Orders" value={total}          icon={<FileText   size={22}/>} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Signed"            value={signed}         icon={<CheckCircle size={22}/>} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Pending Approval"  value={pendingApproval}icon={<Clock      size={22}/>} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Approved"          value={approved}       icon={<ThumbsUp   size={22}/>} accentColor="#14b8a6" size={3} />
       </DashGrid>
 
       {/* Table */}

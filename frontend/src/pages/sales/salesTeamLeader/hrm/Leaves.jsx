@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   Modal, ModalGrid, ModalData, ModalProfile, Button,
   openModal, closeModal, Grid, DataField, SelectField, Option,
 } from "../../../../components/shared/Common_Components";
@@ -180,7 +180,7 @@ export default function Leaves() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Leaves" secondaryText="Management" size={12} />
         {kpis.map((k, i) => (
-          <DashCard key={k.title} title={k.title} value={k.value} icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={3} />
+          <EnhancedDashCard key={k.title} title={k.title} value={k.value} icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={3} />
         ))}
       </DashGrid>
 

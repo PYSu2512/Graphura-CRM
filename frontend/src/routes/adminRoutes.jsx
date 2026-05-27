@@ -30,6 +30,7 @@ import Analytics from "../pages/admin/sales/Analytics";
 import Targets from "../pages/admin/sales/Targets";
 import Tickets from "../pages/admin/sales/Tickets";
 import AdminProfile from "../pages/admin/AdminProfile";
+import AdminApiConfig from "../pages/admin/api-config/ApiConfig";
 
 const pageContent = {
   "Leads & Sales": {
@@ -187,6 +188,7 @@ function AdminRoutes() {
         <Route path="hrm" element={<HRM />} />
         <Route path="support" element={<Support />} />
         <Route path="reports" element={<Report />} />
+        <Route path="api-config" element={<AdminApiConfig />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Route>

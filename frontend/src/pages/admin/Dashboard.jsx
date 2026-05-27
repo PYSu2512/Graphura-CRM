@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  DashCard,
+  EnhancedDashCard,
   Heading,
   GAreaChart,
 } from "../../components/shared/Common_Components";
@@ -213,7 +213,7 @@ function Dashboard() {
       <div className="mt-6">
         <DashGrid cols={12} gap={4}>
           {stats.map((item) => (
-            <DashCard
+            <EnhancedDashCard
               key={item.title}
               title={item.title}
               value={item.value}

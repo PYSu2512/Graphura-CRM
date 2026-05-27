@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   openModal, closeModal, Modal, ModalData, ModalProfile, Button,
 } from "../../../../components/shared/Common_Components";
 import logService from "../../../../services/logService";
@@ -76,7 +76,7 @@ export default function LoginLogs() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Login" secondaryText="Logs" size={12} />
         {kpiLogs.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   Button,
-  DashCard,
+  EnhancedDashCard,
   DashGrid,
   DataField,
   DataTable,
@@ -277,7 +277,7 @@ export default function SupportPage() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Support Ticket" secondaryText="Management" size={12} />
         {kpiLabels.map((label, index) => (
-          <DashCard
+          <EnhancedDashCard
             key={label}
             title={label}
             value={String(stats[index])}

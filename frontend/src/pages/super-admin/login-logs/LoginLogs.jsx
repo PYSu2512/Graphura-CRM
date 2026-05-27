@@ -11,7 +11,7 @@ import {
   Grid,
   Heading,
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   Button,
   DataTable,
   Modal,
@@ -161,21 +161,21 @@ const LoginLogs = () => {
 
       {/* STAT CARDS — match Data Management style */}
       <DashGrid cols={12} gap={4}>
-        <DashCard
+        <EnhancedDashCard
           title="Total Admin Logins"
           value={String(totalAdminLogins)}
           icon={<Shield size={22} />}
           accentColor="#2a465a"
           size={4}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Failed Attempts"
           value={String(failedAttempts)}
           icon={<ShieldAlert size={22} />}
           accentColor="#f59e0b"
           size={4}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Active Admins"
           value={String(activeAdmins)}
           icon={<UserCheck size={22} />}

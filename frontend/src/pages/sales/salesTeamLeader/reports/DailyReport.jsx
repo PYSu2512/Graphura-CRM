@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
 } from "../../../../components/shared/Common_Components";
 import { salesTLReportsService } from "../../../../services/salesTeamLeaderReportsService";
 import { Phone, ClipboardList, TrendingUp, Trash2, EyeOff, AlertCircle } from "lucide-react";
@@ -92,12 +92,12 @@ export default function DailyReport() {
           ))
         ) : (
           <>
-            <DashCard title="Total Calls"     value={String(today?.totalCalls     ?? 0)} icon={<Phone size={22}/>}         accentColor="#3b82f6" size={2} />
-            <DashCard title="Today Calls"     value={String(today?.todayCalls     ?? 0)} icon={<Phone size={22}/>}         accentColor="#14b8a6" size={2} />
-            <DashCard title="Today Prospects" value={String(today?.todayProspects ?? 0)} icon={<ClipboardList size={22}/>} accentColor="#8b5cf6" size={2} />
-            <DashCard title="Today Sells"     value={String(today?.todaySells     ?? 0)} icon={<TrendingUp size={22}/>}    accentColor="#22c55e" size={2} />
-            <DashCard title="Today Dump"      value={String(today?.todayDump      ?? 0)} icon={<Trash2 size={22}/>}        accentColor="#f43f5e" size={2} />
-            <DashCard title="Total Untouched" value={String(today?.totalUntouched ?? 0)} icon={<EyeOff size={22}/>}        accentColor="#f59e0b" size={2} />
+            <EnhancedDashCard title="Total Calls"     value={String(today?.totalCalls     ?? 0)} icon={<Phone size={22}/>}         accentColor="#3b82f6" size={2} />
+            <EnhancedDashCard title="Today Calls"     value={String(today?.todayCalls     ?? 0)} icon={<Phone size={22}/>}         accentColor="#14b8a6" size={2} />
+            <EnhancedDashCard title="Today Prospects" value={String(today?.todayProspects ?? 0)} icon={<ClipboardList size={22}/>} accentColor="#8b5cf6" size={2} />
+            <EnhancedDashCard title="Today Sells"     value={String(today?.todaySells     ?? 0)} icon={<TrendingUp size={22}/>}    accentColor="#22c55e" size={2} />
+            <EnhancedDashCard title="Today Dump"      value={String(today?.todayDump      ?? 0)} icon={<Trash2 size={22}/>}        accentColor="#f43f5e" size={2} />
+            <EnhancedDashCard title="Total Untouched" value={String(today?.totalUntouched ?? 0)} icon={<EyeOff size={22}/>}        accentColor="#f59e0b" size={2} />
           </>
         )}
       </DashGrid>

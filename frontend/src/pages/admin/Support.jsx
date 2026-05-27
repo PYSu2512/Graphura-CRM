@@ -4,7 +4,7 @@ import {
   Eye, Pencil, Plus, FileDown, Shield, Zap, AlertTriangle,
 } from "lucide-react";
 import {
-  Heading, DashGrid, EnhancedDashCard as DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   GAreaChart, GBarChart, Button,
   PanelModal as Modal, openModal, closeModal,
 } from "../../components/shared/Common_Components";
@@ -158,10 +158,10 @@ export default function Support() {
 
       {/* ── KPI Cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Open Tickets" value={String(openCount)} icon={<Headphones size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="High Priority" value={String(highPriority)} icon={<AlertTriangle size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="SLA Breaches" value={String(breachedCount)} icon={<Shield size={22} />} accentColor="#ef4444" size={3} />
-        <DashCard title="Resolved" value={String(resolvedCount)} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Open Tickets" value={String(openCount)} icon={<Headphones size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="High Priority" value={String(highPriority)} icon={<AlertTriangle size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="SLA Breaches" value={String(breachedCount)} icon={<Shield size={22} />} accentColor="#ef4444" size={3} />
+        <EnhancedDashCard title="Resolved" value={String(resolvedCount)} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
       </DashGrid>
 
       {/* ── Operational Alerts ── */}

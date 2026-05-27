@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import {
   DataTable, Modal, Button, DataField, SelectField, Option,
   openModal, closeModal, ModalProfile, ModalData, ModalGrid, Grid,
-  DashGrid, DashCard,
+  DashGrid, EnhancedDashCard,
 } from "../../../../components/shared/Common_Components.jsx";
 import {
   Eye, Pencil, Phone, MessageCircle, Flame, Snowflake, Activity, Target,
@@ -76,10 +76,10 @@ export default function Prospects() {
   return (
     <div className="flex flex-col gap-6">
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Total Prospects" value={String(total)} icon={<Target     size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Hot"             value={String(hot)}   icon={<Flame      size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="Warm"            value={String(warm)}  icon={<Activity   size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Cold"            value={String(cold)}  icon={<Snowflake  size={22} />} accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="Total Prospects" value={String(total)} icon={<Target     size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Hot"             value={String(hot)}   icon={<Flame      size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="Warm"            value={String(warm)}  icon={<Activity   size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Cold"            value={String(cold)}  icon={<Snowflake  size={22} />} accentColor="#38bdf8" size={3} />
       </DashGrid>
 
       <DataTable

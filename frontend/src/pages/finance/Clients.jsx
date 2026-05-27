@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Heading,
   DashGrid,
-  DashCard,
+  EnhancedDashCard,
   DataTable,
   Button,
   Modal,
@@ -475,10 +475,10 @@ export default function Clients() {
         />
 
         {/* ── KPI cards ── */}
-        <DashCard title="Total Clients"    value={total}         icon={<Users/>} accentColor="#2563eb" size={3} />
-        <DashCard title="Interested"       value={interested}    icon={<CheckCircle/>} accentColor="#16a34a" size={3} />
-        <DashCard title="Not Interested"   value={notInterested} icon={<Tag/>} accentColor="#ef4444" size={3} />
-        <DashCard title="Not Talk"         value={notTalk}       icon={<CheckCheck/>} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Total Clients"    value={total}         icon={<Users/>} accentColor="#2563eb" size={3} />
+        <EnhancedDashCard title="Interested"       value={interested}    icon={<CheckCircle/>} accentColor="#16a34a" size={3} />
+        <EnhancedDashCard title="Not Interested"   value={notInterested} icon={<Tag/>} accentColor="#ef4444" size={3} />
+        <EnhancedDashCard title="Not Talk"         value={notTalk}       icon={<CheckCheck/>} accentColor="#f59e0b" size={3} />
 
         {/* ── Table ── */}
         <DataTable

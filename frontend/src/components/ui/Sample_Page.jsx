@@ -8,7 +8,7 @@ import {
   Button,
   DataTable,
   GBarChart,
-  DashCard,
+  EnhancedDashCard,
   GDoughnutChart,
   GColumnChart,
   GLineChart,
@@ -125,7 +125,7 @@ const Page = () => {
         secondaryText="Fill all fields below"
         size={12}
       />
-      <DashCard
+      <EnhancedDashCard
         title="Total Employees"
         value="313"
         icon={<Users size={22} />}
@@ -133,21 +133,21 @@ const Page = () => {
         size={4}
       />
 
-      <DashCard
+      <EnhancedDashCard
         title="Churn Rate"
         value="4.2%"
         icon={<TrendingDown size={22} />}
         accentColor="#f43f5e"
         size={4}
       />
-      <DashCard
+      <EnhancedDashCard
         title="Churn Rate"
         value="4.2%"
         icon={<TrendingDown size={22} />}
         accentColor="#f43f5e"
         size={4}
       />
-      {/* <DashCard
+      {/* <EnhancedDashCard
         title="Churn Rate"
         value="4.2%"
         icon={<TrendingDown size={22} />}

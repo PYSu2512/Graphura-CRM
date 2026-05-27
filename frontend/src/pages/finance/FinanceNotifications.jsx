@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable, Button,
+  Heading, DashGrid, EnhancedDashCard, DataTable, Button,
   Modal, ModalProfile, ModalGrid, ModalData,
   openModal, closeModal,
 } from "../../components/shared/Common_Components";
@@ -60,11 +60,11 @@ export default function FinanceNotifications() {
     <div className="flex flex-col gap-6">
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Finance" secondaryText="Notifications" size={12} />
-        <DashCard title="Total Notifications" value={total} icon={<Bell size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Payment Alerts" value={paymentAlerts} icon={<CreditCard size={22} />} accentColor="#22c55e" size={2} />
-        <DashCard title="Work Order Alerts" value={woAlerts} icon={<Briefcase size={22} />} accentColor="#f59e0b" size={2} />
-        <DashCard title="Invoice Alerts" value={invoiceAlerts} icon={<FileText size={22} />} accentColor="#8b5cf6" size={2} />
-        <DashCard title="Unread" value={unread} icon={<CheckCircle size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="Total Notifications" value={total} icon={<Bell size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Payment Alerts" value={paymentAlerts} icon={<CreditCard size={22} />} accentColor="#22c55e" size={2} />
+        <EnhancedDashCard title="Work Order Alerts" value={woAlerts} icon={<Briefcase size={22} />} accentColor="#f59e0b" size={2} />
+        <EnhancedDashCard title="Invoice Alerts" value={invoiceAlerts} icon={<FileText size={22} />} accentColor="#8b5cf6" size={2} />
+        <EnhancedDashCard title="Unread" value={unread} icon={<CheckCircle size={22} />} accentColor="#f43f5e" size={3} />
       </DashGrid>
 
       <DataTable

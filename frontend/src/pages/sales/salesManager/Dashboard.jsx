@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
     Grid,
     Heading,
-    DashCard,
+    EnhancedDashCard,
     GAreaChart,
     GLineChart,
     GColumnChart,
@@ -169,49 +169,49 @@ export default function SalesManagerDashboard() {
                     </>
                 ) : (
                     <>
-                        <DashCard
+                        <EnhancedDashCard
                             title="Total Leads"
                             value={data?.kpis.totalLeads ?? 0}
                             icon={<Users size={20} />}
                             accentColor="#3b82f6"
                             size={3}
                         />
-                        <DashCard
+                        <EnhancedDashCard
                             title="Converted Leads"
                             value={data?.kpis.convertedLeads ?? 0}
                             icon={<CheckCircle2 size={20} />}
                             accentColor="#22c55e"
                             size={3}
                         />
-                        <DashCard
+                        <EnhancedDashCard
                             title="Conversion Rate"
                             value={`${data?.kpis.conversionRate ?? 0}%`}
                             icon={<TrendingUp size={20} />}
                             accentColor="#8b5cf6"
                             size={3}
                         />
-                        <DashCard
+                        <EnhancedDashCard
                             title="Target Achieved"
                             value={`${data?.kpis.targetAchievedPct ?? 0}%`}
                             icon={<Target size={20} />}
                             accentColor="#f59e0b"
                             size={3}
                         />
-                        <DashCard
+                        <EnhancedDashCard
                             title="Pending Follow-ups"
                             value={data?.kpis.pendingFollowUps ?? 0}
                             icon={<Clock size={20} />}
                             accentColor="#38bdf8"
                             size={4}
                         />
-                        <DashCard
+                        <EnhancedDashCard
                             title="Missed Follow-ups"
                             value={data?.kpis.missedFollowUps ?? 0}
                             icon={<AlertCircle size={20} />}
                             accentColor="#f43f5e"
                             size={4}
                         />
-                        <DashCard
+                        <EnhancedDashCard
                             title="Active Executives"
                             value={data?.kpis.activeExecutives ?? 0}
                             icon={<UserCheck size={20} />}

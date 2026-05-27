@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   openModal, closeModal, Modal, ModalData, ModalProfile, ModalGrid, Button,
 } from "../../../../components/shared/Common_Components";
 import SessionTimer from "../../../../components/shared/SessionTimer";
@@ -148,7 +148,7 @@ export default function Attendance() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="HRM" secondaryText="Attendance" size={12} />
         {kpis.map((k, i) => (
-          <DashCard key={k.title} title={k.title} value={k.value}
+          <EnhancedDashCard key={k.title} title={k.title} value={k.value}
             icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={3} />
         ))}
       </DashGrid>

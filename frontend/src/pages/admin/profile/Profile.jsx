@@ -2,7 +2,7 @@ import { Building2, ShieldCheck, Users, Waypoints } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
   Button,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DashGrid,
   DataField,
   Grid,
@@ -212,21 +212,21 @@ export default function Profile() {
       {activeTab === 'Overview' && (
         <>
         <DashGrid cols={12} gap={6}>
-          <DashCard
+          <EnhancedDashCard
             title="Company Profile"
             value={original.branding.company_name || "Not set"}
             icon={<Building2 size={22} />}
             accentColor="#3b82f6"
             size={4}
           />
-          <DashCard
+          <EnhancedDashCard
             title="Max Users"
             value={String(original.limits.max_users)}
             icon={<Users size={22} />}
             accentColor="#14b8a6"
             size={4}
           />
-          <DashCard
+          <EnhancedDashCard
             title="Lead Capacity"
             value={original.limits.total_lead_capacity.toLocaleString()}
             icon={<Waypoints size={22} />}

@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import {
   DataTable, Modal, Button, DataField, SelectField, Option,
   openModal, closeModal, ModalProfile, ModalData, ModalGrid, Grid,
-  DashGrid, DashCard,
+  DashGrid, EnhancedDashCard,
 } from "../../../../components/shared/Common_Components.jsx";
 import {
   Eye, CheckCircle2, RotateCcw, CalendarClock, AlertTriangle, Calendar,
@@ -103,10 +103,10 @@ export default function FollowUps() {
     <div className="flex flex-col gap-6">
       {/* ── KPI cards ────────────────────────────────────────────────────── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Today"     value={String(today)}    icon={<CalendarClock size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Overdue"   value={String(overdue)}  icon={<AlertTriangle size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="Upcoming"  value={String(upcoming)} icon={<Calendar      size={22} />} accentColor="#14b8a6" size={3} />
-        <DashCard title="Completed" value={String(done)}     icon={<CheckCircle2  size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Today"     value={String(today)}    icon={<CalendarClock size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Overdue"   value={String(overdue)}  icon={<AlertTriangle size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="Upcoming"  value={String(upcoming)} icon={<Calendar      size={22} />} accentColor="#14b8a6" size={3} />
+        <EnhancedDashCard title="Completed" value={String(done)}     icon={<CheckCircle2  size={22} />} accentColor="#22c55e" size={3} />
       </DashGrid>
 
       {/* ── Add reminder button ──────────────────────────────────────────── */}

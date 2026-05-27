@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   PanelModal as Modal,
   openModal,
   closeModal,
@@ -175,10 +175,10 @@ export default function FollowUps() {
 
       {/* ── Stat Cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Today"     value={String(todayCount)}     icon={<CalendarClock size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Expired"   value={String(expiredCount)}   icon={<AlertTriangle size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="This Week" value={String(thisWeekCount)}  icon={<Calendar      size={22} />} accentColor="#14b8a6" size={3} />
-        <DashCard title="Completed" value={String(completedCount)} icon={<CheckCircle2  size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Today"     value={String(todayCount)}     icon={<CalendarClock size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Expired"   value={String(expiredCount)}   icon={<AlertTriangle size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="This Week" value={String(thisWeekCount)}  icon={<Calendar      size={22} />} accentColor="#14b8a6" size={3} />
+        <EnhancedDashCard title="Completed" value={String(completedCount)} icon={<CheckCircle2  size={22} />} accentColor="#22c55e" size={3} />
       </DashGrid>
 
       {/* ── Type Filters ── */}

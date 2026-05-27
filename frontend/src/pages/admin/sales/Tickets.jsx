@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DataTable,
   PanelModal as Modal,
   openModal,
@@ -131,10 +131,10 @@ export default function Tickets() {
 
       {/* Stat Cards */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Open Queue" value={String(openCount)} icon={<AlertCircle size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Under Investigation" value={String(inProgressCount)} icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Solutions Found" value={String(resolvedToday)} icon={<CheckCircle2 size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Mean Resolution" value="3.8h" icon={<Zap size={22} />} accentColor="#a855f7" size={3} />
+        <EnhancedDashCard title="Open Queue" value={String(openCount)} icon={<AlertCircle size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Under Investigation" value={String(inProgressCount)} icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Solutions Found" value={String(resolvedToday)} icon={<CheckCircle2 size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Mean Resolution" value="3.8h" icon={<Zap size={22} />} accentColor="#a855f7" size={3} />
       </DashGrid>
 
       {/* Interface Controls */}

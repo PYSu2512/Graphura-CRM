@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import toast from "react-hot-toast";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   Modal, ModalGrid, ModalData, ModalProfile, Button,
   DataField, SelectField, Option, Grid,
   openModal, closeModal,
@@ -156,7 +156,7 @@ export default function Leaves() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Leave" secondaryText="Management" size={12} />
         {kpis.map((k, i) => (
-          <DashCard key={k.title} title={k.title} value={k.value}
+          <EnhancedDashCard key={k.title} title={k.title} value={k.value}
             icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={3} />
         ))}
       </DashGrid>

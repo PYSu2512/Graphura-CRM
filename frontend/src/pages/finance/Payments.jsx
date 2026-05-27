@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable, Button,
+  Heading, DashGrid, EnhancedDashCard, DataTable, Button,
   Modal, ModalProfile, ModalGrid, ModalData,
   DataField, SelectField, Option,
   openModal, closeModal,
@@ -66,12 +66,12 @@ export default function Payments() {
     <div className="flex flex-col gap-6">
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Payments" secondaryText="Management" size={12} />
-        <DashCard title="Total Payments" value={total} icon={<CreditCard size={22} />} accentColor="#3b82f6" size={2} />
-        <DashCard title="Successful" value={successful} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={2} />
-        <DashCard title="Pending" value={pending} icon={<Clock size={22} />} accentColor="#f59e0b" size={2} />
-        <DashCard title="Failed" value={failed} icon={<XCircle size={22} />} accentColor="#f43f5e" size={2} />
-        <DashCard title="Partial" value={partial} icon={<Split size={22} />} accentColor="#8b5cf6" size={2} />
-        <DashCard title="Full" value={full} icon={<DollarSign size={22} />} accentColor="#14b8a6" size={2} />
+        <EnhancedDashCard title="Total Payments" value={total} icon={<CreditCard size={22} />} accentColor="#3b82f6" size={2} />
+        <EnhancedDashCard title="Successful" value={successful} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={2} />
+        <EnhancedDashCard title="Pending" value={pending} icon={<Clock size={22} />} accentColor="#f59e0b" size={2} />
+        <EnhancedDashCard title="Failed" value={failed} icon={<XCircle size={22} />} accentColor="#f43f5e" size={2} />
+        <EnhancedDashCard title="Partial" value={partial} icon={<Split size={22} />} accentColor="#8b5cf6" size={2} />
+        <EnhancedDashCard title="Full" value={full} icon={<DollarSign size={22} />} accentColor="#14b8a6" size={2} />
       </DashGrid>
 
       <DataTable

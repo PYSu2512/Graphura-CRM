@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable, Grid, DataField,
+  Heading, DashGrid, EnhancedDashCard, DataTable, Grid, DataField,
   Button, SelectField, Option, openModal, closeModal,
   Modal, ModalData, ModalGrid, ModalProfile,
 } from "../../../../components/shared/Common_Components";
@@ -97,7 +97,7 @@ export default function Targets() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Sales" secondaryText="Targets" size={12} />
         {kpiTargets.map((k, i) => (
-          <DashCard key={k.title} title={k.title} value={k.value}
+          <EnhancedDashCard key={k.title} title={k.title} value={k.value}
             icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={3} />
         ))}
       </DashGrid>

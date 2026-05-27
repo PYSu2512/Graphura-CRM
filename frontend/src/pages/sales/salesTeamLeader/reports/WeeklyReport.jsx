@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable, GAreaChart,
+  Heading, DashGrid, EnhancedDashCard, DataTable, GAreaChart,
 } from "../../../../components/shared/Common_Components";
 import { salesTLReportsService } from "../../../../services/salesTeamLeaderReportsService";
 import { Phone, TrendingUp, ClipboardList, BarChart2, AlertCircle } from "lucide-react";
@@ -95,10 +95,10 @@ export default function WeeklyReport() {
           ))
         ) : (
           <>
-            <DashCard title="Calls (this week)"     value={String(currentWeek?.calls          ?? 0)} icon={<Phone size={22}/>}         accentColor="#3b82f6" size={3} />
-            <DashCard title="Prospects (this week)" value={String(currentWeek?.prospects      ?? 0)} icon={<ClipboardList size={22}/>} accentColor="#8b5cf6" size={3} />
-            <DashCard title="Sales (this week)"     value={String(currentWeek?.sales          ?? 0)} icon={<TrendingUp size={22}/>}    accentColor="#22c55e" size={3} />
-            <DashCard title="Conversion Rate"       value={`${currentWeek?.conversionRate ?? 0}%`}   icon={<BarChart2 size={22}/>}     accentColor="#10b981" size={3} />
+            <EnhancedDashCard title="Calls (this week)"     value={String(currentWeek?.calls          ?? 0)} icon={<Phone size={22}/>}         accentColor="#3b82f6" size={3} />
+            <EnhancedDashCard title="Prospects (this week)" value={String(currentWeek?.prospects      ?? 0)} icon={<ClipboardList size={22}/>} accentColor="#8b5cf6" size={3} />
+            <EnhancedDashCard title="Sales (this week)"     value={String(currentWeek?.sales          ?? 0)} icon={<TrendingUp size={22}/>}    accentColor="#22c55e" size={3} />
+            <EnhancedDashCard title="Conversion Rate"       value={`${currentWeek?.conversionRate ?? 0}%`}   icon={<BarChart2 size={22}/>}     accentColor="#10b981" size={3} />
           </>
         )}
       </DashGrid>

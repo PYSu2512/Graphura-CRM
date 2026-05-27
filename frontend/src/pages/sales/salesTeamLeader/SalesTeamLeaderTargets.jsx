@@ -3,7 +3,7 @@ import {
   Heading,
   Grid,
   DashGrid,
-  DashCard,
+  EnhancedDashCard,
   DataTable,
   DataField,
   Button,
@@ -66,7 +66,7 @@ export default function SalesTeamLeaderTargets() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Team" secondaryText="Targets" size={12} />
         {kpiTargets.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}

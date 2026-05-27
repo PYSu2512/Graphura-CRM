@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   openModal, closeModal, Modal, ModalData, ModalGrid, ModalProfile, Button,
 } from "../../../../components/shared/Common_Components";
 import { kpiPayments, paymentAlerts } from "./paymentsStore";
@@ -28,7 +28,7 @@ export default function PaymentAlerts() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Payment" secondaryText="Alerts" size={12} />
         {kpiPayments.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}

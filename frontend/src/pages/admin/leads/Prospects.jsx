@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DataTable,
   PanelModal as Modal,
   openModal,
@@ -97,9 +97,9 @@ export default function Prospects() {
 
         {/* Pipeline Summary Cards */}
         <DashGrid cols={12} gap={4}>
-          <DashCard title="Total Pipeline" value={formatCurrency(totalPipeline)} icon={<IndianRupee size={22} />} accentColor="#38bdf8" size={4} />
-          <DashCard title="Hot Prospects" value={String(hotCount)} icon={<TrendingUp size={22} />} accentColor="#f43f5e" size={4} />
-          <DashCard title="Warm Prospects" value={String(warmCount)} icon={<BarChart3 size={22} />} accentColor="#f59e0b" size={4} />
+          <EnhancedDashCard title="Total Pipeline" value={formatCurrency(totalPipeline)} icon={<IndianRupee size={22} />} accentColor="#38bdf8" size={4} />
+          <EnhancedDashCard title="Hot Prospects" value={String(hotCount)} icon={<TrendingUp size={22} />} accentColor="#f43f5e" size={4} />
+          <EnhancedDashCard title="Warm Prospects" value={String(warmCount)} icon={<BarChart3 size={22} />} accentColor="#f59e0b" size={4} />
         </DashGrid>
 
         {/* Prospects DataTable — SM Pattern */}

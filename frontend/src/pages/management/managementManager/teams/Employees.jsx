@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
     Button,
     closeModal,
-    DashCard,
+    EnhancedDashCard,
     DashGrid,
     DataTable,
     Heading,
@@ -66,10 +66,10 @@ export default function Employees({ employees, moveEmployee }) {
       <Heading primaryText="Team" secondaryText="Employees" size={12} />
 
       <DashGrid cols={12} gap={4}>
-        <DashCard title={kpis[0].title} value={kpis[0].value} icon={<Users size={20} />} accentColor={kpis[0].accent} size={3} />
-        <DashCard title={kpis[1].title} value={kpis[1].value} icon={<CheckCircle2 size={20} />} accentColor={kpis[1].accent} size={3} />
-        <DashCard title={kpis[2].title} value={kpis[2].value} icon={<Briefcase size={20} />} accentColor={kpis[2].accent} size={3} />
-        <DashCard title={kpis[3].title} value={kpis[3].value} icon={<Activity size={20} />} accentColor={kpis[3].accent} size={3} />
+        <EnhancedDashCard title={kpis[0].title} value={kpis[0].value} icon={<Users size={20} />} accentColor={kpis[0].accent} size={3} />
+        <EnhancedDashCard title={kpis[1].title} value={kpis[1].value} icon={<CheckCircle2 size={20} />} accentColor={kpis[1].accent} size={3} />
+        <EnhancedDashCard title={kpis[2].title} value={kpis[2].value} icon={<Briefcase size={20} />} accentColor={kpis[2].accent} size={3} />
+        <EnhancedDashCard title={kpis[3].title} value={kpis[3].value} icon={<Activity size={20} />} accentColor={kpis[3].accent} size={3} />
       </DashGrid>
 
       <DataTable

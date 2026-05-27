@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { FolderOpen, Activity, AlertTriangle, Link2 } from "lucide-react";
-import { Heading, DashGrid, DashCard } from "../../../components/shared/Common_Components.jsx";
+import { Heading, DashGrid, EnhancedDashCard } from "../../../components/shared/Common_Components.jsx";
 import { projects as initialProjects, ACTIVE_STATUSES } from "./managementManagerStore";
 import AllProjects from "./projects/AllProjects";
 
@@ -30,7 +30,7 @@ export default function ManagementManagerProjects() {
 
       <DashGrid cols={12} gap={4}>
         {kpis.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}

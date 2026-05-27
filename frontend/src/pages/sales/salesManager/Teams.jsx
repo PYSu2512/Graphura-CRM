@@ -3,7 +3,7 @@ import {
     Heading,
     Grid,
     DashGrid,
-    DashCard,
+    EnhancedDashCard,
     DataTable,
     Button,
     Modal,
@@ -235,10 +235,10 @@ export default function SalesTeamLeaders() {
                 {/* KPI Cards */}
                 <div className="col-span-12">
                     <DashGrid cols={12} gap={4}>
-                        <DashCard title="Total Teams" value={String(teams.length)} icon={<Users size={22} />} accentColor="#2a465a" size={3} />
-                        <DashCard title="Team Leaders" value={String(totalLeaders)} icon={<Briefcase size={22} />} accentColor="#3b82f6" size={3} />
-                        <DashCard title="Total Executives" value={String(totalExecs)} icon={<TrendingUp size={22} />} accentColor="#22c55e" size={3} />
-                        <DashCard title="Available Capacity" value={totalCapacity.toLocaleString()} icon={<Target size={22} />} accentColor="#f59e0b" size={3} />
+                        <EnhancedDashCard title="Total Teams" value={String(teams.length)} icon={<Users size={22} />} accentColor="#2a465a" size={3} />
+                        <EnhancedDashCard title="Team Leaders" value={String(totalLeaders)} icon={<Briefcase size={22} />} accentColor="#3b82f6" size={3} />
+                        <EnhancedDashCard title="Total Executives" value={String(totalExecs)} icon={<TrendingUp size={22} />} accentColor="#22c55e" size={3} />
+                        <EnhancedDashCard title="Available Capacity" value={totalCapacity.toLocaleString()} icon={<Target size={22} />} accentColor="#f59e0b" size={3} />
                     </DashGrid>
                 </div>
 

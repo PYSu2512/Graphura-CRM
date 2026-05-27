@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import {
-  DashGrid, DashCard, DataTable, Grid, DataField,
+  DashGrid, EnhancedDashCard, DataTable, Grid, DataField,
   openModal, closeModal, Modal, Select, Option,
   Heading, Button, UserChat,
 } from "../../../../components/shared/Common_Components";
@@ -219,7 +219,7 @@ export default function AllTickets({ tickets, setTickets }) {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Support Tickets" secondaryText="Management" size={12} />
         {kpiTickets.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={String(liveCounts[i])}

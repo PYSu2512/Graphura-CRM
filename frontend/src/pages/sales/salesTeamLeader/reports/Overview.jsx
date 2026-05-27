@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  Heading, DashGrid, DashCard,
+  Heading, DashGrid, EnhancedDashCard,
   GLineChart, GColumnChart, GDoughnutChart,
 } from "../../../../components/shared/Common_Components";
 import { salesTLReportsService } from "../../../../services/salesTeamLeaderReportsService";
@@ -93,7 +93,7 @@ export default function Overview() {
               </div>
             ))
           : kpiDefs.map((k) => (
-              <DashCard
+              <EnhancedDashCard
                 key={k.title}
                 title={k.title}
                 value={k.value}

@@ -5,7 +5,7 @@ import {
   CheckCircle, CreditCard, Plus, Eye, Pencil, Trash2,
 } from "lucide-react";
 import {
-  DashGrid, EnhancedDashCard as DashCard, DataTable, Heading, P,
+  DashGrid, EnhancedDashCard, DataTable, Heading, P,
   PanelModal as Modal, openModal, closeModal, DataField, Grid,
   GAreaChart, GBarChart, Button,
 } from "../../components/shared/Common_Components";
@@ -177,10 +177,10 @@ export default function Departments() {
 
       {/* ── Global KPI Cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Total Departments" value={String(totalDepts)} icon={<Building2 size={22} />} accentColor="#38bdf8" size={3} />
-        <DashCard title="Total Users" value={String(totalUsers)} icon={<Users size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Active Users" value={String(totalActive)} icon={<UserCheck size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Total Revenue" value="₹1.84Cr" icon={<DollarSign size={22} />} accentColor="#8b5cf6" size={3} />
+        <EnhancedDashCard title="Total Departments" value={String(totalDepts)} icon={<Building2 size={22} />} accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="Total Users" value={String(totalUsers)} icon={<Users size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Active Users" value={String(totalActive)} icon={<UserCheck size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Total Revenue" value="₹1.84Cr" icon={<DollarSign size={22} />} accentColor="#8b5cf6" size={3} />
       </DashGrid>
 
       {/* ── Charts ── */}
@@ -221,10 +221,10 @@ export default function Departments() {
       {/* ══ SALES DEPARTMENT ══════════════════════════════════════════════════ */}
       <DashGrid cols={12} gap={4}>
         <div className="col-span-12"><Heading primaryText="Sales" secondaryText="Department" size={12} /></div>
-        <DashCard title="Total Leads" value="1,073" icon={<Target size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Active Leads" value="440" icon={<Activity size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Dump Leads" value="162" icon={<AlertCircle size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="Avg Conversion" value="40.3%" icon={<TrendingUp size={22} />} accentColor="#8b5cf6" size={3} />
+        <EnhancedDashCard title="Total Leads" value="1,073" icon={<Target size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Active Leads" value="440" icon={<Activity size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Dump Leads" value="162" icon={<AlertCircle size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="Avg Conversion" value="40.3%" icon={<TrendingUp size={22} />} accentColor="#8b5cf6" size={3} />
       </DashGrid>
       <DataTable
         title="Sales Employees"
@@ -240,10 +240,10 @@ export default function Departments() {
       {/* ══ MANAGEMENT DEPARTMENT ═════════════════════════════════════════════ */}
       <DashGrid cols={12} gap={4}>
         <div className="col-span-12"><Heading primaryText="Management" secondaryText="Department" size={12} /></div>
-        <DashCard title="Total Projects" value="6" icon={<Briefcase size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="In Progress" value="4" icon={<Clock size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Completed" value="1" icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Delayed" value="1" icon={<AlertCircle size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="Total Projects" value="6" icon={<Briefcase size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="In Progress" value="4" icon={<Clock size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Completed" value="1" icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Delayed" value="1" icon={<AlertCircle size={22} />} accentColor="#f43f5e" size={3} />
       </DashGrid>
       <DataTable
         title="Project Management"
@@ -259,10 +259,10 @@ export default function Departments() {
       {/* ══ FINANCE DEPARTMENT ════════════════════════════════════════════════ */}
       <DashGrid cols={12} gap={4}>
         <div className="col-span-12"><Heading primaryText="Finance" secondaryText="Department" size={12} /></div>
-        <DashCard title="Total Revenue" value="₹72,90,000" icon={<DollarSign size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Pending" value="₹18,70,000" icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Expenses" value="₹31,50,000" icon={<CreditCard size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="Net Profit" value="₹41,40,000" icon={<TrendingUp size={22} />} accentColor="#8b5cf6" size={3} />
+        <EnhancedDashCard title="Total Revenue" value="₹72,90,000" icon={<DollarSign size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Pending" value="₹18,70,000" icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Expenses" value="₹31,50,000" icon={<CreditCard size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="Net Profit" value="₹41,40,000" icon={<TrendingUp size={22} />} accentColor="#8b5cf6" size={3} />
       </DashGrid>
       <DataTable
         title="Finance & Payments"

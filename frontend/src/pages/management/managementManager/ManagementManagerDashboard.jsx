@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   Grid,
   Heading,
-  DashCard,
+  EnhancedDashCard,
   GAreaChart,
   GBarChart,
   GPieChart,
@@ -79,7 +79,7 @@ export default function ManagementManagerDashboard() {
       {/* ── 2. KPI Cards (6 metrics from spec) ────────────────────────────── */}
       <Grid cols={12} gap={4}>
         {dashboardKPIs.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}

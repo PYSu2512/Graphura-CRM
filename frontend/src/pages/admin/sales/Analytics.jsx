@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   GDoughnutChart,
   GRadarChart,
   GAreaChart,
@@ -101,10 +101,10 @@ export default function Analytics() {
 
       {/* KPI Cards */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Revenue This Month" value={kpiData.revenue} icon={<IndianRupee size={22} />} accentColor="#38bdf8" size={3} />
-        <DashCard title="Deals Won" value={kpiData.deals} icon={<Handshake size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Conversion Rate" value={kpiData.conversionRate} icon={<TrendingUp size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Avg Deal Size" value={kpiData.avgDeal} icon={<BarChart3 size={22} />} accentColor="#8b5cf6" size={3} />
+        <EnhancedDashCard title="Revenue This Month" value={kpiData.revenue} icon={<IndianRupee size={22} />} accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="Deals Won" value={kpiData.deals} icon={<Handshake size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Conversion Rate" value={kpiData.conversionRate} icon={<TrendingUp size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Avg Deal Size" value={kpiData.avgDeal} icon={<BarChart3 size={22} />} accentColor="#8b5cf6" size={3} />
       </DashGrid>
 
       {/* Row 2: Revenue Trend (full width) */}

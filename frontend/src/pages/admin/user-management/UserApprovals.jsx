@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DataTable,
   PanelModal as Modal,
   openModal,
@@ -134,21 +134,21 @@ export default function UserApprovals() {
 
       {/* ── Stat Cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard
+        <EnhancedDashCard
           title="Pending Requests"
           value={String(pending)}
           icon={<Clock size={22} />}
           accentColor="#38bdf8"
           size={4}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Approved Today"
           value={String(approvedToday)}
           icon={<CheckCircle2 size={22} />}
           accentColor="#22c55e"
           size={4}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Rejected Today"
           value={String(rejectedToday)}
           icon={<XCircle size={22} />}

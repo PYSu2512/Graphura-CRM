@@ -36,7 +36,7 @@ import {
 import {
   Button,
   DataTable,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DashGrid,
   PanelModal as Modal,
   closeModal,
@@ -184,10 +184,10 @@ export default function FollowUpsPage() {
 
       {/* ── Stat cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Today"     value={String(stats.today)}     icon={<CalendarClock size={22} />} accentColor="#2563eb" size={3} />
-        <DashCard title="Expired"   value={String(stats.expired)}   icon={<AlertTriangle size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="This Week" value={String(stats.thisWeek)}  icon={<Calendar size={22} />}      accentColor="#14b8a6" size={3} />
-        <DashCard title="Completed" value={String(stats.completed)} icon={<CheckCircle2 size={22} />}  accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Today"     value={String(stats.today)}     icon={<CalendarClock size={22} />} accentColor="#2563eb" size={3} />
+        <EnhancedDashCard title="Expired"   value={String(stats.expired)}   icon={<AlertTriangle size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="This Week" value={String(stats.thisWeek)}  icon={<Calendar size={22} />}      accentColor="#14b8a6" size={3} />
+        <EnhancedDashCard title="Completed" value={String(stats.completed)} icon={<CheckCircle2 size={22} />}  accentColor="#22c55e" size={3} />
       </DashGrid>
 
       {/* ── Type filter pills ── */}

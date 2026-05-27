@@ -11,7 +11,7 @@ import {
 
 import {
   DashGrid,
-  DashCard,
+  EnhancedDashCard,
   Heading,
   GAreaChart,
   GLineChart,
@@ -285,7 +285,7 @@ export default function Dashboard() {
       {/* ─── Dashboard Grid ────────────────────────────────────────────────── */}
       <DashGrid cols={12} gap={6}>
         {/* Top Stat Cards */}
-        <DashCard
+        <EnhancedDashCard
           title="Total Revenue"
           value="$324.5k"
           icon={<DollarSign size={24} />}
@@ -293,7 +293,7 @@ export default function Dashboard() {
           trend="+12%"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Active Users"
           value="12,450"
           icon={<Users size={24} />}
@@ -301,7 +301,7 @@ export default function Dashboard() {
           trend="+5.2%"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Engagement Rate"
           value="58.3%"
           icon={<Activity size={24} />}
@@ -309,7 +309,7 @@ export default function Dashboard() {
           trend="-1.4%"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Avg. Order Value"
           value="$145.20"
           icon={<TrendingUp size={24} />}

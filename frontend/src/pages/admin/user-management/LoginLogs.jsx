@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DataTable,
 } from "../../../components/shared/Common_Components";
 
@@ -102,28 +102,28 @@ export default function LoginLogs() {
 
       {/* ── Stat Cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard
+        <EnhancedDashCard
           title="Total Logins"
           value={String(totalLogins)}
           icon={<LogIn size={22} />}
           accentColor="#38bdf8"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Today's Logins"
           value={String(todayLogins)}
           icon={<Calendar size={22} />}
           accentColor="#3b82f6"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Unique Users"
           value={String(uniqueUsers)}
           icon={<Users size={22} />}
           accentColor="#22c55e"
           size={3}
         />
-        <DashCard
+        <EnhancedDashCard
           title="Unique IPs"
           value={String(uniqueIPs)}
           icon={<MapPin size={22} />}

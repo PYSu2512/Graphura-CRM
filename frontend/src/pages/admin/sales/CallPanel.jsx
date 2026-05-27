@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   PanelModal as Modal,
   openModal,
   closeModal,
@@ -90,10 +90,10 @@ export default function CallPanel() {
 
       {/* Stat Cards */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Calls Today" value={String(callsToday)} icon={<Phone size={22} />} accentColor="#38bdf8" size={3} />
-        <DashCard title="Connected" value={String(connected)} icon={<PhoneCall size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Missed" value={String(missed)} icon={<PhoneMissed size={22} />} accentColor="#f43f5e" size={3} />
-        <DashCard title="Total Talk Time" value="42:38" icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Calls Today" value={String(callsToday)} icon={<Phone size={22} />} accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="Connected" value={String(connected)} icon={<PhoneCall size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Missed" value={String(missed)} icon={<PhoneMissed size={22} />} accentColor="#f43f5e" size={3} />
+        <EnhancedDashCard title="Total Talk Time" value="42:38" icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
       </DashGrid>
 
       {/* Main Content: Dialer + Recent Calls */}

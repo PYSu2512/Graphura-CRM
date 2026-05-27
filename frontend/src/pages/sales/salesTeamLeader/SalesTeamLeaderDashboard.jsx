@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Grid,
   Heading,
-  DashCard,
+  EnhancedDashCard,
   GAreaChart,
   GColumnChart,
   GPieChart,
@@ -261,7 +261,7 @@ export default function SalesTeamLeaderDashboard() {
               <Skeleton className="h-24 w-full" />
             </div>
           ) : (
-            <DashCard
+            <EnhancedDashCard
               key={k.title}
               title={k.title}
               value={k.value}

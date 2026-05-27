@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  DashGrid, DashCard, DataTable, Modal, ModalProfile, ModalGrid, ModalData, Button,
+  DashGrid, EnhancedDashCard, DataTable, Modal, ModalProfile, ModalGrid, ModalData, Button,
   openModal, closeModal,
 } from "../../../../components/shared/Common_Components.jsx";
 import {
@@ -54,10 +54,10 @@ export default function TeamMembers() {
     <div className="flex flex-col gap-6">
       {/* ── KPIs ─────────────────────────────────────────────────────────── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Team Size"    value={String(total)}   icon={<Users      size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Active"       value={String(active)}  icon={<UserCheck  size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="On Leave"     value={String(onLeave)} icon={<UserMinus  size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Regions"      value={String(regions)} icon={<MapPin     size={22} />} accentColor="#8b5cf6" size={3} />
+        <EnhancedDashCard title="Team Size"    value={String(total)}   icon={<Users      size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Active"       value={String(active)}  icon={<UserCheck  size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="On Leave"     value={String(onLeave)} icon={<UserMinus  size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Regions"      value={String(regions)} icon={<MapPin     size={22} />} accentColor="#8b5cf6" size={3} />
       </DashGrid>
 
       <p className="text-xs text-slate-500 -mt-2">

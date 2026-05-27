@@ -12,7 +12,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import {
-  DashCard,
+  EnhancedDashCard,
   DataTable,
   Heading,
   Grid,
@@ -468,7 +468,7 @@ const SalesExecutiveDashboard = () => {
       {/* ── KPI CARDS (5 cards, no Revenue) ── */}
       <DashGrid cols={12} gap={4}>
         {kpiCards.map((card) => (
-          <DashCard
+          <EnhancedDashCard
             key={card.title}
             title={card.title}
             value={card.value}

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  DashCard,
+  EnhancedDashCard,
   GDoughnutChart,
   GBarChart,
   DataTable,

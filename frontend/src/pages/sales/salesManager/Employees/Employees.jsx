@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   openModal, closeModal, Modal, ModalData, ModalGrid, ModalProfile, Button,
 } from "../../../../components/shared/Common_Components";
 import { userService } from "../../../../services/userService";
@@ -121,7 +121,7 @@ export default function Employees() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Employee" secondaryText="Directory" size={12} />
         {kpis.map((k, i) => (
-          <DashCard key={k.title} title={k.title} value={k.value}
+          <EnhancedDashCard key={k.title} title={k.title} value={k.value}
             icon={kpiIcons[i]} accentColor={kpiAccents[i]} size={3} />
         ))}
       </DashGrid>

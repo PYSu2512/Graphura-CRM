@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import {
   DashGrid,
-  EnhancedDashCard as DashCard,
+  EnhancedDashCard,
   DataTable,
   PanelModal as Modal,
   openModal,
@@ -144,10 +144,10 @@ export default function AllLeads() {
 
       {/* Stat Cards */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Total Leads" value={String(totalLeads)} icon={<Users size={22} />} accentColor="#38bdf8" size={3} />
-        <DashCard title="New Today" value={String(newToday)} icon={<TrendingUp size={22} />} accentColor="#3b82f6" size={3} />
-        <DashCard title="Hot Leads" value={String(hotLeads)} icon={<Flame size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Converted" value={String(converted)} icon={<ArrowRightCircle size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Total Leads" value={String(totalLeads)} icon={<Users size={22} />} accentColor="#38bdf8" size={3} />
+        <EnhancedDashCard title="New Today" value={String(newToday)} icon={<TrendingUp size={22} />} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Hot Leads" value={String(hotLeads)} icon={<Flame size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Converted" value={String(converted)} icon={<ArrowRightCircle size={22} />} accentColor="#22c55e" size={3} />
       </DashGrid>
 
       {/* Filters */}

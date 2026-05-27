@@ -1,6 +1,6 @@
 import {
   DashGrid,
-  DashCard,
+  EnhancedDashCard,
   Heading,
   HeadingForDataTable,
   DataTable,
@@ -99,7 +99,7 @@ export default function FinanceDashboard() {
       {/* ── 12 KPI Cards — 3 per row ── */}
       <DashGrid cols={12} gap={4}>
         {financeKpiData.map((kpi, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={kpi.title}
             title={kpi.title}
             value={kpi.value}

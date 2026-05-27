@@ -127,6 +127,7 @@ const MENUS = {
         label: "Settings",
         items: [
           { name: "Support", path: "/admin/support", icon: LifeBuoy },
+          { name: "API Config", path: "/admin/api-config", icon: Webhook },
           { name: "Profile", path: "/admin/profile", icon: Settings },
         ],
       },

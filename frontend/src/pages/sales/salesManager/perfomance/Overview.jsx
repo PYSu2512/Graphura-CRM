@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Heading, DashGrid, DashCard, GBarChart, GColumnChart, GLineChart,
+  Heading, DashGrid, EnhancedDashCard, GBarChart, GColumnChart, GLineChart,
   DataTable, openModal, closeModal, Modal, ModalProfile, ModalData, ModalGrid, Button, DataField,
 } from "../../../../components/shared/Common_Components";
 import {
@@ -38,7 +38,7 @@ export default function Overview() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Performance" secondaryText="Overview" size={12} />
         {kpiOverview.map((k, i) => (
-          <DashCard key={k.title} title={k.title} value={k.value}
+          <EnhancedDashCard key={k.title} title={k.title} value={k.value}
             icon={KPI_ICONS[i]} accentColor={k.accent} size={4} />
         ))}
       </DashGrid>

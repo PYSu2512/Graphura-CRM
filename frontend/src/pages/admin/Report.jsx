@@ -5,7 +5,7 @@ import {
   FileDown,
 } from "lucide-react";
 import {
-  DashGrid, EnhancedDashCard as DashCard, DataTable, Heading,
+  DashGrid, EnhancedDashCard, DataTable, Heading,
   PanelModal as Modal, openModal, closeModal, Button,
   Grid, InputField, SelectField, Option, GAreaChart, GBarChart,
 } from "../../components/shared/Common_Components";
@@ -147,10 +147,10 @@ export default function Report() {
 
       {/* ── KPI Cards ── */}
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Total Reports" value={String(total)} icon={<FileText size={22} />} accentColor="#355872" size={3} />
-        <DashCard title="Published" value={String(published)} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
-        <DashCard title="Pending Review" value={String(drafts)} icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
-        <DashCard title="Critical" value={String(critical)} icon={<AlertCircle size={22} />} accentColor="#ef4444" size={3} />
+        <EnhancedDashCard title="Total Reports" value={String(total)} icon={<FileText size={22} />} accentColor="#355872" size={3} />
+        <EnhancedDashCard title="Published" value={String(published)} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Pending Review" value={String(drafts)} icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Critical" value={String(critical)} icon={<AlertCircle size={22} />} accentColor="#ef4444" size={3} />
       </DashGrid>
 
       {/* ── Analytics Charts ── */}

@@ -3,7 +3,7 @@ import { useState } from "react";
 import {
     Button,
     closeModal,
-    DashCard,
+    EnhancedDashCard,
     DashGrid,
     DataTable,
     Heading,
@@ -88,10 +88,10 @@ export default function TeamLeaders({ employees, moveEmployee, teamLeaders: prop
       </div>
 
       <DashGrid cols={12} gap={4}>
-        <DashCard title="Team Leaders" value={kpis[0].value} icon={<UserCheck size={20} />} accentColor={kpis[0].accent} size={3} />
-        <DashCard title="Employees" value={kpis[1].value} icon={<Users size={20} />} accentColor={kpis[1].accent} size={3} />
-        <DashCard title="Active Projects" value={kpis[2].value} icon={<Activity size={20} />} accentColor={kpis[2].accent} size={3} />
-        <DashCard title="Delayed Projects" value={kpis[3].value} icon={<Zap size={20} />} accentColor={kpis[3].accent} size={3} />
+        <EnhancedDashCard title="Team Leaders" value={kpis[0].value} icon={<UserCheck size={20} />} accentColor={kpis[0].accent} size={3} />
+        <EnhancedDashCard title="Employees" value={kpis[1].value} icon={<Users size={20} />} accentColor={kpis[1].accent} size={3} />
+        <EnhancedDashCard title="Active Projects" value={kpis[2].value} icon={<Activity size={20} />} accentColor={kpis[2].accent} size={3} />
+        <EnhancedDashCard title="Delayed Projects" value={kpis[3].value} icon={<Zap size={20} />} accentColor={kpis[3].accent} size={3} />
       </DashGrid>
 
       <DataTable

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Heading, DashGrid, DashCard, DataTable,
+  Heading, DashGrid, EnhancedDashCard, DataTable,
   openModal, closeModal, Modal, ModalData, ModalProfile, Button,
   GLineChart, GDoughnutChart, GColumnChart, GBarChart,
 } from "../../../../components/shared/Common_Components";
@@ -49,7 +49,7 @@ export default function Report() {
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Team" secondaryText="Activity Report" size={12} />
         {kpiReport.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}
