@@ -13,7 +13,7 @@ import { toast } from "react-hot-toast";
 const KPI_ICONS   = [<Calendar size={20} />, <CheckCircle size={20} />, <Clock size={20} />, <XCircle size={20} />];
 const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f59e0b", "#f43f5e"];
 
-const LEAVE_TYPES = ["Sick Leave", "Casual Leave", "Earned Leave", "Maternity Leave", "Paternity Leave", "Unpaid Leave", "Other"];
+const LEAVE_TYPES = ["Sick Leave", "Casual Leave", "Earned Leave", "Maternity Leave", "Paternity Leave", "Bereavement Leave", "Unpaid Leave", "Half Day", "Other"];
 
 const MY_COLS = [
   { key: "leaveType", label: "Type" },
@@ -61,16 +61,31 @@ export default function Leaves() {
         return clean.toLowerCase().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       };
 
-      const mapLeave = (l) => ({
-        ...l,
-        id: l._id,
-        name: l.user?.name || "Unknown",
-        dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,
-        appliedOn: new Date(l.createdAt).toLocaleDateString(),
-        actionOn: l.approvedAt ? new Date(l.approvedAt).toLocaleDateString() : "—",
-        status: l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase(),
-        raw: l
-      });
+      const mapLeave = (l) => {
+        const LEAVE_MAP = {
+          'SICK': 'Sick Leave',
+          'CASUAL': 'Casual Leave',
+          'EARNED': 'Earned Leave',
+          'MATERNITY': 'Maternity Leave',
+          'PATERNITY': 'Paternity Leave',
+          'BEREAVEMENT': 'Bereavement Leave',
+          'UNPAID': 'Unpaid Leave',
+          'HALF_DAY': 'Half Day',
+          'OTHER': 'Other',
+        };
+
+        return {
+          ...l,
+          id: l._id,
+          name: l.user?.name || "Unknown",
+          leaveType: LEAVE_MAP[l.leaveType] || l.leaveType,
+          dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,
+          appliedOn: new Date(l.createdAt).toLocaleDateString(),
+          actionOn: l.approvedAt ? new Date(l.approvedAt).toLocaleDateString() : "—",
+          status: l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase(),
+          raw: l
+        };
+      };
 
       if (myRes.success) setMyLeaves(myRes.data.map(mapLeave));
       if (teamRes.success) {
@@ -179,6 +194,10 @@ export default function Leaves() {
         rows={myLeaves}
         loading={loading}
         size={12} pageSize={5} searchable
+        filters={[
+          { title: "Status",     type: "toggle", key: "status", options: ["Pending", "Approved", "Rejected"] },
+          { title: "Leave Type", type: "toggle", key: "leaveType",   options: LEAVE_TYPES },
+        ]}
         actions={[{ icon: <Eye size={15} />, tooltip: "View", variant: "ghost", onClick: (row) => { setMyView(row); openModal("tl-hrm-my-view"); } }]}
       />
 
@@ -189,6 +208,9 @@ export default function Leaves() {
         loading={loading}
         userProfile="name"
         size={12} pageSize={10} searchable
+        filters={[
+          { title: "Leave Type", type: "toggle", key: "leaveType",   options: LEAVE_TYPES },
+        ]}
         actions={[
           { icon: <Eye size={15} />, tooltip: "View", variant: "ghost", onClick: (row) => { setPendingView(row); openModal("tl-hrm-pending-view"); } },
         ]}
@@ -201,6 +223,10 @@ export default function Leaves() {
         loading={loading}
         userProfile="name"
         size={12} pageSize={10}
+        filters={[
+          { title: "Status",     type: "toggle", key: "status", options: ["Approved", "Rejected"] },
+          { title: "Leave Type", type: "toggle", key: "leaveType",   options: LEAVE_TYPES },
+        ]}
         actions={[{ icon: <Eye size={15} />, tooltip: "View", variant: "ghost", onClick: (row) => { setHistoryView(row); openModal("tl-hrm-history-view"); } }]}
       />
 

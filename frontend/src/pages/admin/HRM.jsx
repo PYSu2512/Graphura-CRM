@@ -125,6 +125,18 @@ export default function HRM() {
           const to = l.toDate ? new Date(l.toDate).toLocaleDateString() : '—';
           const status = l.status || 'PENDING';
 
+          const LEAVE_MAP = {
+            'SICK': 'Sick Leave',
+            'CASUAL': 'Casual Leave',
+            'EARNED': 'Earned Leave',
+            'MATERNITY': 'Maternity Leave',
+            'PATERNITY': 'Paternity Leave',
+            'BEREAVEMENT': 'Bereavement Leave',
+            'UNPAID': 'Unpaid Leave',
+            'HALF_DAY': 'Half Day',
+            'OTHER': 'Other',
+          };
+
           const formatRole = (str) => {
             if (!str) return "—";
             const clean = str.replace(/^(SALES|FINANCE|MANAGEMENT)_/, '');
@@ -136,6 +148,7 @@ export default function HRM() {
             id: l._id,
             name: l.user?.name || "Unknown",
             role: formatRole(l.user?.role),
+            leaveType: LEAVE_MAP[l.leaveType] || l.leaveType,
             dates: `${from} to ${to}`,
             actionedByName: l.actionedByName || "—",
             statusDisplay: (
@@ -161,6 +174,11 @@ export default function HRM() {
   useEffect(() => {
     fetchLeaves();
   }, []);
+
+  const LEAVE_TYPES = [
+    'Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave',
+    'Paternity Leave', 'Bereavement Leave', 'Unpaid Leave', 'Half Day', 'Other'
+  ];
 
   const leaveStats = [
     { name: 'Approved', value: allLeaves.filter(l => l.status === 'APPROVED').length },
@@ -398,7 +416,11 @@ export default function HRM() {
                  <Download size={16} /> Export CSV
               </button>
           </div>
-          <DataTable columns={leaveColumns} rows={allLeaves.filter(l => l.status === 'PENDING')} loading={loading} actions={leaveActions} size={12} pageSize={10} searchable={true} />
+          <DataTable columns={leaveColumns} rows={allLeaves.filter(l => l.status === 'PENDING')} loading={loading} actions={leaveActions} size={12} pageSize={10} searchable={true}
+            filters={[
+              { title: "Leave Type", type: "toggle", key: "leaveType", options: LEAVE_TYPES },
+            ]}
+          />
         </div>
       )}
 
@@ -417,7 +439,12 @@ export default function HRM() {
               openModal("view-leave-modal");
             },
             variant: "ghost"
-          }]} size={12} pageSize={10} searchable={true} />
+          }]} size={12} pageSize={10} searchable={true}
+            filters={[
+              { title: "Leave Type", type: "toggle", key: "leaveType", options: LEAVE_TYPES },
+              { title: "Status", type: "toggle", key: "status", options: ["APPROVED", "REJECTED"] }
+            ]}
+          />
         </div>
       )}
 

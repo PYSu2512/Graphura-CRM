@@ -71,17 +71,32 @@ export default function Leaves() {
         return clean.toLowerCase().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
       };
 
-      const mapLeave = (l) => ({
-        ...l,
-        id: l._id,
-        name: l.user?.name || "Unknown",
-        role: formatRole(l.user?.role),
-        dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,
-        appliedOn: new Date(l.createdAt).toLocaleDateString(),
-        actionOn: l.approvedAt ? new Date(l.approvedAt).toLocaleDateString() : "—",
-        status: l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase(),
-        raw: l
-      });
+      const mapLeave = (l) => {
+        const LEAVE_MAP = {
+          'SICK': 'Sick Leave',
+          'CASUAL': 'Casual Leave',
+          'EARNED': 'Earned Leave',
+          'MATERNITY': 'Maternity Leave',
+          'PATERNITY': 'Paternity Leave',
+          'BEREAVEMENT': 'Bereavement Leave',
+          'UNPAID': 'Unpaid Leave',
+          'HALF_DAY': 'Half Day',
+          'OTHER': 'Other',
+        };
+
+        return {
+          ...l,
+          id: l._id,
+          name: l.user?.name || "Unknown",
+          role: formatRole(l.user?.role),
+          leaveType: LEAVE_MAP[l.leaveType] || l.leaveType,
+          dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,
+          appliedOn: new Date(l.createdAt).toLocaleDateString(),
+          actionOn: l.approvedAt ? new Date(l.approvedAt).toLocaleDateString() : "—",
+          status: l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase(),
+          raw: l
+        };
+      };
 
       if (myRes.success) {
         setMyLeaves(myRes.data.map(mapLeave));
@@ -118,6 +133,7 @@ export default function Leaves() {
     "Paternity Leave",
     "Bereavement Leave",
     "Unpaid Leave",
+    "Half Day",
     "Other",
   ];
   const [applyForm, setApplyForm] = useState({

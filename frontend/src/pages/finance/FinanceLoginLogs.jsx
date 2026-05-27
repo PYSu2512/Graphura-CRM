@@ -1,36 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Heading, DashGrid, EnhancedDashCard, DataTable,
   openModal, closeModal, Modal, ModalData, ModalProfile, ModalGrid, Button,
 } from "../../components/shared/Common_Components";
-import { LogIn, UserCheck, ShieldAlert, AlertTriangle, Eye } from "lucide-react";
-
-const kpi = [
-  { title: "Total Logins",     value: "124", accent: "#3b82f6", icon: <LogIn size={22}/> },
-  { title: "Active Sessions",  value: "8",   accent: "#22c55e", icon: <UserCheck size={22}/> },
-  { title: "Failed Attempts",  value: "3",   accent: "#f59e0b", icon: <AlertTriangle size={22}/> },
-  { title: "Suspicious",       value: "1",   accent: "#f43f5e", icon: <ShieldAlert size={22}/> },
-];
+import { LogIn, UserCheck, Users, Eye, Loader2 } from "lucide-react";
+import logService from "../../services/logService";
+import { toast } from "react-hot-toast";
 
 const COLS = [
-  { key: "date",      label: "Date"       },
-  { key: "time",      label: "Time"       },
-  { key: "ip",        label: "IP Address" },
-  { key: "latitude",  label: "Latitude"   },
-  { key: "longitude", label: "Longitude"  },
-  { key: "status",    label: "Status"     },
-];
-
-const ROWS = [
-  { date: "2026-05-03", time: "09:00 AM", ip: "192.168.2.10", latitude: "23.0225° N", longitude: "72.5714° E", status: "Successful"},
-  { date: "2026-05-03", time: "09:15 AM", ip: "192.168.2.11", latitude: "19.0760° N", longitude: "72.8777° E", status: "Successful"},
-  { date: "2026-05-03", time: "09:30 AM", ip: "192.168.2.12", latitude: "28.6139° N", longitude: "77.2090° E", status: "Successful"},
-  { date: "2026-05-03", time: "10:00 AM", ip: "103.45.72.20", latitude: "Unknown",    longitude: "Unknown",    status: "Failed"},
-  { date: "2026-05-02", time: "08:55 AM", ip: "192.168.2.10", latitude: "23.0225° N", longitude: "72.5714° E", status: "Successful"},
+  { key: "name",      label: "User Name"   },
+  { key: "email",     label: "Email"       },
+  { key: "role",      label: "Role"        },
+  { key: "date",      label: "Login Date"  },
+  { key: "time",      label: "Login Time"  },
+  { key: "ip",        label: "IP Address"  },
+  { key: "latitude",  label: "Latitude"    },
+  { key: "longitude", label: "Longitude"   },
 ];
 
 export default function FinanceLoginLogs() {
   const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState([]);
+  const [stats, setStats] = useState({
+    myLoginsToday: 0,
+    myTotalLogins: 0,
+    teamLoginsToday: 0,
+    teamTotalLogins: 0
+  });
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      const res = await logService.getLoginLogs();
+      if (res.success && res.data) {
+        setLogs(res.data.myLogs || []);
+        if (res.data.kpiStats) {
+          setStats(res.data.kpiStats);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to fetch login logs:", err);
+      toast.error("Failed to load login logs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const kpi = [
+    { title: "My Logins (Today)",   value: String(stats.myLoginsToday), accent: "#3b82f6", icon: <LogIn size={22}/> },
+    { title: "My Total Logins",     value: String(stats.myTotalLogins), accent: "#8b5cf6", icon: <UserCheck size={22}/> },
+    { title: "Team Logins Today",   value: String(stats.teamLoginsToday), accent: "#22c55e", icon: <Users size={22}/> },
+    { title: "Team Total Logins",   value: String(stats.teamTotalLogins), accent: "#f43f5e", icon: <Users size={22}/> },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
@@ -45,7 +71,8 @@ export default function FinanceLoginLogs() {
       <DataTable
         title="My Logs"
         columns={COLS}
-        rows={ROWS}
+        rows={logs}
+        loading={loading}
         actions={[{
           icon: <Eye size={15}/>, tooltip: "View Details",
           variant: "ghost",
@@ -53,7 +80,7 @@ export default function FinanceLoginLogs() {
         }]}
         size={12} pageSize={10} searchable date exportable exportFileName="finance-login-logs"
         filters={[
-          { title: "Status", type: "toggle", key: "status", options: ["Successful","Failed"] },
+          { title: "Status", type: "toggle", key: "status", options: ["Active", "Rejected"] },
         ]}
       />
 
@@ -66,14 +93,15 @@ export default function FinanceLoginLogs() {
               meta={`${selected.date} at ${selected.time}`}
             />
             <ModalGrid title="Login Info" cols={2}>
-              <ModalData label="Email"     value={selected.email}     />
-              <ModalData label="Role"      value={selected.role}      />
-              <ModalData label="Date"      value={selected.date}      />
-              <ModalData label="Time"      value={selected.time}      />
-              <ModalData label="IP"        value={selected.ip}        />
-              <ModalData label="Status"    value={selected.status}    />
-              <ModalData label="Latitude"  value={selected.latitude}  />
-              <ModalData label="Longitude" value={selected.longitude} />
+              <ModalData label="Email"       value={selected.email}     />
+              <ModalData label="Role"        value={selected.role}      />
+              <ModalData label="Login Date"  value={selected.date}      />
+              <ModalData label="Login Time"  value={selected.time}      />
+              <ModalData label="IP Address"  value={selected.ip}        />
+              <ModalData label="Status"      value={selected.status}    />
+              <ModalData label="Latitude"    value={selected.latitude}  />
+              <ModalData label="Longitude"   value={selected.longitude} />
+             <ModalData label="Device"      value={selected.device}    /> 
             </ModalGrid>
             <div className="flex justify-end pt-2 border-t border-slate-100">
               <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("fin-log-view")} />

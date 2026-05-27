@@ -251,14 +251,14 @@ export default function DepartmentWorkspace() {
       setIsSubmitting(true);
       setStatus({ type: "info", message: "Saving your details…" });
 
-      // 1. Update Password
+      // 1. Update Password (redundant if already done in nextStep, but kept for safety)
       await userService.setupAccount({
         newPassword: password,
         confirmPassword,
       });
 
       // 2. Save Bank Details
-      await userService.saveBankDetails({
+      const response = await userService.saveBankDetails({
         beneficiaryName,
         bankName,
         accountNumber,
@@ -267,26 +267,34 @@ export default function DepartmentWorkspace() {
         upiId,
       });
 
+      // Update session storage with completed profile status
+      if (response && response.data && response.data.user) {
+        sessionStorage.setItem("user", JSON.stringify(response.data.user));
+      }
+
       setStatus({
         type: "success",
         message: "Setup complete! Redirecting to your dashboard…",
       });
 
-      // Navigate to the next route or a default dashboard
+      // Navigate to the next route based on role
       const user = JSON.parse(sessionStorage.getItem("user") || "{}");
+      const role = user.role;
       let dashboardRoute = "/department";
-      if (user.role === "SALES_MANAGER") {
-        dashboardRoute = "/sales-manager";
-      } else if (user.role === "SALES_TL") {
-        dashboardRoute = "/department";
-      } else if (user.role === "SALES_EXECUTIVE") {
-        dashboardRoute = "/department";
-      }
+      
+      if (role === 'SALES_MANAGER') dashboardRoute = '/sales-manager';
+      else if (role === 'SALES_TL') dashboardRoute = '/sales-team-leader';
+      else if (role === 'SALES_EXECUTIVE') dashboardRoute = '/sales-executive';
+      else if (role === 'FINANCE_MANAGER' || role === 'FINANCE_EXECUTIVE') dashboardRoute = '/finance';
+      else if (role === 'MANAGEMENT_MANAGER') dashboardRoute = '/management-manager';
+      else if (role === 'MANAGEMENT_TL') dashboardRoute = '/management-team-leader';
+      else if (role === 'MANAGEMENT_EMPLOYEE') dashboardRoute = '/management-employee';
+
       setTimeout(() => navigate(dashboardRoute), 1200);
     } catch (err) {
       setStatus({
         type: "error",
-        message: err?.message || "Something went wrong. Please try again.",
+        message: err?.response?.data?.message || err?.message || "Something went wrong. Please try again.",
       });
     } finally {
       setIsSubmitting(false);

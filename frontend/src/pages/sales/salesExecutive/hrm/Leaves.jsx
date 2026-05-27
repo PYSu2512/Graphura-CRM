@@ -31,9 +31,22 @@ export default function Leaves() {
     try {
       const res = await hrmService.getMyLeaves();
       if (res.success) {
+        const LEAVE_MAP = {
+          'SICK': 'Sick Leave',
+          'CASUAL': 'Casual Leave',
+          'EARNED': 'Earned Leave',
+          'MATERNITY': 'Maternity Leave',
+          'PATERNITY': 'Paternity Leave',
+          'BEREAVEMENT': 'Bereavement Leave',
+          'UNPAID': 'Unpaid Leave',
+          'HALF_DAY': 'Half Day',
+          'OTHER': 'Other',
+        };
+
         const mapped = res.data.map(l => ({
           ...l,
           id: l._id,
+          leaveType: LEAVE_MAP[l.leaveType] || l.leaveType,
           dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,
           appliedOn: new Date(l.createdAt).toLocaleDateString(),
           status: l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase(),
@@ -56,7 +69,7 @@ export default function Leaves() {
   const LEAVE_TYPES = [
     "Sick Leave", "Casual Leave", "Earned Leave",
     "Maternity Leave", "Paternity Leave", "Bereavement Leave",
-    "Unpaid Leave", "Other",
+    "Unpaid Leave", "Half Day", "Other",
   ];
   const [applyForm,  setApplyForm]  = useState({ leaveType: "", reason: "", dateFrom: "", dateTo: "" });
   const [applyError, setApplyError] = useState({});
