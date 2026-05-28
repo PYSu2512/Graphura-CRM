@@ -5,11 +5,10 @@
 const AppError = require('../utils/appError');
 const catchAsync = require('../utils/catchAsync');
 const { verifyAccessToken } = require('../services/auth.service');
-const { Admin, User, TokenBlacklist } = require('../models');
+const { Admin, User, TokenBlacklist, SuperAdmin } = require('../models');
 
 /**
- * Middleware: require a valid JWT (Admin or User)
- * Use on routes that both Admins and Managers can access.
+ * Middleware: require a valid JWT (Admin, User, or SuperAdmin)
  */
 exports.requireAuth = catchAsync(async (req, res, next) => {
   // 1. Extract token
@@ -33,10 +32,17 @@ exports.requireAuth = catchAsync(async (req, res, next) => {
     return next(new AppError('Token has been invalidated. Please log in again.', 401));
   }
 
-  // 4. Load Admin or User from DB
-  if (decoded.type === 'ADMIN') {
+  // 4. Load from DB
+  if (decoded.type === 'SUPER_ADMIN') {
+    const superAdmin = await SuperAdmin.findOne({ _id: decoded.id, isActive: true });
+    if (!superAdmin) return next(new AppError('SuperAdmin account not found or deactivated.', 401));
+    req.user = superAdmin;
+    req.userType = 'SUPER_ADMIN';
+    req.admin = null;
+  } else if (decoded.type === 'ADMIN') {
     const admin = await Admin.findOne({ _id: decoded.id, isDeleted: false, isActive: true });
     if (!admin) return next(new AppError('Admin account not found or deactivated.', 401));
+    req.user = admin;
     req.admin = admin;
     req.userType = 'ADMIN';
   } else if (decoded.type === 'USER') {
@@ -45,7 +51,7 @@ exports.requireAuth = catchAsync(async (req, res, next) => {
     if (!user.admin?.isActive) return next(new AppError('Organization account is inactive.', 403));
     
     req.user = user;
-    req.admin = user.admin; // Critical: Attach the tenant-admin to the request
+    req.admin = user.admin;
     req.userType = 'USER';
   } else {
     return next(new AppError('Invalid token type.', 403));

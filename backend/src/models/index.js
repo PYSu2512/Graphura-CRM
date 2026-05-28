@@ -1405,12 +1405,16 @@ NotificationSchema.index({ admin: 1, user: 1, isRead: 1, createdAt: -1 });
 // Razorpay, Brevo, Firebase keys.
 // ════════════════════════════════════════════════════════════
 const ApiConfigSchema = new Schema({
-  key: { type: String, required: true, unique: true, trim: true },
+  admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
+  key: { type: String, required: true, trim: true }, // Removed unique: true
   value: { type: String, required: true },
   description: { type: String, trim: true },
   isEncrypted: { type: Boolean, default: true },
-  updatedBy: { type: Schema.Types.ObjectId, ref: 'SuperAdmin', default: null },
+  updatedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
+
+// Ensure keys are unique per tenant
+ApiConfigSchema.index({ admin: 1, key: 1 }, { unique: true });
 
 
 // ════════════════════════════════════════════════════════════
