@@ -1,0 +1,141 @@
+// teamsStore.js — Shared state store for the Teams module
+// Import this wherever you need team data
+
+const teamsStore = {
+  members: [
+    {
+      id: 1,
+      name: "Aarav Mehta",
+      role: "Frontend Developer",
+      email: "aarav.mehta@graphura.com",
+      phone: "+91 98101 11001",
+      status: "Active",
+      joinDate: "2024-01-15",
+      assignedProjects: ["Employee Mobile Dashboard"],
+      photoUrl: null,
+    },
+    {
+      id: 2,
+      name: "Dev Arora",
+      role: "Backend Developer",
+      email: "dev.arora@graphura.com",
+      phone: "+91 98101 22002",
+      status: "Active",
+      joinDate: "2024-02-10",
+      assignedProjects: ["Vendor Onboarding Portal"],
+      photoUrl: null,
+    },
+    {
+      id: 3,
+      name: "Ira Shah",
+      role: "UI/UX Designer",
+      email: "ira.shah@graphura.com",
+      phone: "+91 98101 33003",
+      status: "Active",
+      joinDate: "2024-03-05",
+      assignedProjects: ["Payroll Audit Tracker"],
+      photoUrl: null,
+    },
+    {
+      id: 4,
+      name: "Kabir Sethi",
+      role: "Full Stack Developer",
+      email: "kabir.sethi@graphura.com",
+      phone: "+91 98101 44004",
+      status: "Active",
+      joinDate: "2024-01-20",
+      assignedProjects: ["Finance Approval Workflow"],
+      photoUrl: null,
+    },
+    {
+      id: 5,
+      name: "Nisha Kapoor",
+      role: "QA Engineer",
+      email: "nisha.kapoor@graphura.com",
+      phone: "+91 98101 55005",
+      status: "Active",
+      joinDate: "2024-04-01",
+      assignedProjects: ["Client Document Migration"],
+      photoUrl: null,
+    },
+  ],
+
+  activityLog: [
+    {
+      id: 1,
+      member: "Aarav Mehta",
+      action: "Updated project progress",
+      project: "Employee Mobile Dashboard",
+      detail: "Pushed UI components to 78%",
+      timestamp: "2026-05-28 09:15",
+      type: "progress",
+    },
+    {
+      id: 2,
+      member: "Dev Arora",
+      action: "Flagged delay",
+      project: "Vendor Onboarding Portal",
+      detail: "API integration blocked by third-party",
+      timestamp: "2026-05-28 10:30",
+      type: "delay",
+    },
+    {
+      id: 3,
+      member: "Kabir Sethi",
+      action: "Completed project",
+      project: "Finance Approval Workflow",
+      detail: "All modules tested and deployed",
+      timestamp: "2026-05-27 17:45",
+      type: "completed",
+    },
+    {
+      id: 4,
+      member: "Ira Shah",
+      action: "Submitted daily update",
+      project: "Payroll Audit Tracker",
+      detail: "Design review done, handoff to dev",
+      timestamp: "2026-05-27 16:00",
+      type: "update",
+    },
+    {
+      id: 5,
+      member: "Nisha Kapoor",
+      action: "Completed project",
+      project: "Client Document Migration",
+      detail: "Migration verified and signed off",
+      timestamp: "2026-05-26 14:20",
+      type: "completed",
+    },
+  ],
+
+  coordinationComments: [
+    {
+      id: 1,
+      sender: "Management Team Leader",
+      time: "2026-05-28 09:00",
+      text: "Good morning team! Please submit your daily progress updates by 6 PM today.",
+    },
+    {
+      id: 2,
+      sender: "Aarav Mehta",
+      time: "2026-05-28 09:10",
+      text: "Noted! Working on the mobile dashboard UI components today.",
+    },
+    {
+      id: 3,
+      sender: "Dev Arora",
+      time: "2026-05-28 09:20",
+      text: "Will send update by EOD. Currently blocked on vendor API — escalating.",
+    },
+  ],
+
+  projects: [
+    { id: 1, name: "Employee Mobile Dashboard", employee: "Aarav Mehta", status: "Pending", deadline: "2026-05-24", priority: "High", progress: 78 },
+    { id: 2, name: "Vendor Onboarding Portal", employee: "Dev Arora", status: "Delayed", deadline: "2026-05-22", priority: "Critical", progress: 64 },
+    { id: 3, name: "Payroll Audit Tracker", employee: "Ira Shah", status: "Pending", deadline: "2026-05-25", priority: "Medium", progress: 72 },
+    { id: 4, name: "Finance Approval Workflow", employee: "Kabir Sethi", status: "Completed", deadline: "2026-05-20", priority: "High", progress: 100 },
+    { id: 5, name: "Client Document Migration", employee: "Nisha Kapoor", status: "Completed", deadline: "2026-05-21", priority: "Medium", progress: 100 },
+  ],
+};
+
+export default teamsStore;
