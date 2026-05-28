@@ -1,4 +1,4 @@
-const { Lead } = require("../models/index");
+const { Lead, ProspectForm } = require("../models/index");
 const catchAsync = require("../utils/catchAsync");
 const AppError = require("../utils/appError");
 const ApiResponse = require("../utils/apiResponse");
@@ -35,6 +35,17 @@ exports.getAdminLeads = catchAsync(async (req, res, next) => {
     .populate("assignedBy", "name")
     .sort({ createdAt: -1 });
 
+  const leadIds = leads.map(l => l._id);
+  const prospectForms = await ProspectForm.find({
+    admin: req.admin._id,
+    lead: { $in: leadIds }
+  }).select('lead value');
+
+  const prospectValueMap = {};
+  prospectForms.forEach(form => {
+    prospectValueMap[form.lead.toString()] = form.value;
+  });
+
   const formattedLeads = leads.map((lead) => {
     const clientName = lead.client?.name || "Unknown Client";
 
@@ -60,7 +71,9 @@ exports.getAdminLeads = catchAsync(async (req, res, next) => {
       source: lead.client?.source || "Manual",
       status: mapStatus(lead.status),
       owner: lead.assignedTo?.name || "Unassigned",
-      value: "N/A", // will use the prospect form data
+      value: prospectValueMap[lead._id.toString()] !== undefined 
+        ? `₹${prospectValueMap[lead._id.toString()].toLocaleString('en-IN')}` 
+        : "N/A",
       lastContact: formatDate(lead.lastContactedAt),
       nextFollowup: formatDate(lead.followUpAt),
       avatar: generateAvatar(clientName),
