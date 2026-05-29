@@ -152,12 +152,12 @@ src/pages/sales/salesTeamLeader/
 │   └── leadsStore.js                     [TODO]
 │
 │   ── Packet 3 — My Team workspace ──
-├── SalesTeamLeaderMyTeam.jsx             [TODO] thin Outlet layout — only Team Members tab remains
+├── SalesTeamLeaderMyTeam.jsx             [DONE]  thin Outlet layout (Heading + Outlet) — Team Members only, no tabs
 ├── myTeam/
-│   ├── TeamMembers.jsx                   [TODO]  the only live page in this packet
-│   ├── Attendance.jsx                    [DEPRECATED] redirects to /hrm — attendance moved to Packet 5
-│   ├── LeaveApprovals.jsx                [DEPRECATED] redirects to /hrm — leave approval moved to Packet 5
-│   └── teamStore.js                      [TODO]  shared with Packet 5 (HRM imports from here)
+│   ├── TeamMembers.jsx                   [DONE]  the only page in this packet (backend-integrated via apiClient)
+│   └── teamStore.js                      [DONE]  dummy fallback / shared shapes
+│   # Attendance.jsx + LeaveApprovals.jsx were DELETED — attendance & leave
+│   # approval live in HRM (Packet 5). Their /my-team nested routes were removed too.
 │
 │   ── Packet 4 — Reports + Announcements ──
 ├── SalesTeamLeaderReports.jsx            [TODO] becomes <Outlet/> layout w/ tabs
@@ -247,10 +247,12 @@ For copy-paste sources (one level up in `salesManager/`):
 - `myTeam/TeamMembers.jsx` — list of executives, profile cards, contact info, performance summary
 - `myTeam/teamStore.js` — shared with Packet 5 (HRM imports `attendanceRecords`, `todayAttendance`, `leaveRequests` from here)
 
-**Deprecated (kept as redirect stubs only):**
+**Removed (deleted — do not recreate inside My Team):**
 
-- `myTeam/Attendance.jsx` — was a per-exec attendance grid. **Moved to HRM (Packet 5)** because HRM is the canonical attendance home and having both was confusing. Now this file just `<Navigate to="/sales-team-leader/hrm" replace />`s. Once Pranjal removes the `/my-team/attendance` nested route, the file can be deleted.
-- `myTeam/LeaveApprovals.jsx` — was the Approve/Reject pending leaves page. **Moved to HRM → Leaves tab (Packet 5)**, sharing the same `leaveRequests` data. Same redirect-stub pattern; same eventual deletion.
+- `myTeam/Attendance.jsx` — **deleted.** Per-exec attendance lives in HRM (Packet 5). The `/my-team/attendance` nested route was removed from `salesTeamLeaderRoutes.jsx`.
+- `myTeam/LeaveApprovals.jsx` — **deleted.** Approve/Reject pending leaves lives in HRM → Leaves tab (Packet 5). The `/my-team/leave-approvals` nested route was removed too.
+
+> ⚠️ **Do not re-add Attendance/Leave Approvals tabs to `SalesTeamLeaderMyTeam.jsx`.** This happened once already and had to be reverted. My Team is a thin `Heading + <Outlet/>` layout — Team Members is its only page.
 
 **Spec features (from Brief Section 7):**
 
@@ -264,7 +266,7 @@ For copy-paste sources (one level up in `salesManager/`):
 - Drop "Add team member" / "Move between teams" actions (Manager-only)
 - Use `teamExecutives` from `teamLeaderStore.js` — do not redefine
 
-**Routing:** parent route `/sales-team-leader/my-team` exists. Once Attendance/LeaveApprovals are fully retired, send Pranjal a route diff to drop the `attendance` and `leave-approvals` child routes.
+**Routing:** `/sales-team-leader/my-team` → `SalesTeamLeaderMyTeam` (layout) → index → `TeamMembers`. The `attendance` and `leave-approvals` child routes have been removed.
 
 ---
 
