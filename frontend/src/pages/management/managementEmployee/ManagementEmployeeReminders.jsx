@@ -1,167 +1,250 @@
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  Grid,
   Heading,
+  DashGrid,
+  DashCard,
+  DataTable,
   DataField,
-} from "../../../components/shared/Common_Components";
+  SelectField,
+  Option,
+  Button,
+  Modal,
+  ModalData,
+  ModalGrid,
+  ModalProfile,
+  openModal,
+  closeModal,
+} from "../../../components/shared/Common_Components.jsx";
+import {
+  Bell,
+  CheckCircle2,
+  Clock,
+  Trash2,
+  Eye,
+  Check,
+} from "lucide-react";
+import { myProjects } from "./managementEmployeeStore";
+import { initialReminders, projectName } from "./remindersStore";
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const COLS = [
+  { key: "title",            label: "Title" },
+  { key: "linkedProjectName", label: "Project" },
+  { key: "dueAt",            label: "Due" },
+  { key: "createdAt",        label: "Created" },
+  { key: "status",           label: "Status" },   // auto-coloured (Pending=amber, Done≈Completed alias)
+];
+
+const KPI_ICONS   = [<Bell size={20} />, <Clock size={20} />, <CheckCircle2 size={20} />, <Bell size={20} />];
+const KPI_ACCENTS = ["#3b82f6", "#f59e0b", "#22c55e", "#94a3b8"];
+
+const BLANK_FORM = { title: "", note: "", dueAt: "", linkedProjectId: "" };
 
 export default function ManagementEmployeeReminders() {
-  const [reminders, setReminders] = useState([
-    {
-      id: 1,
-      title: "Submit UI Report",
-      date: "2026-05-28",
-      status: "Pending",
-    },
-    {
-      id: 2,
-      title: "Client Meeting",
-      date: "2026-05-30",
-      status: "Completed",
-    },
-  ]);
+  const [reminders, setReminders] = useState(initialReminders);
+  const [viewRow, setViewRow] = useState(null);
+  const [form, setForm] = useState(BLANK_FORM);
+  const [formErr, setFormErr] = useState({});
 
-  const [newReminder, setNewReminder] = useState("");
-  const [showForm, setShowForm] = useState(false);
+  const rows = useMemo(
+    () =>
+      reminders
+        .map((r) => ({
+          ...r,
+          linkedProjectName: projectName(r.linkedProjectId),
+          // Map "Done" → "Completed" only for the status badge auto-coloring.
+          status: r.status === "Done" ? "Completed" : "Pending",
+        }))
+        .sort((a, b) => (a.dueAt < b.dueAt ? -1 : 1)),
+    [reminders]
+  );
 
-  const handleAddReminder = () => {
-    if (!newReminder.trim()) return;
+  const kpis = useMemo(() => [
+    { title: "Total",   value: String(reminders.length) },
+    { title: "Pending", value: String(reminders.filter((r) => r.status === "Pending").length) },
+    { title: "Done",    value: String(reminders.filter((r) => r.status === "Done").length) },
+    { title: "Overdue", value: String(reminders.filter((r) => r.status === "Pending" && r.dueAt < today()).length) },
+  ], [reminders]);
 
-    const reminder = {
-      id: Date.now(),
-      title: newReminder,
-      date: new Date().toISOString().split("T")[0],
-      status: "Pending",
+  const setField = (k, v) => {
+    setForm((f) => ({ ...f, [k]: v }));
+    if (formErr[k]) setFormErr((e) => ({ ...e, [k]: "" }));
+  };
+
+  const openAdd = () => {
+    setForm(BLANK_FORM);
+    setFormErr({});
+    openModal("me-reminder-add");
+  };
+
+  const submitAdd = () => {
+    const errs = {};
+    if (!form.title.trim()) errs.title = "Title is required.";
+    if (!form.dueAt)        errs.dueAt = "Due date is required.";
+    if (Object.keys(errs).length) { setFormErr(errs); return; }
+
+    const next = {
+      id:              `REM-${String(reminders.length + 1).padStart(3, "0")}`,
+      title:           form.title.trim(),
+      note:            form.note.trim(),
+      dueAt:           form.dueAt,
+      linkedProjectId: form.linkedProjectId || null,
+      status:          "Pending",
+      createdAt:       today(),
     };
-
-    setReminders([reminder, ...reminders]);
-    setNewReminder("");
-    setShowForm(false);
+    setReminders((prev) => [next, ...prev]);
+    setForm(BLANK_FORM);
+    closeModal("me-reminder-add");
   };
 
-  const handleDelete = (id) => {
-    setReminders(
-      reminders.filter((item) => item.id !== id)
-    );
+  const openView = (row) => {
+    setViewRow(reminders.find((r) => r.id === row.id));
+    openModal("me-reminder-view");
   };
 
-  const handleToggleStatus = (id) => {
-    setReminders(
-      reminders.map((item) =>
-        item.id === id
-          ? {
-              ...item,
-              status:
-                item.status === "Pending"
-                  ? "Completed"
-                  : "Pending",
-            }
-          : item
-      )
-    );
+  const markDone = (row) => {
+    setReminders((prev) => prev.map((r) => (r.id === row.id ? { ...r, status: r.status === "Done" ? "Pending" : "Done" } : r)));
+  };
+
+  const removeReminder = (row) => {
+    setReminders((prev) => prev.filter((r) => r.id !== row.id));
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] p-6">
-      <Heading
-        title="Reminders"
-        subtitle="Manage your personal reminders and tasks"
-      />
+    <div>
+      <Grid cols={12} gap={6}>
+        <Heading
+          primaryText="My"
+          secondaryText="Reminders"
+          size={12}
+          fontSize="2xl"
+        />
 
-      {/* ADD BUTTON */}
-      <div className="flex justify-end mt-6 mb-6">
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-[#2a465a] text-white px-5 py-2 rounded-lg hover:bg-[#1d3444] transition"
-        >
-          + Add Reminder
-        </button>
-      </div>
+        <div className="col-span-12">
+          <DashGrid cols={12} gap={4}>
+            {kpis.map((k, i) => (
+              <DashCard
+                key={k.title}
+                title={k.title}
+                value={k.value}
+                icon={KPI_ICONS[i]}
+                accentColor={KPI_ACCENTS[i]}
+                size={3}
+              />
+            ))}
+          </DashGrid>
+        </div>
 
-      {/* ADD FORM */}
-      {showForm && (
-        <div className="bg-white rounded-2xl shadow-sm border p-5 mb-6">
-          <div className="space-y-4">
-            <DataField
-              label="Reminder"
-              placeholder="Enter reminder..."
-              value={newReminder}
-              onChange={(e) =>
-                setNewReminder(e.target.value)
-              }
-            />
+        <div className="col-span-12 flex justify-end">
+          <Button text="+ Add Reminder" variant="primary" onClick={openAdd} />
+        </div>
 
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowForm(false)}
-                className="border px-5 py-2 rounded-lg"
-              >
-                Cancel
-              </button>
+        <div className="col-span-12">
+          <DataTable
+            title="My Reminders"
+            columns={COLS}
+            rows={rows}
+            size={12}
+            pageSize={10}
+            searchable
+            exportable
+            exportFileName="my_reminders"
+            filters={[
+              { title: "Status", type: "toggle", key: "status", options: ["Pending", "Completed"] },
+            ]}
+            actions={[
+              { icon: <Eye size={15} />,    tooltip: "View",       variant: "ghost",   onClick: openView },
+              { icon: <Check size={15} />,  tooltip: "Toggle Done", variant: "success", onClick: markDone },
+              { icon: <Trash2 size={15} />, tooltip: "Delete",     variant: "danger",  onClick: removeReminder },
+            ]}
+          />
+        </div>
+      </Grid>
 
-              <button
-                onClick={handleAddReminder}
-                className="bg-[#2a465a] text-white px-5 py-2 rounded-lg hover:bg-[#1d3444] transition"
-              >
-                Save Reminder
-              </button>
+      {/* ── Add Reminder modal ────────────────────────────────────────── */}
+      <Modal id="me-reminder-add" title="Add Reminder" size="md">
+        <div className="flex flex-col gap-4">
+          <Grid cols={12} gap={3}>
+            <div className="col-span-12">
+              <DataField
+                label="Title *"
+                id="me-rem-title"
+                placeholder="e.g. Email design mockups to client"
+                value={form.title}
+                onChange={(e) => setField("title", e.target.value)}
+              />
+              {formErr.title && <p className="text-xs text-rose-600 mt-1 px-1">{formErr.title}</p>}
             </div>
+            <div className="col-span-6">
+              <DataField
+                label="Due Date *"
+                id="me-rem-due"
+                type="date"
+                value={form.dueAt}
+                onChange={(e) => setField("dueAt", e.target.value)}
+              />
+              {formErr.dueAt && <p className="text-xs text-rose-600 mt-1 px-1">{formErr.dueAt}</p>}
+            </div>
+            <div className="col-span-6">
+              <SelectField
+                label="Link to Project (optional)"
+                id="me-rem-project"
+                value={form.linkedProjectId}
+                onChange={(e) => setField("linkedProjectId", e.target.value)}
+              >
+                <Option value="" label="— No link —" />
+                {myProjects.map((p) => (
+                  <Option key={p.id} value={p.id} label={`${p.id} · ${p.name}`} />
+                ))}
+              </SelectField>
+            </div>
+            <div className="col-span-12">
+              <DataField
+                label="Note"
+                id="me-rem-note"
+                type="textarea"
+                rows={3}
+                placeholder="Optional context for yourself."
+                value={form.note}
+                onChange={(e) => setField("note", e.target.value)}
+              />
+            </div>
+          </Grid>
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+            <Button text="Cancel" variant="secondary" onClick={() => closeModal("me-reminder-add")} />
+            <Button text="Add Reminder" variant="primary" onClick={submitAdd} />
           </div>
         </div>
-      )}
+      </Modal>
 
-      {/* REMINDER LIST */}
-      <div className="grid gap-4">
-        {reminders.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white border rounded-2xl shadow-sm p-5"
-          >
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-[#2a465a]">
-                  {item.title}
-                </h2>
-
-                <p className="text-sm text-gray-500 mt-1">
-                  Date: {item.date}
-                </p>
-              </div>
-
-              <div className="flex items-center gap-3 flex-wrap">
-                <span
-                  className={`px-3 py-1 text-xs font-medium rounded-full ${
-                    item.status === "Completed"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-yellow-100 text-yellow-700"
-                  }`}
-                >
-                  {item.status}
-                </span>
-
-                <button
-                  onClick={() =>
-                    handleToggleStatus(item.id)
-                  }
-                  className="bg-[#2a465a] text-white px-4 py-2 rounded-lg text-sm hover:bg-[#1d3444] transition"
-                >
-                  {item.status === "Pending"
-                    ? "Mark Done"
-                    : "Undo"}
-                </button>
-
-                <button
-                  onClick={() =>
-                    handleDelete(item.id)
-                  }
-                  className="px-4 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700 transition"
-                >
-                  Delete
-                </button>
-              </div>
+      {/* ── View Reminder modal ───────────────────────────────────────── */}
+      <Modal id="me-reminder-view" title="Reminder Details" size="md">
+        {viewRow && (
+          <div className="flex flex-col gap-4">
+            <ModalProfile
+              name={viewRow.title}
+              subtitle={projectName(viewRow.linkedProjectId)}
+              meta={`${viewRow.id} · Due ${viewRow.dueAt}`}
+            />
+            <ModalGrid title="Overview" cols={2}>
+              <ModalData label="Status"     value={viewRow.status} />
+              <ModalData label="Due"        value={viewRow.dueAt} />
+              <ModalData label="Created"    value={viewRow.createdAt} />
+              <ModalData label="Project"    value={projectName(viewRow.linkedProjectId)} />
+            </ModalGrid>
+            {viewRow.note && (
+              <ModalGrid title="Note" cols={1}>
+                <ModalData label="" value={viewRow.note} />
+              </ModalGrid>
+            )}
+            <div className="flex justify-end pt-2">
+              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("me-reminder-view")} />
             </div>
           </div>
-        ))}
-      </div>
+        )}
+      </Modal>
     </div>
   );
 }
