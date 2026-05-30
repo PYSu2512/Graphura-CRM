@@ -1,6 +1,13 @@
+import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { Grid, Heading } from "../../../components/shared/Common_Components.jsx";
 import { MessageSquare, FileText } from "lucide-react";
+import {
+  commentsByProject,
+  workNotesByProject,
+  allComments,
+  allWorkNotes,
+} from "./activity/activityStore";
 
 const TABS = [
   { label: "Comments",   path: "comments",   icon: MessageSquare },
@@ -8,6 +15,15 @@ const TABS = [
 ];
 
 export default function ManagementEmployeeActivity() {
+  // Lifted state so adding a comment in the Comments tab is also visible from
+  // the Work Notes tab (and vice versa) — children read via useOutletContext().
+  const [activityState, setActivityState] = useState(() => ({
+    commentsByProject,
+    workNotesByProject,
+    allComments,
+    allWorkNotes,
+  }));
+
   return (
     <div>
       <Grid cols={12} gap={6}>
@@ -43,7 +59,7 @@ export default function ManagementEmployeeActivity() {
 
         {/* ── Sub-page ──────────────────────────────────────────────────── */}
         <div className="col-span-12">
-          <Outlet />
+          <Outlet context={{ activityState, setActivityState }} />
         </div>
 
       </Grid>

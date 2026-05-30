@@ -1,27 +1,20 @@
 import { useState } from "react";
-import {
-  DataTable, openModal,
-} from "../../../../components/shared/Common_Components.jsx";
-import { allWorkNotes, commentsByProject, workNotesByProject } from "./activityStore";
+import { useOutletContext } from "react-router-dom";
+import { Eye } from "lucide-react";
+import { DataTable, openModal } from "../../../../components/shared/Common_Components.jsx";
 import { myProjects } from "../managementEmployeeStore";
 import ProjectActivityDrawer, { DRAWER_MODAL_ID } from "./components/ProjectActivityDrawer";
 
 const COLS = [
-  { key: "date",             label: "Date"           },
-  { key: "projectId",        label: "Proj ID"        },
-  { key: "projectName",      label: "Project"        },
-  { key: "body",             label: "Work Note"      },
-  { key: "status",           label: "Client Visible" },
+  { key: "date",        label: "Date"        },
+  { key: "projectId",   label: "Proj ID"     },
+  { key: "projectName", label: "Project"     },
+  { key: "body",        label: "Work Note"   },
+  { key: "visibility",  label: "Visibility"  },
 ];
 
 export default function WorkNotesLog() {
-  const [activityState, setActivityState] = useState({
-    commentsByProject,
-    workNotesByProject,
-    allComments: [],
-    allWorkNotes,
-  });
-
+  const { activityState, setActivityState } = useOutletContext();
   const [selectedProject, setSelectedProject] = useState(null);
 
   const flatNotes = myProjects.flatMap((p) =>
@@ -30,7 +23,7 @@ export default function WorkNotesLog() {
       projectId: p.id,
       projectName: p.name,
       body: n.body.length > 60 ? n.body.slice(0, 60) + "…" : n.body,
-      status: n.isClientVisible ? "Completed" : "Pending",
+      visibility: n.isClientVisible ? "Client-visible" : "Internal",
     }))
   ).sort((a, b) => (a.date < b.date ? 1 : -1));
 
@@ -52,16 +45,17 @@ export default function WorkNotesLog() {
         exportFileName="work_notes_log"
         filters={[
           {
-            title: "Client Visible",
+            title: "Visibility",
             type: "toggle",
-            key: "status",
-            options: ["Completed", "Pending"],
+            key: "visibility",
+            options: ["Client-visible", "Internal"],
           },
         ]}
         actions={[
           {
-            label: "View Thread",
-            variant: "primary",
+            icon: <Eye size={15} />,
+            tooltip: "View Thread",
+            variant: "ghost",
             onClick: openDrawer,
           },
         ]}

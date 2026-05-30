@@ -1,185 +1,120 @@
-import React, { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  Grid,
   Heading,
+  DashGrid,
   DashCard,
+  GLineChart,
   GPieChart,
-} from "../../../components/shared/Common_Components";
-
+} from "../../../components/shared/Common_Components.jsx";
 import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
+  FolderOpen,
+  CheckCircle2,
+  Activity,
+  Percent,
+} from "lucide-react";
+import { myProjects, weeklyNotesAdded } from "./managementEmployeeStore";
 
-/* ---------------- PERFORMANCE DATA ---------------- */
-
-const allData = {
-  week: [
-    { label: "Mon", score: 65 },
-    { label: "Tue", score: 72 },
-    { label: "Wed", score: 68 },
-    { label: "Thu", score: 80 },
-    { label: "Fri", score: 75 },
-    { label: "Sat", score: 85 },
-    { label: "Sun", score: 78 },
-  ],
-
+// Fabricated trend buckets for the period filter on the GLineChart.
+// Week values reuse `weeklyNotesAdded` from the canonical store; month/year
+// are derived rollups so the chart has something to show under each filter.
+const trendData = {
+  week:  weeklyNotesAdded.map(({ name, count }) => ({ name, score: count })),
   month: [
-    { label: "Week 1", score: 70 },
-    { label: "Week 2", score: 75 },
-    { label: "Week 3", score: 80 },
-    { label: "Week 4", score: 82 },
+    { name: "Wk 1", score: 14 },
+    { name: "Wk 2", score: 18 },
+    { name: "Wk 3", score: 21 },
+    { name: "Wk 4", score: 19 },
   ],
-
-  year: [
-    { label: "Jan", score: 60 },
-    { label: "Feb", score: 65 },
-    { label: "Mar", score: 70 },
-    { label: "Apr", score: 75 },
-    { label: "May", score: 78 },
-    { label: "Jun", score: 80 },
+  year:  [
+    { name: "Jan", score: 12 }, { name: "Feb", score: 18 }, { name: "Mar", score: 25 },
+    { name: "Apr", score: 22 }, { name: "May", score: 28 }, { name: "Jun", score: 30 },
   ],
 };
 
-const pieData = [
-  {
-    name: "Completed",
-    value: 40,
-  },
-  {
-    name: "In Progress",
-    value: 35,
-  },
-  {
-    name: "Pending",
-    value: 25,
-  },
-];
+const KPI_ICONS   = [<FolderOpen size={20} />, <CheckCircle2 size={20} />, <Activity size={20} />, <Percent size={20} />];
+const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#14b8a6", "#8b5cf6"];
 
 export default function ManagementEmployeePerformance() {
-  const [filter, setFilter] = useState("week");
+  const [period, setPeriod] = useState("week");
+
+  // ── Live-derived KPIs from myProjects ──────────────────────────────
+  const { kpis, statusMix } = useMemo(() => {
+    const total     = myProjects.length;
+    const completed = myProjects.filter((p) => p.status === "Completed");
+    const active    = myProjects.filter((p) => p.status === "In Progress").length;
+
+    // On-time % = completedOnTime / completed. "—" when no completed projects.
+    const onTime = completed.filter((p) => p.deliveredDate && p.deliveredDate <= p.deadline).length;
+    const onTimePct = completed.length === 0
+      ? "—"
+      : `${Math.round((onTime / completed.length) * 100)}%`;
+
+    const statusMix = [
+      "Not Started", "Work Started", "In Progress", "Review Stage", "Finalization", "Completed", "Delayed",
+    ]
+      .map((s) => ({ name: s, value: myProjects.filter((p) => p.status === s).length }))
+      .filter((s) => s.value > 0);
+
+    return {
+      kpis: [
+        { title: "Total Assigned", value: String(total) },
+        { title: "Completed",      value: String(completed.length) },
+        { title: "Active",         value: String(active) },
+        { title: "On-Time %",      value: onTimePct },
+      ],
+      statusMix,
+    };
+  }, []);
 
   return (
-    <div className="p-6 bg-[#f4f7fb] min-h-screen space-y-6">
-
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-
+    <div>
+      <Grid cols={12} gap={6}>
         <Heading
-          title="My Performance"
-          subtitle="Track your work performance and analytics"
+          primaryText="My"
+          secondaryText="Performance"
+          size={12}
+          fontSize="2xl"
         />
 
-        <div className="flex gap-2 flex-wrap">
-          {["week", "month", "year"].map((type) => (
-            <button
-              key={type}
-              onClick={() => setFilter(type)}
-              className={`px-4 py-2 rounded-lg text-sm transition ${
-                filter === type
-                  ? "bg-[#2a465a] text-white"
-                  : "bg-white border text-gray-600"
-              }`}
-            >
-              {type === "week"
-                ? "This Week"
-                : type === "month"
-                ? "This Month"
-                : "This Year"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* KPI CARDS */}
-      <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-
-        <DashCard
-          title="Total Assigned"
-          value="18"
-        />
-
-        <DashCard
-          title="Completed"
-          value="12"
-        />
-
-        <DashCard
-          title="Active Projects"
-          value="4"
-        />
-
-        <DashCard
-          title="On-Time %"
-          value="76%"
-        />
-
-      </div>
-
-      {/* CHART SECTION */}
-      <div className="grid lg:grid-cols-2 gap-6">
-
-        {/* LINE CHART */}
-        <div className="bg-white rounded-2xl border shadow-sm p-5">
-
-          <h2 className="text-lg font-semibold text-[#2a465a] mb-4">
-            Performance Overview
-          </h2>
-
-          <div className="h-[320px]">
-
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={allData[filter]}>
-
-                <CartesianGrid strokeDasharray="3 3" />
-
-                <XAxis dataKey="label" />
-
-                <YAxis />
-
-                <Tooltip />
-
-                <Line
-                  type="monotone"
-                  dataKey="score"
-                  stroke="#2a465a"
-                  strokeWidth={3}
-                />
-
-              </LineChart>
-            </ResponsiveContainer>
-
-          </div>
+        <div className="col-span-12">
+          <DashGrid cols={12} gap={4}>
+            {kpis.map((k, i) => (
+              <DashCard
+                key={k.title}
+                title={k.title}
+                value={k.value}
+                icon={KPI_ICONS[i]}
+                accentColor={KPI_ACCENTS[i]}
+                size={3}
+              />
+            ))}
+          </DashGrid>
         </div>
 
-        {/* PIE CHART */}
-        <div className="bg-white rounded-2xl border shadow-sm p-5">
+        <GLineChart
+          title="My Activity"
+          subtitle="Work notes added — period filter"
+          data={trendData[period]}
+          lines={[{ key: "score", label: "Notes added", color: "#2a465a" }]}
+          size={7}
+          height={300}
+          filters={[
+            { label: "This Week",  onClick: () => setPeriod("week")  },
+            { label: "This Month", onClick: () => setPeriod("month") },
+            { label: "This Year",  onClick: () => setPeriod("year")  },
+          ]}
+        />
 
-          <h2 className="text-lg font-semibold text-[#2a465a] mb-4">
-            Project Status Mix
-          </h2>
-
-          <div className="h-[320px]">
-
-            <GPieChart
-              data={pieData}
-              dataKey="value"
-              nameKey="name"
-              colors={[
-                "#22c55e",
-                "#f59e0b",
-                "#ef4444",
-              ]}
-            />
-
-          </div>
-        </div>
-
-      </div>
+        <GPieChart
+          title="My Status Mix"
+          subtitle="Where each of my projects sits today"
+          data={statusMix}
+          colors={["#94a3b8", "#0ea5e9", "#f59e0b", "#8b5cf6", "#14b8a6", "#22c55e", "#f43f5e"]}
+          size={5}
+          height={300}
+        />
+      </Grid>
     </div>
   );
 }

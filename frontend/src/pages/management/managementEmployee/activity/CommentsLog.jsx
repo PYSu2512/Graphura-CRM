@@ -1,9 +1,7 @@
 import { useState } from "react";
-import {
-  DataTable, openModal,
-} from "../../../../components/shared/Common_Components.jsx";
-import { allComments, commentsByProject, workNotesByProject } from "./activityStore";
-import { addComment, addWorkNote } from "./activityStore";
+import { useOutletContext } from "react-router-dom";
+import { Eye } from "lucide-react";
+import { DataTable, openModal } from "../../../../components/shared/Common_Components.jsx";
 import { myProjects } from "../managementEmployeeStore";
 import ProjectActivityDrawer, { DRAWER_MODAL_ID } from "./components/ProjectActivityDrawer";
 
@@ -16,22 +14,17 @@ const COLS = [
 ];
 
 export default function CommentsLog() {
-  const [activityState, setActivityState] = useState({
-    commentsByProject,
-    workNotesByProject,
-    allComments,
-    allWorkNotes: [],
-  });
-
+  const { activityState, setActivityState } = useOutletContext();
   const [selectedProject, setSelectedProject] = useState(null);
 
+  // Recompute the flat list from the lifted store so it reacts to mutations
+  // made from either tab or the drawer.
   const flatComments = myProjects.flatMap((p) =>
     (activityState.commentsByProject[p.id] ?? []).map((c) => ({
       ...c,
       projectId: p.id,
       projectName: p.name,
       body: c.body.length > 60 ? c.body.slice(0, 60) + "…" : c.body,
-      _fullBody: c.body,
     }))
   ).sort((a, b) => (a.date < b.date ? 1 : -1));
 
@@ -53,8 +46,9 @@ export default function CommentsLog() {
         exportFileName="comments_log"
         actions={[
           {
-            label: "View Thread",
-            variant: "primary",
+            icon: <Eye size={15} />,
+            tooltip: "View Thread",
+            variant: "ghost",
             onClick: openDrawer,
           },
         ]}
