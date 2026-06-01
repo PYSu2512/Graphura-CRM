@@ -22,6 +22,7 @@ const COLS = [
 
 export default function PaymentAlerts() {
   const [selected, setSelected] = useState(null);
+  const cardSize = kpiPayments.length > 0 ? Math.floor(12 / kpiPayments.length) : 4;
 
   return (
     <div className="flex flex-col gap-6">
@@ -34,7 +35,7 @@ export default function PaymentAlerts() {
             value={k.value}
             icon={KPI_ICONS[i]}
             accentColor={k.accent}
-            size={3}
+            size={cardSize}
           />
         ))}
       </DashGrid>

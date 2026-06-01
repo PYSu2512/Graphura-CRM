@@ -13,12 +13,12 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const fmt     = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
+const fmt = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
 const fmtDate = (d) => new Date(d).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" });
 
 const STATUS_BADGE = {
   Success: "bg-emerald-100 text-emerald-700 border border-emerald-200",
-  Failed:  "bg-rose-100 text-rose-700 border border-rose-200",
+  Failed: "bg-rose-100 text-rose-700 border border-rose-200",
   Pending: "bg-amber-100 text-amber-700 border border-amber-200",
 };
 const MODE_ICON = { UPI: "🔵", Card: "💳", Cash: "💵", "Bank Transfer": "🏦" };
@@ -30,9 +30,9 @@ const ToastContainer = ({ toasts, onDismiss }) => (
       <div key={t.id}
         className={`flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg border pointer-events-auto
           ${t.type === "success" ? "bg-white border-emerald-200" :
-            t.type === "error"   ? "bg-white border-rose-200"    : "bg-white border-amber-200"}`}>
+            t.type === "error" ? "bg-white border-rose-200" : "bg-white border-amber-200"}`}>
         {t.type === "success" && <CheckCircle2 size={15} className="text-emerald-500 flex-shrink-0" />}
-        {t.type === "error"   && <XCircle      size={15} className="text-rose-500 flex-shrink-0" />}
+        {t.type === "error" && <XCircle size={15} className="text-rose-500 flex-shrink-0" />}
         {t.type === "warning" && <AlertTriangle size={15} className="text-amber-500 flex-shrink-0" />}
         <p className="text-sm font-medium text-[#1a2e3f] flex-1">{t.message}</p>
         <button onClick={() => onDismiss(t.id)} className="text-slate-400 hover:text-slate-600 flex-shrink-0">
@@ -60,29 +60,29 @@ const ErrorBanner = ({ message, onRetry }) => (
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function PaymentsPage() {
   // Data
-  const [payments, setPayments]         = useState([]);
-  const [allPayments, setAllPayments]   = useState([]);
-  const [kpis, setKpis]                 = useState(null);
+  const [payments, setPayments] = useState([]);
+  const [allPayments, setAllPayments] = useState([]);
+  const [kpis, setKpis] = useState(null);
   const [revenueTrend, setRevenueTrend] = useState([]);
 
   // Loading / error
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading] = useState(true);
   const [chartsLoading, setChartsLoading] = useState(true);
-  const [error, setError]               = useState("");
-  const [chartsError, setChartsError]   = useState("");
+  const [error, setError] = useState("");
+  const [chartsError, setChartsError] = useState("");
 
   // Filters
-  const [dateRange, setDateRange]       = useState("all");
+  const [dateRange, setDateRange] = useState("all");
   const [statusFilter, setStatusFilter] = useState("");
-  const [modeFilter, setModeFilter]     = useState("");
-  const [search, setSearch]             = useState("");
+  const [modeFilter, setModeFilter] = useState("");
+  const [search, setSearch] = useState("");
 
   // UI
   const [selectedPayment, setSelectedPayment] = useState(null);
-  const [toasts, setToasts]             = useState([]);
-  const [retrying, setRetrying]         = useState(null);   // txn id being retried
-  const [reminding, setReminding]       = useState(null);   // client id being reminded
-  const pollingRef                      = useRef(null);
+  const [toasts, setToasts] = useState([]);
+  const [retrying, setRetrying] = useState(null);   // txn id being retried
+  const [reminding, setReminding] = useState(null);   // client id being reminded
+  const pollingRef = useRef(null);
 
   // ── Toast helpers ──────────────────────────────────────────────────────────
   const addToast = useCallback((message, type = "success") => {
@@ -180,7 +180,7 @@ export default function PaymentsPage() {
       doc.text(`Date: ${new Date(payment.date).toLocaleDateString()}`, 14, 44);
       doc.text(`Status: ${payment.status}`, 14, 50);
       doc.text(`Mode: ${payment.mode}`, 14, 56);
-      
+
       autoTable(doc, {
         startY: 65,
         head: [['Description', 'Amount']],
@@ -190,7 +190,7 @@ export default function PaymentsPage() {
         theme: 'striped',
         headStyles: { fillColor: [42, 70, 90] }
       });
-      
+
       doc.save(`${payment.id}_Invoice.pdf`);
       addToast(`Invoice downloaded for ${payment.id}.`, "success");
     } catch (err) {
@@ -204,14 +204,14 @@ export default function PaymentsPage() {
   const PIE_COLOR_MAP = { Success: "#10b981", Failed: "#f43f5e", Pending: "#f59e0b" };
   const allStatusData = [
     { name: "Success", value: payments.filter(p => p.status === "Success").length },
-    { name: "Failed",  value: payments.filter(p => p.status === "Failed").length  },
+    { name: "Failed", value: payments.filter(p => p.status === "Failed").length },
     { name: "Pending", value: payments.filter(p => p.status === "Pending").length },
   ];
-  const statusChartData  = allStatusData.filter(d => d.value > 0);
+  const statusChartData = allStatusData.filter(d => d.value > 0);
   const statusChartColors = statusChartData.map(d => PIE_COLOR_MAP[d.name]);
   const modeChartData = ["UPI", "Card", "Cash", "Bank Transfer"].map(m => ({
     name: m,
-    count:  payments.filter(p => p.mode === m).length,
+    count: payments.filter(p => p.mode === m).length,
     amount: Math.round(payments.filter(p => p.mode === m).reduce((s, p) => s + p.amount, 0) / 1000),
   }));
 
@@ -239,27 +239,18 @@ export default function PaymentsPage() {
       {/* ── STEP 2: KPI Cards (EnhancedDashCard) ── */}
       {chartsError && <ErrorBanner message={chartsError} onRetry={fetchMeta} />}
       {chartsLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {Array(5).fill(0).map((_, i) => <Sk key={i} className="h-[120px]" />)}
-        </div>
+        <DashGrid cols={12} gap={3}>
+          {Array(4).fill(0).map((_, i) => (
+            <Sk key={i} className="col-span-12 md:col-span-6 lg:col-span-3 h-[120px]" />
+          ))}
+        </DashGrid>
       ) : kpis && (
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <div className="w-full">
-            <EnhancedDashCard title="TOTAL REVENUE" value={fmt(kpis.totalRevenue)} icon={<IndianRupee size={22} />} accentColor="#38bdf8" size={12} />
-          </div>
-          <div className="w-full">
-            <EnhancedDashCard title="TODAY'S REVENUE" value={fmt(kpis.todayRevenue)} icon={<TrendingUp size={22} />} accentColor="#10b981" size={12} />
-          </div>
-          <div className="w-full">
-            <EnhancedDashCard title="SUCCESSFUL" value={String(kpis.successCount)} icon={<CheckCircle2 size={22} />} accentColor="#22c55e" size={12} />
-          </div>
-          <div className="w-full">
-            <EnhancedDashCard title="FAILED" value={String(kpis.failedCount)} icon={<XCircle size={22} />} accentColor="#f43f5e" size={12} />
-          </div>
-          <div className="w-full">
-            <EnhancedDashCard title="PENDING AMOUNT" value={fmt(kpis.pendingAmount)} icon={<Clock size={22} />} accentColor="#f59e0b" size={12} />
-          </div>
-        </div>
+        <DashGrid cols={12} gap={3}>
+          <EnhancedDashCard title="TODAY'S REVENUE" value={fmt(kpis.todayRevenue)} icon={<TrendingUp size={22} />} accentColor="#10b981" size={3} />
+          <EnhancedDashCard title="SUCCESSFUL" value={String(kpis.successCount)} icon={<CheckCircle2 size={22} />} accentColor="#22c55e" size={3} />
+          <EnhancedDashCard title="FAILED" value={String(kpis.failedCount)} icon={<XCircle size={22} />} accentColor="#f43f5e" size={3} />
+          <EnhancedDashCard title="PENDING AMOUNT" value={fmt(kpis.pendingAmount)} icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
+        </DashGrid>
       )}
 
       {/* ── Charts ── */}
@@ -291,7 +282,7 @@ export default function PaymentsPage() {
       {/* ── All Transactions — using shared DataTable ── */}
       <div className="mb-6">
         {error && <div className="mb-4"><ErrorBanner message={error} onRetry={fetchPayments} /></div>}
-        
+
         {loading ? (
           <div className="p-4 space-y-2 bg-white rounded-xl border border-slate-200">
             {Array(6).fill(0).map((_, i) => <Sk key={i} className="h-10" />)}
@@ -304,144 +295,143 @@ export default function PaymentsPage() {
         ) : (
           // 🔥 ONLY IMPORTANT PART REPLACE (DataTable SECTION)
 
-<DataTable
-  title={`All Transactions (${payments.length} records)`}
-  columns={[
-    {
-      key: "id",
-      label: "Txn ID",
-      render: (row) => (
-        <span className="font-mono text-[11px] font-bold text-[#1a2e3f] min-w-[80px] block">
-          {row.id}
-        </span>
-      ),
-    },
-    {
-      key: "clientName",
-      label: "Client",
-      render: (row) => (
-        <span className="font-medium text-[#1a2e3f] min-w-[100px] block">
-          {row.clientName}
-        </span>
-      ),
-    },
-    {
-      key: "amount",
-      label: "Amount",
-      render: (row) => (
-        <span className="font-bold text-emerald-700 min-w-[80px] block">
-          ₹{row.amount}
-        </span>
-      ),
-    },
-    {
-      key: "status",
-      label: "Status",
-      render: (row) => (
-        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-          row.status === "Success"
-            ? "bg-emerald-100 text-emerald-700"
-            : row.status === "Failed"
-            ? "bg-rose-100 text-rose-700"
-            : "bg-amber-100 text-amber-700"
-        }`}>
-          {row.status}
-        </span>
-      ),
-    },
-    {
-      key: "mode",
-      label: "Mode",
-      render: (row) => (
-        <span className="text-slate-600 min-w-[100px] block">
-          {row.mode}
-        </span>
-      ),
-    },
-    {
-      key: "date",
-      label: "Date & Time",
-      render: (row) => (
-        <span className="text-slate-500 whitespace-nowrap min-w-[130px] block">
-          {fmtDate(row.date)}
-        </span>
-      ),
-    },
-  ]}
+          <DataTable
+            title={`All Transactions (${payments.length} records)`}
+            columns={[
+              {
+                key: "id",
+                label: "Txn ID",
+                render: (row) => (
+                  <span className="font-mono text-[11px] font-bold text-[#1a2e3f] min-w-[80px] block">
+                    {row.id}
+                  </span>
+                ),
+              },
+              {
+                key: "clientName",
+                label: "Client",
+                render: (row) => (
+                  <span className="font-medium text-[#1a2e3f] min-w-[100px] block">
+                    {row.clientName}
+                  </span>
+                ),
+              },
+              {
+                key: "amount",
+                label: "Amount",
+                render: (row) => (
+                  <span className="font-bold text-emerald-700 min-w-[80px] block">
+                    ₹{row.amount}
+                  </span>
+                ),
+              },
+              {
+                key: "status",
+                label: "Status",
+                render: (row) => (
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${row.status === "Success"
+                    ? "bg-emerald-100 text-emerald-700"
+                    : row.status === "Failed"
+                      ? "bg-rose-100 text-rose-700"
+                      : "bg-amber-100 text-amber-700"
+                    }`}>
+                    {row.status}
+                  </span>
+                ),
+              },
+              {
+                key: "mode",
+                label: "Mode",
+                render: (row) => (
+                  <span className="text-slate-600 min-w-[100px] block">
+                    {row.mode}
+                  </span>
+                ),
+              },
+              {
+                key: "date",
+                label: "Date & Time",
+                render: (row) => (
+                  <span className="text-slate-500 whitespace-nowrap min-w-[130px] block">
+                    {fmtDate(row.date)}
+                  </span>
+                ),
+              },
+            ]}
 
-  rows={payments}
+            rows={payments}
 
-  filters={[
-    {
-      title: "Date Range",
-      type: "select",
-      options: ["All", "All Time", "Today", "This Week", "This Month", "Custom"],
-      fn: (row, val) => {
-        if (!val || val === "All" || val === "All Time") return true;
+            filters={[
+              {
+                title: "Date Range",
+                type: "select",
+                options: ["All", "All Time", "Today", "This Week", "This Month", "Custom"],
+                fn: (row, val) => {
+                  if (!val || val === "All" || val === "All Time") return true;
 
-        const d = new Date(row.date);
-        const today = new Date();
+                  const d = new Date(row.date);
+                  const today = new Date();
 
-        if (val === "Today") return d.toDateString() === today.toDateString();
+                  if (val === "Today") return d.toDateString() === today.toDateString();
 
-        if (val === "This Week") {
-          const firstDay = new Date();
-          firstDay.setDate(today.getDate() - today.getDay());
-          const lastDay = new Date(firstDay);
-          lastDay.setDate(firstDay.getDate() + 6);
-          return d >= firstDay && d <= lastDay;
-        }
+                  if (val === "This Week") {
+                    const firstDay = new Date();
+                    firstDay.setDate(today.getDate() - today.getDay());
+                    const lastDay = new Date(firstDay);
+                    lastDay.setDate(firstDay.getDate() + 6);
+                    return d >= firstDay && d <= lastDay;
+                  }
 
-        if (val === "This Month") {
-          return (
-            d.getMonth() === today.getMonth() &&
-            d.getFullYear() === today.getFullYear()
-          );
-        }
+                  if (val === "This Month") {
+                    return (
+                      d.getMonth() === today.getMonth() &&
+                      d.getFullYear() === today.getFullYear()
+                    );
+                  }
 
-        return true;
-      },
-    },
-    {
-      title: "Status",
-      type: "select",
-      options: ["All", "Success", "Pending", "Failed"],
-      fn: (row, val) => (!val || val === "All") ? true : row.status === val,
-    },
-    {
-      title: "Mode",
-      type: "select",
-      options: ["All", "UPI", "Card", "Cash", "Bank Transfer"],
-      fn: (row, val) => (!val || val === "All") ? true : row.mode === val,
-    },
-  ]}
+                  return true;
+                },
+              },
+              {
+                title: "Status",
+                type: "select",
+                options: ["All", "Success", "Pending", "Failed"],
+                fn: (row, val) => (!val || val === "All") ? true : row.status === val,
+              },
+              {
+                title: "Mode",
+                type: "select",
+                options: ["All", "UPI", "Card", "Cash", "Bank Transfer"],
+                fn: (row, val) => (!val || val === "All") ? true : row.mode === val,
+              },
+            ]}
 
-  pageSize={10}
+            pageSize={10}
 
-  actions={[
-  {
-    icon: <Eye size={14} />,
-    tooltip: "View",
-    onClick: (row) => setSelectedPayment(row),
-    variant: "ghost",
-    show: () => true,
-  },
-  {
-    icon: <Download size={14} />,
-    tooltip: "Download",
-    onClick: (row) => handleDownload(row),
-    variant: "ghost",
-    show: () => true,
-  },
-  {
-    icon: <RefreshCw size={14} />,
-    tooltip: "Retry Payment",
-    onClick: (row) => handleRetry(row),
-    variant: "ghost",
-    show: (row) => row.status === "Failed",
-  },
-]}
-/>
+            actions={[
+              {
+                icon: <Eye size={14} />,
+                tooltip: "View",
+                onClick: (row) => setSelectedPayment(row),
+                variant: "ghost",
+                show: () => true,
+              },
+              {
+                icon: <Download size={14} />,
+                tooltip: "Download",
+                onClick: (row) => handleDownload(row),
+                variant: "ghost",
+                show: () => true,
+              },
+              {
+                icon: <RefreshCw size={14} />,
+                tooltip: "Retry Payment",
+                onClick: (row) => handleRetry(row),
+                variant: "ghost",
+                show: (row) => row.status === "Failed",
+              },
+            ]}
+          />
         )}
       </div>
 
