@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import toast from 'react-hot-toast';
-import apiConfigService from '../../../services/apiConfigService';
+import React, { useState } from 'react';
 import {
   Grid,
   Heading,
@@ -27,132 +25,27 @@ import {
   HelpCircle,
   CircleDot,
   ExternalLink,
-  Trash2,
-  Loader2
+  Trash2
 } from 'lucide-react';
 
 export default function ApiConfig() {
   // ── Mode toggle ──
-  const [mode, setMode] = useState('test'); // 'test' | 'live'
+  const [mode, setMode] = useState('live'); // 'test' | 'live'
 
   // ── Key fields ──
-  const [keyId, setKeyId] = useState('');
+  const [keyId, setKeyId] = useState('rzp_live_xxxxxxxx');
   const [keySecret, setKeySecret] = useState('');
   const [webhookSecretVal, setWebhookSecretVal] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
-  const [savedConfig, setSavedConfig] = useState({
-    keyId: '',
-    keySecret: '',
-    webhookSecret: '',
-    mode: 'test'
-  });
-  const apiBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
-  const webhookEndpointUrl = `${apiBaseUrl.replace(/\/api$/, '')}/api/payments/webhook/razorpay`;
+  const webhookEndpointUrl = `${window.location.origin}/api/webhook/razorpay`;
 
   // ── Visibility toggles ──
   const [showKeyId, setShowKeyId] = useState(false);
   const [showKeySecret, setShowKeySecret] = useState(false);
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
-  const [generatedSecret, setGeneratedSecret] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  // ── Has Changes check ──
-  const hasChanges = 
-    keyId !== savedConfig.keyId ||
-    keySecret !== savedConfig.keySecret ||
-    webhookSecretVal !== savedConfig.webhookSecret ||
-    mode !== savedConfig.mode;
-
-  // ── Fetch Config ──
-  useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const response = await apiConfigService.getRazorpayConfig();
-        if (response && response.data) {
-          const fetched = {
-            keyId: response.data.keyId || '',
-            keySecret: response.data.keySecret || '',
-            webhookSecret: response.data.webhookSecret || '',
-            mode: response.data.mode || 'test'
-          };
-          setKeyId(fetched.keyId);
-          setKeySecret(fetched.keySecret);
-          setWebhookSecretVal(fetched.webhookSecret);
-          setMode(fetched.mode);
-          setSavedConfig(fetched);
-        }
-      } catch (error) {
-        console.error('Error fetching API config:', error);
-        toast.error('Failed to load API configuration');
-      } finally {
-        setIsFetching(false);
-      }
-    };
-
-    fetchConfig();
-  }, []);
-
-  // ── Handle Save ──
-  const handleSaveKeys = async () => {
-    if (!keyId || !keySecret) {
-      toast.error('Key ID and Key Secret are required');
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await apiConfigService.updateRazorpayConfig({
-        keyId,
-        keySecret,
-        webhookSecret: webhookSecretVal,
-        mode
-      });
-
-      if (response && (response.success || response.statusCode === 200)) {
-        toast.success('Razorpay configuration saved successfully');
-        setSavedConfig({
-          keyId,
-          keySecret,
-          webhookSecret: webhookSecretVal,
-          mode
-        });
-      } else {
-        toast.error(response?.message || 'Failed to save configuration');
-      }
-    } catch (error) {
-      console.error('Error saving API config:', error);
-      toast.error(error.message || 'Failed to save configuration');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGenerateSecret = async () => {
-    setIsGenerating(true);
-    try {
-      const resp = await apiConfigService.generateRazorpaySecret();
-      if (resp && resp.data && resp.data.secret) {
-        const s = resp.data.secret;
-        setGeneratedSecret(s);
-        setWebhookSecretVal(s);
-        // Open modal to show secret (one-time)
-        openModal('webhook-secret-modal');
-      } else {
-        toast.error('Failed to generate secret');
-      }
-    } catch (err) {
-      console.error('Generate secret error', err);
-      toast.error('Failed to generate secret');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   // ── Copy feedback ──
   const [copiedField, setCopiedField] = useState(null);
   const copyToClipboard = (text, field) => {
-    if (!text) return;
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
@@ -199,6 +92,12 @@ export default function ApiConfig() {
     rose: 'bg-rose-500/15 text-rose-600 border-rose-200',
     amber: 'bg-amber-500/15 text-amber-600 border-amber-200',
     blue: 'bg-blue-500/15 text-blue-600 border-blue-200',
+  };
+
+  // ── Masked display ──
+  const maskValue = (val) => {
+    if (!val) return '';
+    return '•'.repeat(Math.min(val.length, 20));
   };
 
   // ── Saved API Keys Data ──
@@ -262,15 +161,6 @@ export default function ApiConfig() {
     )
   }));
 
-  if (isFetching) {
-    return (
-      <div className="w-full h-[60vh] flex flex-col items-center justify-center gap-4">
-        <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
-        <p className="text-slate-500 font-medium">Loading configuration...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
 
@@ -321,7 +211,6 @@ export default function ApiConfig() {
             <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
               <span className="text-xs font-semibold text-slate-500 px-2 select-none">MODE:</span>
               <button
-                disabled={isLoading}
                 onClick={() => setMode('test')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
                   mode === 'test'
@@ -332,7 +221,6 @@ export default function ApiConfig() {
                 Test
               </button>
               <button
-                disabled={isLoading}
                 onClick={() => setMode('live')}
                 className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
                   mode === 'live'
@@ -378,7 +266,6 @@ export default function ApiConfig() {
                   <input
                     type={showKeyId ? 'text' : 'password'}
                     value={keyId}
-                    disabled={isLoading}
                     onChange={(e) => setKeyId(e.target.value)}
                     placeholder={mode === 'live' ? 'rzp_live_xxxxxxxxxxxxxxxx' : 'rzp_test_xxxxxxxxxxxxxxxx'}
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50/90 py-3.5 px-4 text-[#2a465a] placeholder:text-slate-400 text-sm font-mono font-medium focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40 transition duration-200"
@@ -412,7 +299,6 @@ export default function ApiConfig() {
                   <input
                     type={showKeySecret ? 'text' : 'password'}
                     value={keySecret}
-                    disabled={isLoading}
                     onChange={(e) => setKeySecret(e.target.value)}
                     placeholder="Enter your Razorpay Key Secret"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50/90 py-3.5 px-4 text-[#2a465a] placeholder:text-slate-400 text-sm font-mono font-medium focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40 transition duration-200"
@@ -446,7 +332,6 @@ export default function ApiConfig() {
                   <input
                     type={showWebhookSecret ? 'text' : 'password'}
                     value={webhookSecretVal}
-                    disabled={isLoading}
                     onChange={(e) => setWebhookSecretVal(e.target.value)}
                     placeholder="Webhook Secret from Razorpay Dashboard"
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50/90 py-3.5 px-4 text-[#2a465a] placeholder:text-slate-400 text-sm font-mono font-medium focus:outline-none focus:ring-2 focus:ring-[#2a465a]/20 focus:border-[#2a465a]/40 transition duration-200"
@@ -465,14 +350,6 @@ export default function ApiConfig() {
                   title="Copy"
                 >
                   {copiedField === 'whSecret' ? <CheckCircle2 size={16} className="text-emerald-500" /> : <Copy size={16} />}
-                </button>
-                <button
-                  onClick={handleGenerateSecret}
-                  disabled={isGenerating}
-                  className="ml-2 flex items-center gap-1 px-3 py-2 rounded-xl bg-white text-[#2a465a] text-sm font-bold border border-slate-200 hover:bg-slate-50 transition-all duration-200 active:scale-95"
-                  title="Generate"
-                >
-                  {isGenerating ? 'Generating...' : 'Generate'}
                 </button>
               </div>
             </div>
@@ -507,41 +384,16 @@ export default function ApiConfig() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3 pt-2">
-              <button 
-                onClick={handleSaveKeys}
-                disabled={isLoading || !hasChanges}
-                className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all duration-200 ${
-                  hasChanges
-                    ? 'bg-[#2a465a] text-white hover:bg-[#1e3a52] active:scale-95 shadow-lg shadow-[#2a465a]/20'
-                    : 'bg-[#7e9bb0] text-slate-100 cursor-not-allowed shadow-none'
-                }`}
-              >
-                {isLoading ? <Loader2 size={18} className="animate-spin" /> : null}
-                {isLoading ? 'Saving...' : 'Save Keys'}
+              <button className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-[#2a465a] text-white text-sm font-bold hover:bg-[#1e3a52] transition-all duration-200 active:scale-95 shadow-lg shadow-[#2a465a]/20">
+                Save Keys
               </button>
-              <button 
-                disabled={isLoading}
-                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-[#2a465a] text-sm font-bold border border-slate-200 hover:bg-slate-50 transition-all duration-200 active:scale-95 disabled:opacity-50"
-              >
+              <button className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white text-[#2a465a] text-sm font-bold border border-slate-200 hover:bg-slate-50 transition-all duration-200 active:scale-95">
                 Test Connection
               </button>
             </div>
           </div>
         </div>
       </Grid>
-
-        <Modal id="webhook-secret-modal" title="Webhook Secret (copy now)" size="md">
-          <div className="space-y-4">
-            <p className="text-sm text-slate-600">This secret will be shown only once. Copy it now and paste it into the Razorpay webhook settings.</p>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 font-mono text-sm bg-slate-50 p-3 rounded-xl border border-slate-100">{generatedSecret}</div>
-              <button onClick={() => { copyToClipboard(generatedSecret, 'generated'); toast.success('Copied'); }} className="px-3 py-2 rounded-xl bg-[#2a465a] text-white">Copy</button>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="ghost" text="Close" onClick={() => closeModal('webhook-secret-modal')} />
-            </div>
-          </div>
-        </Modal>
 
       {/* ─── 4. Setup Guide + Connection Status ─── */}
       <Grid cols={12} gap={6}>

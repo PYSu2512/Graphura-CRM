@@ -3,10 +3,10 @@
 import { teamExecutives, currentTL } from "../teamLeaderStore";
 
 export const kpiPayments = [
-  { title: "Successful (Today)", value: "8",        accent: "#22c55e" },
-  { title: "Failed (Today)",     value: "2",        accent: "#f43f5e" },
-  { title: "Total Revenue",      value: "₹2.4L",    accent: "#3b82f6" },
-  { title: "Pending Verifications", value: "3",     accent: "#f59e0b" },
+  { title: "Successful (Today)", value: "8", accent: "#22c55e" },
+  { title: "Failed (Today)", value: "2", accent: "#f43f5e" },
+
+  { title: "Pending Verifications", value: "3", accent: "#f59e0b" },
 ];
 
 export const paymentAlerts = [

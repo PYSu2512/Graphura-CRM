@@ -15,22 +15,22 @@ const KPI_ICONS = [
 ];
 
 const LEADERBOARD_COLS = [
-  { key: "rank",       label: "Rank" },
-  { key: "name",       label: "Employee" },
-  { key: "calls",      label: "Calls" },
-  { key: "sales",      label: "Sales" },
-  { key: "revenue",    label: "Revenue" },
+  { key: "rank", label: "Rank" },
+  { key: "name", label: "Employee" },
+  { key: "calls", label: "Calls" },
+  { key: "sales", label: "Sales" },
+
   { key: "conversion", label: "Conversion %" },
-  { key: "status",     label: "Status" },
+  { key: "status", label: "Status" },
 ];
 
 export default function Overview() {
   // Separate state for each modal
-  const [viewRow,    setViewRow]    = useState(null);
-  const [warnRow,    setWarnRow]    = useState(null);
-  const [apprRow,    setApprRow]    = useState(null);
-  const [warnMsg,    setWarnMsg]    = useState("");
-  const [apprMsg,    setApprMsg]    = useState("");
+  const [viewRow, setViewRow] = useState(null);
+  const [warnRow, setWarnRow] = useState(null);
+  const [apprRow, setApprRow] = useState(null);
+  const [warnMsg, setWarnMsg] = useState("");
+  const [apprMsg, setApprMsg] = useState("");
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,7 +109,7 @@ export default function Overview() {
         exportable
         exportFileName="leaderboard"
         filters={[
-          { title: "Status",      type: "toggle", key: "status",     options: ["Active", "Pending"] },
+          { title: "Status", type: "toggle", key: "status", options: ["Active", "Pending"] },
           { title: "Team Leader", type: "select", key: "teamLeader", options: [...new Set(leaderboardRows.map((r) => r.teamLeader))] },
         ]}
       />
@@ -124,12 +124,12 @@ export default function Overview() {
               meta={`Status: ${viewRow.status}`}
             />
             <ModalGrid title="Performance Stats" cols={2}>
-              <ModalData label="Calls"           value={viewRow.calls} />
-              <ModalData label="Sales"           value={viewRow.sales} />
-              <ModalData label="Revenue"         value={viewRow.revenue} />
+              <ModalData label="Calls" value={viewRow.calls} />
+              <ModalData label="Sales" value={viewRow.sales} />
+
               <ModalData label="Conversion Rate" value={viewRow.conversion} />
-              <ModalData label="Team Leader"     value={viewRow.teamLeader} />
-              <ModalData label="Status"          value={viewRow.status} />
+              <ModalData label="Team Leader" value={viewRow.teamLeader} />
+              <ModalData label="Status" value={viewRow.status} />
             </ModalGrid>
             <div className="flex justify-end pt-2">
               <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("perf-view-modal")} />
@@ -148,10 +148,10 @@ export default function Overview() {
               meta={`Conversion: ${warnRow.conversion}`}
             />
             <ModalGrid title="Performance Stats" cols={2}>
-              <ModalData label="Calls"   value={warnRow.calls} />
-              <ModalData label="Sales"   value={warnRow.sales} />
-              <ModalData label="Revenue" value={warnRow.revenue} />
-              <ModalData label="Status"  value={warnRow.status} />
+              <ModalData label="Calls" value={warnRow.calls} />
+              <ModalData label="Sales" value={warnRow.sales} />
+
+              <ModalData label="Status" value={warnRow.status} />
             </ModalGrid>
             <DataField
               label="Warning Message"
@@ -164,7 +164,7 @@ export default function Overview() {
               size={12}
             />
             <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-              <Button text="Cancel"      variant="ghost"  size={3} onClick={() => closeModal("perf-warn-modal")} />
+              <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("perf-warn-modal")} />
               <Button
                 text="Send Warning"
                 variant="danger"
@@ -187,10 +187,10 @@ export default function Overview() {
               meta={`Conversion: ${apprRow.conversion}`}
             />
             <ModalGrid title="Performance Stats" cols={2}>
-              <ModalData label="Calls"   value={apprRow.calls} />
-              <ModalData label="Sales"   value={apprRow.sales} />
-              <ModalData label="Revenue" value={apprRow.revenue} />
-              <ModalData label="Status"  value={apprRow.status} />
+              <ModalData label="Calls" value={apprRow.calls} />
+              <ModalData label="Sales" value={apprRow.sales} />
+
+              <ModalData label="Status" value={apprRow.status} />
             </ModalGrid>
             <DataField
               label="Appreciation Note"
@@ -203,7 +203,7 @@ export default function Overview() {
               size={12}
             />
             <div className="flex justify-end gap-3 pt-2 border-t border-slate-100">
-              <Button text="Cancel"           variant="ghost"   size={3} onClick={() => closeModal("perf-appr-modal")} />
+              <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("perf-appr-modal")} />
               <Button
                 text="Send Appreciation"
                 variant="primary"
