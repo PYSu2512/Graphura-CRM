@@ -166,6 +166,9 @@ exports.sendRazorpayLink = catchAsync(async (req, res, next) => {
   }
 
   // Pass tenant adminId and proper parameter names expected by razorpay.service
+  // Include callback URL for Razorpay to redirect after payment
+  const callbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/finance/payments/success?prospectId=${prospectId}`;
+  
   const linkResult = await createPaymentLink({
     adminId: req.admin._id,
     amount,
@@ -173,6 +176,7 @@ exports.sendRazorpayLink = catchAsync(async (req, res, next) => {
     description: receipt,
     referenceId: receipt,
     customer,
+    callbackUrl,
   });
 
   // If createPaymentLink returned ok:false and contained no link, try fetching existing link explicitly

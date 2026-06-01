@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Heading, DashGrid, EnhancedDashCard, DataTable, Button,
   Modal, ModalProfile, ModalGrid, ModalData,
@@ -6,6 +7,7 @@ import {
   openModal, closeModal,
 } from "../../components/shared/Common_Components";
 import { CreditCard, CheckCircle, Clock, XCircle, Split, DollarSign, Eye, ShieldCheck, Ban, Link2 } from "lucide-react";
+import toast from "react-hot-toast";
 import apiClient from "../../services/apiClient";
 
 const fmt = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
@@ -24,12 +26,14 @@ const statusColor = (s) => {
 };
 
 export default function Payments() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [payments, setPayments] = useState([]);
   const [selected, setSelected] = useState(null);
   const [verifyForm, setVerifyForm] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [stats, setStats] = useState({ total: 0, successful: 0, pending: 0, failed: 0, partial: 0, full: 0 });
+  const [pollingActive, setPollingActive] = useState(false);
 
   const loadPayments = useCallback(async () => {
     setLoading(true);
@@ -47,9 +51,38 @@ export default function Payments() {
     }
   }, []);
 
+  // Load payments on mount
   useEffect(() => {
     loadPayments();
-  }, [loadPayments]);
+    
+    // Check if returning from successful payment
+    const successParam = searchParams.get('success');
+    if (successParam === 'true') {
+      toast.success('Payment received! Your records have been updated.');
+      setSearchParams({}, { replace: true });
+      // Reload payments immediately
+      loadPayments();
+    }
+  }, [loadPayments, searchParams, setSearchParams]);
+
+  // Polling mechanism: refresh payment status every 10 seconds
+  // This helps catch webhook updates in real-time
+  useEffect(() => {
+    // Only start polling if there are pending payments
+    const hasPending = payments.some(p => p.status === "Pending" || p.paymentLinkStatus === "SENT");
+    
+    if (hasPending && !pollingActive) {
+      setPollingActive(true);
+      const pollInterval = setInterval(() => {
+        loadPayments();
+      }, 10000); // Refresh every 10 seconds
+
+      return () => {
+        clearInterval(pollInterval);
+        setPollingActive(false);
+      };
+    }
+  }, [payments, pollingActive, loadPayments]);
 
   const total = stats.total || payments.length;
   const successful = stats.successful ?? payments.filter(p => p.status === "Successful").length;
