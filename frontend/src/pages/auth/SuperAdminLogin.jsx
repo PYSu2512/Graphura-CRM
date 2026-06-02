@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Shield,
   Globe,
@@ -375,9 +375,9 @@ const SuperAdminLogin = () => {
 
               {/* Forgot */}
               <div className="flex justify-end text-xs font-bold pt-2">
-                <a href="#" className="text-crm-navy hover:underline">
+                <Link to="/forgot-password" className="text-crm-navy hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
 
               {/* Submit */}

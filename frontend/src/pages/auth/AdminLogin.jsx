@@ -445,9 +445,9 @@ const AdminLogin = () => {
                   />
                   Remember me
                 </label>
-                <a href="#" className="text-crm-navy hover:underline">
+                <Link to="/forgot-password" className="text-crm-navy hover:underline">
                   Forgot password?
-                </a>
+                </Link>
               </div>
 
               {/* Submit Button */}

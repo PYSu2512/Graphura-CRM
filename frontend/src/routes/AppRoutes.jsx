@@ -15,6 +15,7 @@ import ManagementTeamLeaderRoutes from "./Manager/ManagementTeamLeaderRoutes";
 import ManagementEmployeeRoutes from "./Manager/ManagementEmployeeRoutes";
 import ClientRoutes from "./clientRoutes";
 import ClientLogin from "../pages/auth/ClientLogin";
+import ForgotPassword from "../pages/auth/ForgotPassword";
 import PaymentResult from "../pages/public/PaymentResult";
 
 function AppRoutes() {
@@ -33,6 +34,7 @@ function AppRoutes() {
         <Route path="/admin-register" element={<AdminRegister />} />
         <Route path="/login" element={<DepartmentLogin />} />
         <Route path="/client-login" element={<ClientLogin />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/department/*" element={<DepartmentWorkspace />} />
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminRoutes />} />
