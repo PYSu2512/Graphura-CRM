@@ -976,6 +976,8 @@ export const DataTable = ({
   // Example: userProfile="name"  → the "name" column gets an avatar prefix
   userProfile,
   onApplyFilters,      // (filters) => void
+  defaultSortKey,
+  defaultSortDir = "asc",
 }) => {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -983,8 +985,8 @@ export const DataTable = ({
     () => Number(pageSize) || 5,
   );
   const [sortConfig, setSortConfig] = useState({
-    key: columns?.[0]?.key || null,
-    direction: "asc",
+    key: defaultSortKey !== undefined ? defaultSortKey : (columns?.[0]?.key || null),
+    direction: defaultSortDir,
   });
 
   // ── Filter modal state ──────────────────────────────────────────────────────

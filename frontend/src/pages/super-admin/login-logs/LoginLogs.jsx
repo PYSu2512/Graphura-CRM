@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
   Shield,
   Eye,
   ShieldAlert,
   UserCheck,
   Map as MapIcon,
+  Loader2,
 } from "lucide-react";
 
 import {
@@ -21,6 +22,9 @@ import {
   openModal,
   closeModal,
 } from "./../../../components/shared/Common_Components";
+import logService from "../../../services/logService";
+import { toast } from "react-hot-toast";
+
 const ROLE_DEPT = {
   "Admin": "Administration",
   "User": "General",
@@ -96,11 +100,62 @@ const exportCSV = (data) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const LoginLogs = () => {
   const [selectedRow, setSelectedRow] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchLogs = async () => {
+    try {
+      setLoading(true);
+      const res = await logService.getAdminLoginLogs();
+      if (res.success && res.data && res.data.logs) {
+        const mapped = res.data.logs.map((l) => {
+          const d = new Date(l.loginAt);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const dateVal = String(d.getDate()).padStart(2, '0');
+          const dateStr = `${year}-${month}-${dateVal}`;
+          const timeStr = d.toTimeString().split(' ')[0];
+
+          return {
+            id: l._id,
+            user: l.admin?.name || 'Unknown',
+            company: l.admin?.company?.name || '—',
+            email: l.email || '—',
+            role: l.role === 'ADMIN' ? 'Admin' : l.role,
+            loginAt: `${dateStr} ${timeStr}`,
+            logoutAt: null,
+            status: l.isSuccess ? 'Success' : 'Failed',
+            device: l.device || 'Unknown',
+            os: '—',
+            browser: '—',
+            ip: l.ipAddress || '—',
+            city: '—',
+            lat: l.latitude || 0,
+            lng: l.longitude || 0,
+          };
+        });
+
+        // Make the order in latest to old logins
+        mapped.sort((a, b) => new Date(b.loginAt) - new Date(a.loginAt));
+
+        setLogs(mapped);
+      }
+    } catch (err) {
+      console.error("Failed to fetch admin login logs:", err);
+      toast.error("Failed to load admin login logs");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
 
   // ── Admin-only logs (this page audits admin activity) ──
   const adminLogs = useMemo(
-    () => ALL_LOGS.filter((log) => log.role === "Admin"),
-    [],
+    () => logs.filter((log) => log.role === "Admin"),
+    [logs],
   );
 
   // ── Stat cards ──
@@ -145,6 +200,17 @@ const LoginLogs = () => {
       },
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-[#2a465a]" />
+          <p className="text-sm font-semibold text-slate-500">Loading admin login logs...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -198,6 +264,8 @@ const LoginLogs = () => {
           pageSize={5}
           searchable={true}
           title="Admin Records"
+          defaultSortKey="loginAt"
+          defaultSortDir="desc"
         />
       </Grid>
 
