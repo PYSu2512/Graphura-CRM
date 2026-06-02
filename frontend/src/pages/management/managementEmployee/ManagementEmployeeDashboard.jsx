@@ -1,7 +1,7 @@
 import {
   Grid,
   Heading,
-  DashCard,
+  EnhancedDashCard,
   DataTable,
   GColumnChart,
   GPieChart,
@@ -56,7 +56,7 @@ export default function ManagementEmployeeDashboard() {
       {/* ── 2. KPI Cards (4 metrics) ──────────────────────────────────── */}
       <Grid cols={12} gap={4}>
         {dashboardKPIs.map((k, i) => (
-          <DashCard
+          <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}
