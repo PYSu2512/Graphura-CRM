@@ -42,29 +42,26 @@ const mapBackendTicketToAdminShape = (t) => {
     id: t._id,
     user: t.raisedBy?.name || "Unknown",
     role: t.raisedBy?.role || "",
-    department: t.raisedBy?.department || "N/A",
     category: t.refType || "System",
     issue: t.message || "",
     priority: priorityMap[t.priority] || "Medium",
     status: statusMap[t.status] || "Open",
     time,
-    assignedTo: t.assignedTo?.name || "Unassigned",
     sla: t.isEscalated ? "Escalated" : (t.status === "RESOLVED" || t.status === "CLOSED" ? "Resolved" : "Active"),
   };
 };
 
 const columns = [
   { key: "user", label: "Reported By" },
-  { key: "department", label: "Department" },
+  { key: "role", label: "Role" },
   { key: "category", label: "Category" },
   { key: "priority", label: "Priority" },
   { key: "status", label: "Status" },
-  { key: "assignedTo", label: "Assigned To" },
   { key: "sla", label: "SLA Timer" },
   { key: "time", label: "Last Activity" },
 ];
 
-const defaultForm = { user: "", role: "Sales Executive", department: "Sales", category: "CRM Bug", issue: "", priority: "Medium", status: "Open", assignedTo: "", sla: "24h left" };
+const defaultForm = { user: "", role: "Sales Executive", category: "CRM Bug", issue: "", priority: "Medium", status: "Open", sla: "24h left" };
 
 // ── Component ──────────────────────────────────────────────────────────────
 
@@ -129,20 +126,20 @@ export default function Support() {
     return trend;
   })();
 
-  // Dynamic deptIssueData
-  const deptIssueData = (() => {
-    const depts = {};
+  // Dynamic roleIssueData
+  const roleIssueData = (() => {
+    const roles = {};
     tickets.forEach(t => {
-      const dept = t.department || "Other";
-      if (!depts[dept]) {
-        depts[dept] = { name: dept, tickets: 0, resolved: 0 };
+      const role = t.role || "Other";
+      if (!roles[role]) {
+        roles[role] = { name: role, tickets: 0, resolved: 0 };
       }
-      depts[dept].tickets++;
+      roles[role].tickets++;
       if (t.status === "Resolved") {
-        depts[dept].resolved++;
+        roles[role].resolved++;
       }
     });
-    return Object.values(depts);
+    return Object.values(roles);
   })();
 
   // Dynamic operationalAlerts
@@ -268,8 +265,8 @@ export default function Support() {
             { key: "resolved", label: "Resolved", color: "#22c55e" },
             { key: "escalated", label: "Escalated", color: "#ef4444" },
           ]} size={8} height={260} />
-        <GBarChart title="Dept Issue Distribution" subtitle="Tickets vs resolved"
-          data={deptIssueData}
+        <GBarChart title="Role Issue Distribution" subtitle="Tickets vs resolved"
+          data={roleIssueData}
           bars={[
             { key: "tickets", label: "Total", color: "#94a3b8" },
             { key: "resolved", label: "Resolved", color: "#2a465a" },
@@ -286,7 +283,7 @@ export default function Support() {
         filters={[
           { title: "Status", key: "status", type: "toggle", options: ["Open", "In Progress", "Escalated", "Resolved"] },
           { title: "Priority", key: "priority", type: "toggle", options: ["Low", "Medium", "High"] },
-          { title: "Department", key: "department", type: "toggle", options: ["Sales", "Finance", "Mgmt", "HR"] },
+          { title: "Role", key: "role", type: "toggle", options: ["Sales Executive", "Sales Manager", "Finance Manager", "Finance Analyst", "Management Lead"] },
         ]}
       />
 
@@ -316,9 +313,8 @@ export default function Support() {
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: "Department", val: selectedTicket.department },
+                { label: "Role", val: selectedTicket.role },
                 { label: "Category", val: selectedTicket.category },
-                { label: "Assigned To", val: selectedTicket.assignedTo },
                 { label: "Last Activity", val: selectedTicket.time },
               ].map(({ label, val }) => (
                 <div key={label}>
@@ -353,15 +349,13 @@ export default function Support() {
             <FormSelect label="Role" field="role" options={["Sales Executive", "Sales Manager", "Finance Manager", "Finance Analyst", "Management Lead"]} />
           </div>
           <div className="grid grid-cols-2 gap-4">
-            <FormSelect label="Department" field="department" options={["Sales", "Finance", "Mgmt", "HR"]} />
             <FormSelect label="Category" field="category" options={["CRM Bug", "Lead Data Issue", "Payment Issue", "Account/Login Issue", "Report Issue"]} />
+            <FormSelect label="Priority" field="priority" options={["Low", "Medium", "High"]} />
           </div>
           <FormInput label="Issue Description" field="issue" multiline placeholder="Describe the issue in detail" />
-          <div className="grid grid-cols-2 gap-4">
-            <FormSelect label="Priority" field="priority" options={["Low", "Medium", "High"]} />
+          <div className="grid grid-cols-1">
             <FormSelect label="Status" field="status" options={["Open", "In Progress", "Escalated", "Resolved"]} />
           </div>
-          <FormInput label="Assigned To" field="assignedTo" placeholder="e.g. Tech Team" />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
             <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("ticket-form-modal")} disabled={isSubmitting} />

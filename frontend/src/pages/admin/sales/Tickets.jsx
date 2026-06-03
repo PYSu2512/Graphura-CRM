@@ -83,7 +83,6 @@ export default function Tickets() {
     { key: "customer", label: "Requester" },
     { key: "priority", label: "Priority" },
     { key: "status", label: "State" },
-    { key: "assignee", label: "Owner" },
     { key: "lastUpdate", label: "Updated" },
   ];
 
@@ -277,12 +276,6 @@ export default function Tickets() {
               <Option value="medium" label="Medium Range" />
               <Option value="high" label="High Priority" />
               <Option value="urgent" label="Immediate Internal Action" />
-            </SelectField>
-            <SelectField label="Assigned Strategist" id="ticket-assignee" size={12} placeholder="Account Owner">
-              <Option value="rahul" label="Rahul S. — Sr. Associate" />
-              <Option value="neha" label="Neha S. — Technical" />
-              <Option value="deepika" label="Deepika N. — Support" />
-              <Option value="anita" label="Anita B. — Success" />
             </SelectField>
           </Grid>
           <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-100">

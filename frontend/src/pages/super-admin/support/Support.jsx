@@ -340,7 +340,6 @@ export default function Support() {
               <ModalData label="Company Name" value={selectedTicket.company} />
               <ModalData label="Priority" value={selectedTicket.priority} />
               <ModalData label="Category" value={selectedTicket.category} />
-              <ModalData label="Assigned To" value={selectedTicket.assignedTo} />
               <ModalData label="Last Update" value={selectedTicket.lastUpdate} />
             </div>
             <ModalData label="Subject" value={selectedTicket.subject} />
