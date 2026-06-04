@@ -327,9 +327,10 @@ const sendProspectQuotationEmail = async (payload) => {
               </table>
 
               <div style="margin-top:18px;display:grid;gap:8px;">
-                <div style="display:flex;justify-content:space-between;"><span>Base Cost</span><strong>₹${Number(payload.baseCost || 0).toLocaleString('en-IN')}</strong></div>
-                <div style="display:flex;justify-content:space-between;"><span>Discount</span><strong>- ₹${Number(payload.discountAmount || 0).toLocaleString('en-IN')}</strong></div>
-                <div style="display:flex;justify-content:space-between;padding-top:10px;border-top:1px solid #e5e7eb;"><span>Final Amount</span><strong>₹${Number(payload.finalAmount || 0).toLocaleString('en-IN')}</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;color:#4b5563;"><span>Service Value</span><strong>₹${Number(payload.baseCost || 0).toLocaleString('en-IN')}</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;color:#4b5563;"><span>Discount</span><strong>- ₹${Number(payload.discountAmount || 0).toLocaleString('en-IN')}</strong></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px;color:#4b5563;padding-bottom:8px;border-bottom:1px dashed #e5e7eb;"><span>GST (18%)</span><strong>+ ₹${Math.round((Number(payload.baseCost || 0) - Number(payload.discountAmount || 0)) * 0.18).toLocaleString('en-IN')}</strong></div>
+                <div style="display:flex;justify-content:space-between;padding-top:10px;font-size:16px;color:#0f172a;"><span>Final Project Value</span><strong>₹${Number(payload.finalAmount || 0).toLocaleString('en-IN')}</strong></div>
               </div>
 
               ${payload.termsAndConditions ? `<div style="margin-top:24px;padding:16px;border-left:4px solid #2563eb;background:#eff6ff;border-radius:8px;"><strong>Terms & Conditions</strong><div style="margin-top:8px;white-space:pre-line;line-height:1.6;">${payload.termsAndConditions}</div></div>` : ''}

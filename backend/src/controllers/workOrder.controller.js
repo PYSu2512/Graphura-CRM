@@ -580,7 +580,9 @@ exports.autoCreateWorkOrder = async ({ adminId, prospectId, paymentId, createdBy
       requirements.push({ title: 'Professional Services', cost: payment.amount, description: '' });
     }
 
-    const { totalCost, discountAmt, netPayable } = calcFinancials(requirements, 'None', '');
+    const totalCost = prospect?.totalAmount || 0;
+    const discountAmt = prospect?.discount || 0;
+    const netPayable = prospect?.finalAmount || 0;
 
     const counter = await WoCounter.findOneAndUpdate(
       { admin: adminId },

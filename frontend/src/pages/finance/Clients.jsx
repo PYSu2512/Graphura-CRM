@@ -151,9 +151,12 @@ export default function Clients() {
   const totalDiscount  = actionForm.requirements.reduce((sum, r) => sum + (parseFloat(r.discountAmt) || 0), 0);
   const netPayable     = actionForm.requirements.reduce((sum, r) => sum + (parseFloat(r.netCost) || 0), 0);
   
+  const gstAmount      = Math.round(netPayable * 0.18);
+  const totalProjectValue = netPayable + gstAmount;
+
   // Real-time totals from actionForm (initialized from backend)
   const totalPaid      = actionForm.totalPaid || 0;
-  const totalUnpaid    = Math.max(0, netPayable - totalPaid);
+  const totalUnpaid    = Math.max(0, totalProjectValue - totalPaid);
 
   const advancePayments = actionForm.advancePayments || [];
   const advancePaid   = Math.min(totalUnpaid, advancePayments.reduce((sum, p) => sum + calcAdvAmount(totalUnpaid, p.mode, p.value), 0));
@@ -846,7 +849,7 @@ export default function Clients() {
                     <DataField
                       label="GST"
                       id="client-gst"
-                      value="18% Included"
+                      value="18% (Added on top)"
                       readOnly
                       disabled
                       size={12}
@@ -1043,9 +1046,17 @@ export default function Clients() {
                       Financial Summary
                     </p>
                     <div className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col gap-2.5">
-                      <div className="flex justify-between text-sm font-bold text-[#2a465a]">
-                        <span>Total Project Value</span>
+                      <div className="flex justify-between text-sm font-semibold text-slate-600">
+                        <span>Total Service Value</span>
                         <span>{fmt(netPayable)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-semibold text-slate-600 border-b border-slate-100 pb-2.5">
+                        <span>GST (18%)</span>
+                        <span>{fmt(gstAmount)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold text-[#2a465a] pt-1">
+                        <span>Total Project Value</span>
+                        <span>{fmt(totalProjectValue)}</span>
                       </div>
 
                       {advancePaid > 0 && (
