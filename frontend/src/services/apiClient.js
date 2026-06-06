@@ -20,8 +20,8 @@ const apiClient = axios.create({
 // ────────────────────────────────────────────────────────────
 apiClient.interceptors.request.use(
   (config) => {
-    // Check sessionStorage first (Admin/User), then localStorage (SuperAdmin)
-    const token = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken');
+    // Look for accessToken only in sessionStorage
+    const token = sessionStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

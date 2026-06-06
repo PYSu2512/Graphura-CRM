@@ -289,7 +289,7 @@ function getStoredProfile() {
     const storedKeys = [
       { key: "user", storage: sessionStorage },
       { key: "admin", storage: sessionStorage },
-      { key: "superAdmin", storage: localStorage },
+      { key: "superAdmin", storage: sessionStorage },
     ];
 
     for (const { key, storage } of storedKeys) {

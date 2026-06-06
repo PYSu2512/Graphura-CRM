@@ -171,31 +171,66 @@ export default function HRM() {
     }
   };
 
+  const [attendance, setAttendance] = useState([]);
+  const [attLoading, setAttLoading] = useState(false);
+  const [attDate, setAttDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+
+  const fetchAttendance = async (filters = {}) => {
+    setAttLoading(true);
+    try {
+      const params = { ...filters };
+      if (!params.startDate) params.startDate = attDate;
+      if (!params.endDate)   params.endDate   = attDate;
+
+      const res = await hrmService.getTeamAttendance(params);
+      if (res.success) {
+        const mapped = res.data.map(a => {
+          const att = a.attendance;
+          const formatTime = (iso) => {
+            if (!iso) return "—";
+            return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          };
+          const formatHours = (hours) => {
+            const h = Math.floor(hours || 0);
+            const m = Math.round(((hours || 0) % 1) * 60);
+            return `${h}h ${m}m`;
+          };
+          return {
+            ...a,
+            id: a.id,
+            name: a.name,
+            department: a.department || "Unknown",
+            date: new Date(a.date).toISOString().split('T')[0],
+            clockIn: formatTime(att?.clockIn),
+            clockOut: formatTime(att?.clockOut),
+            totalHours: att?.clockOut ? formatHours(att.hoursWorked) : (att?.clockIn ? "Working..." : "—"),
+            attStatus: a.status
+          };
+        });
+        setAttendance(mapped);
+      }
+    } catch (err) {
+      console.error("Failed to fetch attendance:", err);
+    } finally {
+      setAttLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchLeaves();
+    fetchAttendance();
   }, []);
 
-  const LEAVE_TYPES = [
-    'Sick Leave', 'Casual Leave', 'Earned Leave', 'Maternity Leave',
-    'Paternity Leave', 'Bereavement Leave', 'Unpaid Leave', 'Half Day', 'Other'
-  ];
+  useEffect(() => {
+    fetchAttendance({ startDate: attDate, endDate: attDate });
+  }, [attDate]);
 
-  const leaveStats = [
-    { name: 'Approved', value: allLeaves.filter(l => l.status === 'APPROVED').length },
-    { name: 'Pending', value: allLeaves.filter(l => l.status === 'PENDING').length },
-    { name: 'Rejected', value: allLeaves.filter(l => l.status === 'REJECTED').length },
-  ];
-
-  const onLeaveTodayCount = allLeaves.filter(l => {
-    if (l.status !== 'APPROVED') return false;
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const start = new Date(l.fromDate);
-    start.setHours(0,0,0,0);
-    const end = new Date(l.toDate);
-    end.setHours(23,59,59,999);
-    return today >= start && today <= end;
-  }).length;
+  const totalEmp = 135; // Still using static for now, or could fetch all users count
+  const presentToday = attendance.filter(r => ["Present", "Active", "Late"].includes(r.attStatus)).length;
+  const absentToday  = attendance.filter(r => r.attStatus === "Absent").length;
 
   const handleUpdateStatus = async (id, status) => {
     if (!id) {
@@ -348,9 +383,9 @@ export default function HRM() {
       {activeTab === 'Overview' && (
         <div className="space-y-6">
           <DashGrid cols={12} gap={6}>
-            <EnhancedDashCard title="Total Employees" value="135" icon={<Users size={22} />} accentColor="#38bdf8" size={3} />
-            <EnhancedDashCard title="Present Today" value="118" icon={<UserCheck size={22} />} accentColor="#22c55e" size={3} />
-            <EnhancedDashCard title="Absent Today" value="7" icon={<UserX size={22} />} accentColor="#f43f5e" size={3} />
+            <EnhancedDashCard title="Total Employees" value={String(totalEmp)} icon={<Users size={22} />} accentColor="#38bdf8" size={3} />
+            <EnhancedDashCard title="Present Today" value={String(presentToday)} icon={<UserCheck size={22} />} accentColor="#22c55e" size={3} />
+            <EnhancedDashCard title="Absent Today" value={String(absentToday)} icon={<UserX size={22} />} accentColor="#f43f5e" size={3} />
             <EnhancedDashCard title="On Leave" value={String(onLeaveTodayCount)} icon={<Calendar size={22} />} accentColor="#eab308" size={3} />
           </DashGrid>
 
@@ -360,8 +395,8 @@ export default function HRM() {
               data={attendanceTrendData}
               lines={[
                 { key: "present", label: "Present", color: "#3b82f6" },
-                { key: "absent", label: "Absent", color: "#f59e0b" },
-                { key: "leave", label: "Leave", color: "#f43f5e" },
+                { key: "absent",  label: "Absent", color: "#f59e0b" },
+                { key: "leave",   label: "Leave", color: "#f43f5e" },
               ]}
               size={8} height={320}
             />
@@ -370,18 +405,6 @@ export default function HRM() {
               data={leaveStats}
               colors={["#10b981", "#f59e0b", "#f43f5e"]}
               size={4} height={320} innerRadius={80}
-            />
-            <GColumnChart
-              title="Department Attendance"
-              data={departmentData}
-              bars={[{ key: "attendance", label: "Attendance %", color: "#3b82f6" }]}
-              size={7} height={320}
-            />
-            <GDoughnutChart
-              title="Employee Composition"
-              data={employeeCompositionData}
-              colors={["#8b5cf6", "#14b8a6", "#f43f5e", "#22c55e", "#f59e0b"]}
-              size={5} height={320} innerRadius={70}
             />
           </DashGrid>
         </div>
@@ -400,12 +423,22 @@ export default function HRM() {
 
       {activeTab === 'Attendance' && (
         <div className="flex-col gap-3 w-full">
-          <div className="flex justify-end mb-4">
-            <button onClick={() => handleExportCSV(attendanceColumns, styledFilteredAttendanceRows, 'attendance_export.csv')} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm w-full sm:w-auto justify-center">
-               <Download size={16} /> Export CSV
-            </button>
-          </div>
-          <DataTable columns={attendanceColumns} rows={styledFilteredAttendanceRows} size={12} pageSize={10} searchable={true} />
+          <DataTable 
+            title={`Attendance for ${attDate}`}
+            columns={attendanceColumns} 
+            rows={attendance} 
+            loading={attLoading}
+            size={12} 
+            pageSize={10} 
+            searchable={true} 
+            onDateFilter={true}
+            onApplyFilters={(f) => { if (f.startDate) setAttDate(f.startDate); }}
+            exportable
+            exportFileName={`attendance_${attDate}`}
+            filters={[
+              { title: "Status", type: "toggle", key: "attStatus", options: ["Present", "Active", "Absent", "Leave", "Half Day"] },
+            ]}
+          />
         </div>
       )}
 

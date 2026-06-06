@@ -1,6 +1,6 @@
 /**
  * useCurrentUser
- * Reads the logged-in user from localStorage (set by authService on login).
+ * Reads the logged-in user from sessionStorage (set by authService on login).
  * Returns the user object or null if not logged in.
  *
  * Shape (from backend): { _id, name, email, role, department, ... }
@@ -12,7 +12,7 @@ export function useCurrentUser() {
     try {
       const raw = sessionStorage.getItem("user") || 
                   sessionStorage.getItem("admin") || 
-                  localStorage.getItem("superAdmin");
+                  sessionStorage.getItem("superAdmin");
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;

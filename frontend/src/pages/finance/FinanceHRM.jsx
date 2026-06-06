@@ -99,10 +99,19 @@ export default function FinanceHRM() {
   const [applyError, setApplyError] = useState({});
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchAttendance = useCallback(async () => {
+  const [attDate, setAttDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+
+  const fetchAttendance = useCallback(async (filters = {}) => {
     try {
       setLoading(true);
-      const res = await hrmService.getMyAttendanceHistory();
+      const params = { ...filters };
+      if (!params.startDate) params.startDate = attDate;
+      if (!params.endDate)   params.endDate   = attDate;
+
+      const res = await hrmService.getMyAttendanceHistory(params);
       if (res.success && res.data) {
         const rows = res.data.map(a => {
           const d = new Date(a.date);
@@ -110,8 +119,7 @@ export default function FinanceHRM() {
           
           const formatTime = (iso) => {
             if (!iso) return "—";
-            const dt = new Date(iso);
-            return dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
           };
 
           const clockInTime = formatTime(a.clockIn);
@@ -123,25 +131,23 @@ export default function FinanceHRM() {
           else if (a.clockIn && !a.clockOut) status = "Working";
           else if (a.clockIn && a.clockOut) status = "Present";
 
-          let hoursStr = "—";
-          if (a.hoursWorked) {
-            const h = Math.floor(a.hoursWorked);
-            const m = Math.round((a.hoursWorked - h) * 60);
-            hoursStr = `${h}h ${m}m`;
-          }
+          const formatHours = (hours) => {
+            const h = Math.floor(hours || 0);
+            const m = Math.round(((hours || 0) % 1) * 60);
+            return `${h}h ${m}m`;
+          };
 
           return {
             ...a,
             date: dateStr,
             clockIn: clockInTime,
             clockOut: clockOutTime,
-            hours: hoursStr,
+            hours: a.clockOut ? formatHours(a.hoursWorked) : (a.clockIn ? "Working..." : "—"),
             status
           };
         });
         setAttendance(rows);
 
-        // Derive stats (for the purpose of this mock-derived summary)
         const presentCount = rows.filter(r => ["Present", "Working"].includes(r.status)).length;
         const absentCount = rows.filter(r => r.status === "Absent").length;
         setStats(prev => ({
@@ -157,7 +163,7 @@ export default function FinanceHRM() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [attDate]);
 
   const fetchLeaves = useCallback(async () => {
     try {
@@ -307,16 +313,18 @@ export default function FinanceHRM() {
 
           {/* Attendance table */}
           <DataTable
-            title="Attendance Records"
+            title={`Attendance for ${attDate}`}
             columns={ATT_COLS}
             rows={attendance}
             loading={loading}
+            onDateFilter={true}
+            onApplyFilters={(f) => { if (f.startDate) setAttDate(f.startDate); }}
             actions={[{
               icon: <Eye size={15}/>, tooltip: "View",
               variant: "ghost",
               onClick: (row) => { setAttSelected(row); openModal("fin-att-view"); },
             }]}
-            size={12} pageSize={5} searchable exportable exportFileName="finance-attendance"
+            size={12} pageSize={5} searchable exportable exportFileName={`finance-attendance_${attDate}`}
             filters={[
               { title: "Status", type: "toggle", key: "status", options: ["Present","Working","Absent","Half Day"] },
             ]}

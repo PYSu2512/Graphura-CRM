@@ -138,9 +138,9 @@ export const loginSuperAdmin = async (payload) => {
     });
 
     if (response.data.data?.accessToken) {
-      localStorage.setItem('accessToken', response.data.data.accessToken);
-      localStorage.setItem('refreshToken', response.data.data.refreshToken);
-      localStorage.setItem('superAdmin', JSON.stringify(response.data.data.superAdmin));
+      sessionStorage.setItem('accessToken', response.data.data.accessToken);
+      sessionStorage.setItem('refreshToken', response.data.data.refreshToken);
+      sessionStorage.setItem('superAdmin', JSON.stringify(response.data.data.superAdmin));
     }
 
     return response.data;
@@ -171,7 +171,9 @@ export const logout = () => {
   sessionStorage.removeItem('refreshToken');
   sessionStorage.removeItem('admin');
   sessionStorage.removeItem('user');
+  sessionStorage.removeItem('superAdmin');
   
+  // Legacy cleanup
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('superAdmin');

@@ -1,5 +1,5 @@
 import { CalendarClock, CalendarDays, Clock, Eye } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
     Button,
     closeModal,
@@ -14,7 +14,7 @@ import {
 } from "../../../../components/shared/Common_Components.jsx";
 import SessionTimer from "../../../../components/shared/SessionTimer";
 import { useAttendance } from "../../../../context/AttendanceContext";
-import { attendanceRecords } from "./hrmStore";
+import { hrmService } from "../../../../services/hrmService";
 
 const KPI_ICONS = [
   <CalendarDays size={22} />, 
@@ -24,18 +24,12 @@ const KPI_ICONS = [
 ];
 
 const COLS = [
-  { key: "date", label: "Date" },
+  { key: "dateDisplay", label: "Date" },
   { key: "clockIn", label: "Clock In" },
   { key: "clockOut", label: "Clock Out" },
-  { key: "hours", label: "Total Hours" },
+  { key: "hoursWorked", label: "Total Hours" },
   { key: "status", label: "Status" },
 ];
-
-function parseHours(hours) {
-  const match = hours.match(/(\d+)h\s*(\d+)m/);
-  if (!match) return 0;
-  return Number(match[1]) + Number(match[2]) / 60;
-}
 
 function AttendanceWidget() {
   const ctx = useAttendance();
@@ -54,30 +48,58 @@ function AttendanceWidget() {
 
 export default function Attendance() {
   const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [records, setRecords] = useState([]);
+  const [dateFilter, setDateFilter] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
-  const todayRecord = attendanceRecords[attendanceRecords.length - 1];
-  const todayStatus = todayRecord?.status ?? "Absent";
-  const weekCount = attendanceRecords.filter((rec) => {
-    const d = new Date(rec.date);
-    const now = new Date("2026-05-25");
-    return (now - d) / 86400000 <= 7;
-  }).length;
-  const monthCount = attendanceRecords.filter((rec) => {
-    const d = new Date(rec.date);
-    const now = new Date("2026-05-25");
-    return (now - d) / 86400000 <= 30;
-  }).length;
-  const avgHours = (
-    attendanceRecords.reduce((sum, rec) => sum + parseHours(rec.hours), 0) /
-    attendanceRecords.length
-  ).toFixed(1);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await hrmService.getMyAttendanceHistory({ startDate: dateFilter, endDate: dateFilter });
+      if (res.statusCode === 200) {
+        setRecords(res.data.map(r => {
+          const formatHours = (hours) => {
+            const h = Math.floor(hours || 0);
+            const m = Math.round(((hours || 0) % 1) * 60);
+            return `${h}h ${m}m`;
+          };
 
-  const kpis = [
-    { title: "Today's status", value: todayStatus },
-    { title: "This Week", value: String(weekCount) },
-    { title: "This Month", value: String(monthCount) },
-    { title: "Avg Hours", value: `${avgHours}h` },
-  ];
+          return {
+            ...r,
+            dateDisplay: new Date(r.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+            clockIn: r.clockIn ? new Date(r.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+            clockOut: r.clockOut ? new Date(r.clockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+            hoursWorked: r.clockOut ? formatHours(r.hoursWorked) : (r.clockIn ? "Working..." : "—"),
+            status: r.isAbsent ? "Absent" : (r.clockOut ? "Present" : "Active")
+          };
+        }));
+      }
+    } catch (err) {
+      console.error("Failed to fetch my attendance:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateFilter]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const kpis = useMemo(() => {
+    const todayRec = records[0]; // Since we filter by one day, it's the first one if it exists
+    const status = todayRec ? todayRec.status : "Absent";
+    const hours = todayRec ? todayRec.hoursWorked : "0h 0m";
+
+    return [
+      { title: "Today's Status", value: status },
+      { title: "Hours Worked", value: hours },
+      { title: "Shift Target", value: "8h 0m" },
+      { title: "Selected Date", value: new Date(dateFilter).toLocaleDateString('en-US', { day: '2-digit', month: 'short' }) },
+    ];
+  }, [records, dateFilter]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,7 +122,10 @@ export default function Attendance() {
       <DataTable
         title="My Attendance History"
         columns={COLS}
-        rows={attendanceRecords}
+        rows={records}
+        loading={loading}
+        onDateFilter={true}
+        onApplyFilters={(f) => { if (f.startDate) setDateFilter(f.startDate); }}
         actions={[
           {
             icon: <Eye size={15} />,
@@ -116,7 +141,7 @@ export default function Attendance() {
         pageSize={10}
         searchable
         exportable
-        exportFileName="my_attendance_history"
+        exportFileName={`my_attendance_${dateFilter}`}
         filters={[
           { title: "Status", type: "toggle", key: "status", options: ["Present", "Active", "Absent"] },
         ]}
@@ -126,11 +151,11 @@ export default function Attendance() {
         {selected && (
           <div className="flex flex-col gap-4">
             <ModalGrid title="Attendance Info" cols={2}>
-              <ModalData label="Date" value={selected.date} />
+              <ModalData label="Date" value={selected.dateDisplay} />
               <ModalData label="Status" value={selected.status} />
               <ModalData label="Clock In" value={selected.clockIn} />
               <ModalData label="Clock Out" value={selected.clockOut} />
-              <ModalData label="Total Hours" value={selected.hours} />
+              <ModalData label="Total Hours" value={selected.hoursWorked} />
             </ModalGrid>
             <div className="flex justify-end pt-2">
               <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("me-att-view-modal")} />
@@ -141,3 +166,4 @@ export default function Attendance() {
     </div>
   );
 }
+

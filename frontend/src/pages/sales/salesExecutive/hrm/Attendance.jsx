@@ -46,11 +46,19 @@ export default function Attendance() {
   const [selected, setSelected] = useState(null);
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [attDate, setAttDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
 
-  const fetchMyAttendance = async () => {
+  const fetchMyAttendance = async (filters = {}) => {
     setLoading(true);
     try {
-      const res = await hrmService.getMyAttendanceHistory();
+      const params = { ...filters };
+      if (!params.startDate) params.startDate = attDate;
+      if (!params.endDate)   params.endDate   = attDate;
+
+      const res = await hrmService.getMyAttendanceHistory(params);
       if (res.success) {
         const mapped = res.data.map(r => {
           const formatTime = (date) => {
@@ -86,7 +94,7 @@ export default function Attendance() {
 
   useEffect(() => {
     fetchMyAttendance();
-  }, []);
+  }, [attDate]);
 
   const totalDays = records.length;
   const presentDays = records.filter(r => r.status === "Present" || r.status === "Active").length;
@@ -122,10 +130,12 @@ export default function Attendance() {
 
       {/* ── Attendance Table ── */}
       <DataTable
-        title="Attendance Records"
+        title={`Attendance for ${attDate}`}
         columns={COLS}
         rows={records}
         loading={loading}
+        onDateFilter={true}
+        onApplyFilters={(f) => { if (f.startDate) setAttDate(f.startDate); }}
         actions={[
           {
             icon: <Eye size={15} />,
@@ -137,10 +147,8 @@ export default function Attendance() {
         size={12}
         pageSize={10}
         searchable
-        onDateFilter={true}
-        date
         exportable
-        exportFileName="attendance-report"
+        exportFileName={`attendance_${attDate}`}
         filters={[
           { title: "Status", type: "toggle", key: "status", options: ["Present", "Absent", "Active", "Half Day"] },
         ]}

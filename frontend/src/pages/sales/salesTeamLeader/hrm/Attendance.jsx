@@ -45,6 +45,10 @@ function MyAttendanceWidget() {
 export default function Attendance() {
   const [selected, setSelected] = useState(null);
   const [teamAttendance, setTeamAttendance] = useState([]);
+  const [attDate, setAttDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
   const [currentFilters, setCurrentFilters] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -52,12 +56,9 @@ export default function Attendance() {
     setLoading(true);
     try {
       const params = { ...filters };
-      if (!params.startDate && !params.endDate) {
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        params.startDate = todayStr;
-        params.endDate = todayStr;
-      }
+      if (!params.startDate) params.startDate = attDate;
+      if (!params.endDate)   params.endDate   = attDate;
+
       const res = await hrmService.getTeamAttendance(params);
       if (res.success) {
         const mapped = res.data.map(u => {
@@ -80,6 +81,12 @@ export default function Attendance() {
           const d = new Date(u.date);
           const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+          const formatHours = (hours) => {
+            const h = Math.floor(hours || 0);
+            const m = Math.round(((hours || 0) % 1) * 60);
+            return `${h}h ${m}m`;
+          };
+
           return {
             id: u.id,
             name: u.name,
@@ -87,7 +94,7 @@ export default function Attendance() {
             date: dateStr,
             clockIn: formatTime(att?.clockIn),
             clockOut: formatTime(att?.clockOut),
-            hours: att?.hoursWorked ? `${att.hoursWorked}h` : "—",
+            hours: att?.clockOut ? formatHours(att.hoursWorked) : (att?.clockIn ? "Working..." : "—"),
             status: status,
             raw: u // Keep raw data for modal
           };
@@ -105,9 +112,10 @@ export default function Attendance() {
     fetchTeam(currentFilters);
     const interval = setInterval(() => fetchTeam(currentFilters), 60000); // Auto-refresh every 60s
     return () => clearInterval(interval);
-  }, [currentFilters]);
+  }, [currentFilters, attDate]);
 
   const handleApplyFilters = (filters) => {
+    if (filters.startDate) setAttDate(filters.startDate);
     setCurrentFilters(filters);
   };
 
@@ -154,22 +162,22 @@ export default function Attendance() {
 
       {/* ── Team executives' attendance log ───────────────────────────────── */}
       <DataTable
-        title="Team Attendance"
+        title={`Team Attendance for ${attDate}`}
         columns={COLS}
         rows={teamAttendance}
         userProfile="name"
         size={12}
         pageSize={10}
         searchable
-        date
+        onDateFilter={true}
+        onApplyFilters={handleApplyFilters}
         exportable
         loading={loading}
-        exportFileName="team_attendance"
+        exportFileName={`team_attendance_${attDate}`}
         filters={[
           { title: "Status",    type: "toggle", key: "status", options: ["Present", "Active", "Absent", "Leave"] },
           { title: "Executive", type: "select", key: "name",   options: executiveNames },
         ]}
-        onApplyFilters={handleApplyFilters}
         actions={[
           {
             icon: <Eye size={15} />, tooltip: "View Details", variant: "ghost",
