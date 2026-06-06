@@ -55,15 +55,15 @@ export default function LoginLogs() {
     {
       icon: <Eye size={15} />, tooltip: "View Details",
       variant: "ghost",
-      onClick: (row) => { setSelected(row); openModal("mm-log-view"); },
+      onClick: (row) => { setSelected(row); openModal("mtl-log-view"); },
     },
   ];
 
   const kpiLogs = [
     { title: "My Logins (Today)",    value: String(stats.myLoginsToday),   accent: "#3b82f6" },
     { title: "My Total Logins",      value: String(stats.myTotalLogins),  accent: "#8b5cf6" },
-    { title: "Dept Logins (Today)",  value: String(stats.teamLoginsToday),  accent: "#22c55e" },
-    { title: "Dept Total Logins",    value: String(stats.teamTotalLogins), accent: "#f59e0b" },
+    { title: "Team Logins (Today)",  value: String(stats.teamLoginsToday),  accent: "#22c55e" },
+    { title: "Team Total Logins",    value: String(stats.teamTotalLogins), accent: "#f59e0b" },
   ];
 
   return (
@@ -95,15 +95,15 @@ export default function LoginLogs() {
         date
         loading={loading}
         exportable
-        exportFileName="mm_my_login_logs"
+        exportFileName="mtl_my_login_logs"
         filters={[
           { title: "Status", type: "toggle", key: "status", options: ["Active", "Rejected"] },
         ]}
       />
 
-      {/* ── TL + Employee logs ── */}
+      {/* ── Employee logs ── */}
       <DataTable
-        title="Department Login Logs"
+        title="Team Login Logs"
         columns={LOG_COLS}
         rows={teamLogs}
         userProfile="name"
@@ -114,15 +114,14 @@ export default function LoginLogs() {
         date
         loading={loading}
         exportable
-        exportFileName="mm_dept_login_logs"
+        exportFileName="mtl_team_login_logs"
         filters={[
           { title: "Status", type: "toggle", key: "status", options: ["Active", "Rejected"] },
-          { title: "Role",   type: "toggle", key: "role",   options: [...new Set(teamLogs.map((r) => r.role))] },
         ]}
       />
 
       {/* ── View modal ── */}
-      <Modal id="mm-log-view" title="Login Details" size="md">
+      <Modal id="mtl-log-view" title="Login Details" size="md">
         {selected && (
           <div className="flex flex-col gap-4">
             <ModalProfile
@@ -142,7 +141,7 @@ export default function LoginLogs() {
               <ModalData label="Device Info" value={selected.device} />
             </div>
             <div className="flex justify-end pt-2 border-t border-slate-100">
-              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("mm-log-view")} />
+              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("mtl-log-view")} />
             </div>
           </div>
         )}

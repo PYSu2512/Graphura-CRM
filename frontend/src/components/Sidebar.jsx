@@ -565,6 +565,11 @@ const MENUS = {
           },
           { name: "HRM", path: "/management-team-leader/hrm", icon: UserCheck },
           {
+            name: "Login Logs",
+            path: "/management-team-leader/login-logs",
+            icon: History,
+          },
+          {
             name: "Notifications",
             path: "/management-team-leader/notifications",
             icon: Bell,

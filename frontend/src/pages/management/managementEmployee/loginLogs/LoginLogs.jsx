@@ -1,5 +1,5 @@
 import { Eye, LogIn, MapPin, Shield, UserCheck } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     Button,
     closeModal,
@@ -12,14 +12,7 @@ import {
     ModalProfile,
     openModal,
 } from "../../../../components/shared/Common_Components.jsx";
-import { loginKpiStats, loginLogs } from "./loginLogsStore";
-
-const KPIS = [
-  { title: "My Logins (Today)", key: "myLoginsToday" },
-  { title: "My Total Logins", key: "myTotalLogins" },
-  { title: "Active Sessions", value: "1" },
-  { title: "Organization Logins", key: "myTotalLogins" },
-];
+import logService from "../../../../services/logService";
 
 const COLS = [
   { key: "date", label: "Date" },
@@ -32,12 +25,37 @@ const COLS = [
 
 export default function LoginLogs() {
   const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [myLogs, setMyLogs] = useState([]);
+  const [stats, setStats] = useState({
+    myLoginsToday: 0,
+    myTotalLogins: 0
+  });
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await logService.getLoginLogs();
+      if (res.statusCode === 200) {
+        setMyLogs(res.data.myLogs);
+        setStats(res.data.kpiStats);
+      }
+    } catch (err) {
+      console.error("Failed to fetch login logs:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const kpiCards = [
-    { title: "My Logins (Today)", value: String(loginKpiStats.myLoginsToday) },
-    { title: "My Total Logins", value: String(loginKpiStats.myTotalLogins) },
+    { title: "My Logins (Today)", value: String(stats.myLoginsToday) },
+    { title: "My Total Logins", value: String(stats.myTotalLogins) },
     { title: "Active Sessions", value: "1" },
-    { title: "Organization Logins", value: String(loginKpiStats.myTotalLogins) },
+    { title: "Organization Logins", value: String(stats.myTotalLogins) },
   ];
 
   return (
@@ -63,7 +81,8 @@ export default function LoginLogs() {
       <DataTable
         title="My Login History"
         columns={COLS}
-        rows={loginLogs}
+        rows={myLogs}
+        loading={loading}
         actions={[
           {
             icon: <Eye size={15} />,
