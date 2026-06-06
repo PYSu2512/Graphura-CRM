@@ -80,6 +80,23 @@ export const closeTicket = async (ticketId, closureNotes = '') => {
   return data.data.ticket;
 };
 
+// ─── Update ticket status ───────────────────────────────────────────────────
+export const updateTicketStatus = async (ticketId, status, additionalData = {}) => {
+  const statusMap = {
+    "Open": "OPEN",
+    "In Progress": "IN_PROGRESS",
+    "Resolved": "RESOLVED",
+    "Closed": "CLOSED",
+    "Escalated": "ESCALATED",
+  };
+  const backendStatus = statusMap[status] || status.toUpperCase();
+  const { data } = await apiClient.patch(`${BASE}/${ticketId}/status`, {
+    status: backendStatus,
+    ...additionalData
+  });
+  return data.data.ticket;
+};
+
 // ─── Map frontend priority label → backend enum ──────────────────────────────
 export const mapPriorityToBackend = (p) => {
   if (!p) return 'NORMAL';

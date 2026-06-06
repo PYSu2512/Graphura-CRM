@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Button,
   EnhancedDashCard,
@@ -22,14 +22,12 @@ import {
   Clock,
   MessageSquare,
   Ticket,
+  Shield,
 } from "lucide-react";
 import {
-  assignedToByIssueType,
-  issueTypesByTicketType,
-  myRaisedTickets,
-  ticketTypeOptions,
-  tickets,
-} from "./supportData";
+  createTicket, getMyRaisedTickets, getAssignedTickets,
+  getTicketById, addReply, escalateTicket, resolveTicket, closeTicket, mapTicket,
+} from "../../../../services/ticketService";
 
 const kpiIcons = [
   <Ticket size={22} />,
@@ -39,171 +37,143 @@ const kpiIcons = [
 ];
 
 const kpiAccents = ["#3b82f6", "#f59e0b", "#8b5cf6", "#22c55e"];
-const kpiLabels = ["Team Issues", "Active Issues", "Escalated to Manager", "Resolved"];
+const kpiLabels = ["Total Tickets", "In Progress", "Replied", "Resolved"];
 
-const teamColumns = [
-  { key: "title", label: "Issue Title" },
-  { key: "raisedBy", label: "Raised By" },
-  { key: "role", label: "Role" },
-  { key: "project", label: "Project" },
-  { key: "ticketType", label: "Ticket Type" },
-  { key: "issueType", label: "Issue Type" },
-  { key: "assignedTo", label: "Assigned To" },
-  { key: "priority", label: "Priority" },
-  { key: "status", label: "Status" },
+const teamCols = [
+  { key: "title",       label: "Title"        },
+  { key: "raisedBy",    label: "Raised By"    },
+  { key: "role",        label: "Role"         },
+  { key: "priority",    label: "Priority"     },
+  { key: "status",      label: "Status"       },
   { key: "createdDate", label: "Created Date" },
 ];
 
-const myColumns = [
-  { key: "title", label: "Issue Title" },
-  { key: "project", label: "Project" },
-  { key: "ticketType", label: "Ticket Type" },
-  { key: "issueType", label: "Issue Type" },
-  { key: "assignedTo", label: "Assigned To" },
-  { key: "priority", label: "Priority" },
-  { key: "status", label: "Status" },
-  { key: "lastReply", label: "Last Reply" },
+const myCols = [
+  { key: "title",       label: "Title"        },
+  { key: "priority",    label: "Priority"     },
+  { key: "status",      label: "Status"       },
+  { key: "createdDate", label: "Created Date" },
+  { key: "lastReply",   label: "Last Reply"   },
 ];
 
 const blankForm = {
   title: "",
-  project: "",
-  ticketType: "",
-  issueType: "",
-  priority: "",
+  category: "",
+  priority: "Medium",
   description: "",
   targetHierarchy: "ALL",
 };
 
-const today = () => new Date().toISOString().slice(0, 10);
-
 export default function SupportPage() {
-  const [teamTickets, setTeamTickets] = useState(tickets);
-  const [myTickets, setMyTickets] = useState(myRaisedTickets);
-  const [selectedTeamTicket, setSelectedTeamTicket] = useState(null);
-  const [selectedMyTicket, setSelectedMyTicket] = useState(null);
-  const [form, setForm] = useState(blankForm);
-  const [formErr, setFormErr] = useState({});
+  const [teamTickets,  setTeamTickets]  = useState([]);
+  const [myTickets,    setMyTickets]    = useState([]);
+  const [stats,        setStats]        = useState([0, 0, 0, 0]);
+  const [selected,     setSelected]     = useState(null);
+  const [mySelected,   setMySelected]   = useState(null);
+  const [form,         setForm]         = useState(blankForm);
+  const [formErr,      setFormErr]      = useState({});
+  const [loading,      setLoading]      = useState(false);
+  const [submitting,   setSubmitting]   = useState(false);
+  const [replyLoading, setReplyLoading] = useState(false);
+  const [confirmData, setConfirmData] = useState(null);
 
-  const issueTypeOptions = useMemo(
-    () => issueTypesByTicketType[form.ticketType] || [],
-    [form.ticketType],
-  );
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [assignedData, raisedData] = await Promise.all([
+        getAssignedTickets({ limit: 100 }),
+        getMyRaisedTickets({ limit: 100 }),
+      ]);
+      const team = (assignedData.tickets || []).map(mapTicket);
+      const mine = (raisedData.tickets   || []).map(mapTicket)
+        .filter(t => t.status !== 'Resolved' && t.status !== 'Closed');
+      setTeamTickets(team);
+      setMyTickets(mine);
 
-  const assignedTo = assignedToByIssueType[form.issueType] || "";
+      const combined = [...team, ...mine];
+      setStats([
+        combined.length,
+        combined.filter(t => t.status === 'In Progress').length,
+        combined.filter(t => t.status === 'In Progress').length,
+        combined.filter(t => t.status === 'Resolved' || t.status === 'Closed').length,
+      ]);
+    } catch (err) {
+      console.error('Failed to load tickets:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  const stats = useMemo(() => {
-    return [
-      teamTickets.length,
-      teamTickets.filter((ticket) => ["Open", "Pending", "In Progress"].includes(ticket.status)).length,
-      teamTickets.filter((ticket) => ticket.status === "Escalated").length,
-      teamTickets.filter((ticket) => ticket.status === "Resolved").length,
-    ];
-  }, [teamTickets]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const setField = (field, value) => {
-    setForm((current) => {
-      if (field === "ticketType") {
-        return { ...current, ticketType: value, issueType: "" };
-      }
-
-      return { ...current, [field]: value };
-    });
-
-    if (formErr[field]) {
-      setFormErr((current) => ({ ...current, [field]: "" }));
-    }
+    setForm(prev => ({ ...prev, [field]: value }));
+    if (formErr[field]) setFormErr(prev => ({ ...prev, [field]: "" }));
   };
 
-  const openTeamView = (ticket) => {
-    setSelectedTeamTicket(ticket);
+  const openTeamView = async (row) => {
+    try { setSelected(mapTicket(await getTicketById(row._id))); }
+    catch { setSelected(row); }
     openModal("mtl-team-ticket-view");
   };
 
-  const openMyView = (ticket) => {
-    setSelectedMyTicket(ticket);
+  const openMyView = async (row) => {
+    try { setMySelected(mapTicket(await getTicketById(row._id))); }
+    catch { setMySelected(row); }
     openModal("mtl-my-ticket-view");
   };
 
-  const handleTeamReply = (message) => {
-    if (!selectedTeamTicket) return;
-
-    const updatedTicket = {
-      ...selectedTeamTicket,
-      status: selectedTeamTicket.status === "Resolved" ? "Resolved" : "In Progress",
-      conversation: [
-        ...(selectedTeamTicket.conversation || []),
-        {
-          id: Date.now(),
-          sender: "Management TL",
-          time: new Date().toLocaleString("en-IN", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          text: message.text,
-        },
-      ],
-    };
-
-    setTeamTickets((current) =>
-      current.map((ticket) => (ticket.id === updatedTicket.id ? updatedTicket : ticket)),
-    );
-    setSelectedTeamTicket(updatedTicket);
+  const handleTeamReply = async (msg) => {
+    if (!selected) return;
+    setReplyLoading(true);
+    try {
+      const updated = mapTicket(await addReply(selected._id, msg.text));
+      setTeamTickets(prev => prev.map(t => t._id === updated._id ? updated : t));
+      setSelected(updated);
+    } catch (err) { alert(err?.message || 'Failed to send reply'); }
+    finally { setReplyLoading(false); }
   };
 
-  const handleResolve = (ticket) => {
-    setTeamTickets((current) =>
-      current.map((item) =>
-        item.id === ticket.id
-          ? {
-              ...item,
-              status: "Resolved",
-              conversation: [
-                ...(item.conversation || []),
-                {
-                  id: Date.now(),
-                  sender: "Management TL",
-                  time: new Date().toLocaleString("en-IN"),
-                  text: "Issue resolved at team level.",
-                },
-              ],
-            }
-          : item,
-      ),
-    );
+  const handleResolve = async (row) => {
+    setConfirmData({
+      message: "Are you sure you want to resolve this ticket?",
+      confirmText: "Resolve",
+      confirmVariant: "success",
+      onConfirm: async () => {
+        try {
+          await resolveTicket(row._id);
+          await fetchData();
+        } catch (err) { alert(err?.message || 'Could not resolve'); }
+      }
+    });
+    openModal("confirm-action-modal");
   };
 
-  const handleEscalate = (ticket) => {
-    setTeamTickets((current) =>
-      current.map((item) =>
-        item.id === ticket.id
-          ? {
-              ...item,
-              status: "Escalated",
-              assignedTo: "Management Manager",
-              conversation: [
-                ...(item.conversation || []),
-                {
-                  id: Date.now(),
-                  sender: "Management TL",
-                  time: new Date().toLocaleString("en-IN"),
-                  text: "Escalated to Management Manager for approval/support.",
-                },
-              ],
-            }
-          : item,
-      ),
-    );
+  const handleEscalate = async (row) => {
+    setConfirmData({
+      message: "Are you sure you want to escalate this ticket?",
+      confirmText: "Escalate",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        try {
+          await escalateTicket(row._id, 'Escalated by Management Team Leader to Manager');
+          await fetchData();
+        } catch (err) { alert(err?.message || 'Could not escalate'); }
+      }
+    });
+    openModal("confirm-action-modal");
   };
 
-  const handleCreateSubmit = () => {
+  const handleClose = async (row) => {
+    try {
+      await closeTicket(row._id, 'Closed by Management Team Leader');
+      await fetchData();
+    } catch (err) { alert(err?.message || 'Could not close'); }
+  };
+
+  const handleCreateSubmit = async () => {
     const errors = {};
     if (!form.title.trim()) errors.title = "Issue title is required.";
-    if (!form.ticketType) errors.ticketType = "Ticket type is required.";
-    if (!form.issueType) errors.issueType = "Issue type is required.";
     if (!form.description.trim()) errors.description = "Description is required.";
 
     if (Object.keys(errors).length) {
@@ -211,67 +181,32 @@ export default function SupportPage() {
       return;
     }
 
-    const createdTicket = {
-      id: `MTL-MY-${Date.now().toString().slice(-5)}`,
-      title: form.title.trim(),
-      project: form.project.trim() || "General Support",
-      raisedBy: "Management TL",
-      role: "Management Team Leader",
-      priority: form.priority || "Medium",
-      status: "Open",
-      createdDate: today(),
-      lastReply: "—",
-      ticketType: form.ticketType,
-      issueType: form.issueType,
-      assignedTo,
-      targetHierarchy: form.targetHierarchy || "ALL",
-      description: form.description.trim(),
-      conversation: [
-        {
-          id: 1,
-          sender: "Management TL",
-          time: `${today()} 00:00`,
-          text: form.description.trim(),
-        },
-      ],
-    };
-
-    setMyTickets((current) => [createdTicket, ...current]);
-    setForm(blankForm);
-    setFormErr({});
-    closeModal("mtl-support-create-ticket");
+    setSubmitting(true);
+    try {
+      await createTicket({
+        subject:  form.title.trim(),
+        message:  form.description.trim(),
+        priority: form.priority || 'Medium',
+        category: form.category || null,
+        targetHierarchy: form.targetHierarchy || "ALL",
+      });
+      setForm(blankForm);
+      setFormErr({});
+      closeModal("mtl-support-create-ticket");
+      await fetchData();
+    } catch (err) {
+      setFormErr({ submit: err?.message || 'Failed to create ticket.' });
+    } finally { setSubmitting(false); }
   };
 
   const teamActions = [
-    {
-      icon: <MessageSquare size={15} />,
-      tooltip: "View & Reply",
-      variant: "primary",
-      onClick: openTeamView,
-    },
-    {
-      icon: <CheckCircle2 size={15} />,
-      tooltip: "Mark Resolved",
-      variant: "success",
-      onClick: handleResolve,
-      show: (row) => row.status !== "Resolved" && row.status !== "Escalated",
-    },
-    {
-      icon: <AlertTriangle size={15} />,
-      tooltip: "Escalate to Manager",
-      variant: "danger",
-      onClick: handleEscalate,
-      show: (row) => row.status !== "Resolved" && row.status !== "Escalated",
-    },
+    { icon: <MessageSquare size={15} />, tooltip: "View & Reply", variant: "primary", onClick: openTeamView },
+    { icon: <CheckCircle2 size={15} />, tooltip: "Mark Resolved", variant: "success", onClick: handleResolve, show: (r) => r.status !== 'Resolved' && r.status !== 'Closed' },
+    { icon: <AlertTriangle size={15} />, tooltip: "Escalate", variant: "danger", onClick: handleEscalate, show: (r) => r.status !== 'Escalated' && r.status !== 'Resolved' && r.status !== 'Closed' },
   ];
 
   const myActions = [
-    {
-      icon: <MessageSquare size={15} />,
-      tooltip: "View Ticket",
-      variant: "primary",
-      onClick: openMyView,
-    },
+    { icon: <MessageSquare size={15} />, tooltip: "View Ticket", variant: "primary", onClick: openMyView },
   ];
 
   return (
@@ -299,73 +234,44 @@ export default function SupportPage() {
         />
       </div>
 
-      {(() => {
-        const getPriorityWeight = (priority) => {
-          if (!priority) return 2;
-          const p = priority.toUpperCase();
-          if (p === 'CRITICAL' || p === 'URGENT' || p === 'HIGH') return 3;
-          if (p === 'MEDIUM' || p === 'NORMAL') return 2;
-          if (p === 'LOW') return 1;
-          return 2;
-        };
+      <DataTable
+        title="My Tickets"
+        columns={myCols}
+        rows={myTickets}
+        actions={myActions}
+        size={12}
+        pageSize={5}
+        searchable
+        loading={loading}
+        defaultSortKey={null}
+        filters={[
+          { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High"] },
+          { title: "Status",   type: "toggle", key: "status",   options: ["Open", "In Progress", "Resolved", "Escalated"] },
+        ]}
+      />
 
-        const sortFn = (a, b) => {
-          const weightA = getPriorityWeight(a.priority);
-          const weightB = getPriorityWeight(b.priority);
-          if (weightB !== weightA) return weightB - weightA;
-          const dateA = new Date(a.createdDate || a.createdAt || 0);
-          const dateB = new Date(b.createdDate || b.createdAt || 0);
-          return dateA - dateB;
-        };
-
-        const sortedMyTickets = [...myTickets].sort(sortFn);
-        const sortedTeamTickets = [...teamTickets].sort(sortFn);
-
-        return (
-          <>
-            <DataTable
-              title="My Tickets"
-              columns={myColumns}
-              rows={sortedMyTickets}
-              actions={myActions}
-              size={12}
-              pageSize={5}
-              searchable
-              defaultSortKey={null}
-              filters={[
-                { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High", "Critical"] },
-                { title: "Status", type: "toggle", key: "status", options: ["Open", "Pending", "In Progress", "Resolved", "Escalated"] },
-                { title: "Ticket Type", type: "select", key: "ticketType", options: ticketTypeOptions },
-              ]}
-            />
-
-            <DataTable
-              title="Employee Tickets"
-              columns={teamColumns}
-              rows={sortedTeamTickets}
-              actions={teamActions}
-              size={12}
-              pageSize={8}
-              searchable
-              defaultSortKey={null}
-              filters={[
-                { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High", "Critical"] },
-                { title: "Status", type: "toggle", key: "status", options: ["Open", "Pending", "In Progress", "Resolved", "Escalated"] },
-                { title: "Ticket Type", type: "select", key: "ticketType", options: ticketTypeOptions },
-                { title: "Issue Type", type: "select", key: "issueType", options: Object.keys(assignedToByIssueType) },
-              ]}
-            />
-          </>
-        );
-      })()}
+      <DataTable
+        title="Employee Tickets"
+        columns={teamCols}
+        rows={teamTickets}
+        actions={teamActions}
+        size={12}
+        pageSize={8}
+        searchable
+        loading={loading}
+        defaultSortKey={null}
+        filters={[
+          { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High"] },
+          { title: "Status", type: "toggle", key: "status", options: ["Open", "In Progress", "Resolved", "Escalated"] },
+        ]}
+      />
 
       <CreateTicketModal
         form={form}
         formErr={formErr}
-        issueTypeOptions={issueTypeOptions}
-        assignedTo={assignedTo}
         onFieldChange={setField}
         onSubmit={handleCreateSubmit}
+        submitting={submitting}
         onCancel={() => {
           setForm(blankForm);
           setFormErr({});
@@ -374,25 +280,48 @@ export default function SupportPage() {
       />
 
       <Modal id="mtl-team-ticket-view" title="Ticket Details" size="lg">
-        {selectedTeamTicket && (
+        {selected && (
           <TicketConversation
-            selected={selectedTeamTicket}
+            selected={selected}
             currentUser="Management TL"
             onSend={handleTeamReply}
+            loading={replyLoading}
             onClose={() => closeModal("mtl-team-ticket-view")}
           />
         )}
       </Modal>
 
       <Modal id="mtl-my-ticket-view" title="My Ticket Details" size="lg">
-        {selectedMyTicket && (
+        {mySelected && (
           <TicketConversation
-            selected={selectedMyTicket}
+            selected={mySelected}
             currentUser="Management TL"
             readOnly
             onClose={() => closeModal("mtl-my-ticket-view")}
           />
         )}
+      </Modal>
+
+      {/* ══ CONFIRM ACTION MODAL ═════════════════════════════════════════════ */}
+      <Modal id="confirm-action-modal" title="Confirm Action" size="md">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-slate-600 font-medium">
+            {confirmData?.message || "Are you sure you want to perform this action?"}
+          </p>
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+            <Button text="Cancel" variant="secondary" size={3} onClick={() => {
+              closeModal("confirm-action-modal");
+              setConfirmData(null);
+            }} />
+            <Button text={confirmData?.confirmText || "Confirm"} variant={confirmData?.confirmVariant || "primary"} size={3} onClick={async () => {
+              if (confirmData?.onConfirm) {
+                await confirmData.onConfirm();
+              }
+              closeModal("confirm-action-modal");
+              setConfirmData(null);
+            }} />
+          </div>
+        </div>
       </Modal>
     </div>
   );
@@ -401,10 +330,9 @@ export default function SupportPage() {
 function CreateTicketModal({
   form,
   formErr,
-  issueTypeOptions,
-  assignedTo,
   onFieldChange,
   onSubmit,
+  submitting,
   onCancel,
 }) {
   return (
@@ -423,15 +351,6 @@ function CreateTicketModal({
             {formErr.title && <p className="mt-1 px-1 text-xs text-rose-600">{formErr.title}</p>}
           </div>
 
-          <DataField
-            label="Project"
-            id="mtl-ticket-project"
-            size={6}
-            value={form.project}
-            onChange={(event) => onFieldChange("project", event.target.value)}
-            placeholder="Project name or ID"
-          />
-
           <div className="col-span-12 flex flex-col gap-1.5">
             <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">Raise To</label>
             <SelectField
@@ -445,58 +364,32 @@ function CreateTicketModal({
             </SelectField>
           </div>
 
-          <SelectField
-            label="Ticket Type *"
-            id="mtl-ticket-type"
-            size={6}
-            placeholder="Select ticket type"
-            value={form.ticketType}
-            onChange={(event) => onFieldChange("ticketType", event.target.value)}
-          >
-            {ticketTypeOptions.map((type) => (
-              <Option key={type} value={type} label={type} />
-            ))}
-          </SelectField>
-
-          <div className="col-span-6">
+          <div className="col-span-6 flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">Category</label>
             <SelectField
-              label="Issue Type *"
-              id="mtl-ticket-issue-type"
-              size={12}
-              placeholder={form.ticketType ? "Select issue type" : "Select ticket type first"}
-              value={form.issueType}
-              onChange={(event) => onFieldChange("issueType", event.target.value)}
-              disabled={!form.ticketType}
+              id="mtl-ticket-category"
+              value={form.category}
+              onChange={(event) => onFieldChange("category", event.target.value)}
+              placeholder="Select category"
             >
-              {issueTypeOptions.map((type) => (
-                <Option key={type} value={type} label={type} />
-              ))}
+              <Option value="SYSTEM" label="System Issue" />
+              <Option value="CLIENT_DATA" label="Client Data" />
+              <Option value="MANAGEMENT" label="Management Issue" />
             </SelectField>
-            {formErr.issueType && <p className="mt-1 px-1 text-xs text-rose-600">{formErr.issueType}</p>}
           </div>
 
-          <SelectField
-            label="Priority"
-            id="mtl-ticket-priority"
-            size={6}
-            placeholder="Select priority"
-            value={form.priority}
-            onChange={(event) => onFieldChange("priority", event.target.value)}
-          >
-            <Option value="Low" label="Low" />
-            <Option value="Medium" label="Medium" />
-            <Option value="High" label="High" />
-            <Option value="Critical" label="Critical" />
-          </SelectField>
-
-          <DataField
-            label="Assigned To"
-            id="mtl-ticket-assigned-to"
-            size={6}
-            value={assignedTo}
-            placeholder="Auto assigned by issue type"
-            readOnly
-          />
+          <div className="col-span-6 flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">Priority</label>
+            <SelectField
+              id="mtl-ticket-priority"
+              value={form.priority}
+              onChange={(event) => onFieldChange("priority", event.target.value)}
+            >
+              <Option value="Low" label="Low" />
+              <Option value="Medium" label="Medium" />
+              <Option value="High" label="High" />
+            </SelectField>
+          </div>
 
           <div className="col-span-12">
             <DataField
@@ -511,35 +404,38 @@ function CreateTicketModal({
             />
             {formErr.description && <p className="mt-1 px-1 text-xs text-rose-600">{formErr.description}</p>}
           </div>
+          {formErr.submit && <div className="col-span-12"><p className="text-xs text-rose-600 px-1">{formErr.submit}</p></div>}
         </Grid>
 
         <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
           <Button text="Cancel" variant="secondary" size={3} onClick={onCancel} />
-          <Button text="Raise Ticket" variant="primary" size={3} onClick={onSubmit} />
+          <Button text={submitting ? 'Submitting…' : 'Submit Ticket'} variant="primary" size={3} onClick={onSubmit} disabled={submitting} />
         </div>
       </div>
     </Modal>
   );
 }
 
-function TicketConversation({ selected, currentUser, readOnly = false, onSend, onClose }) {
+function TicketConversation({ selected, currentUser, readOnly = false, onSend, loading, onClose }) {
   const statusColors = {
     Open: "bg-amber-100 text-amber-700",
     Pending: "bg-orange-100 text-orange-700",
     "In Progress": "bg-purple-100 text-purple-700",
     Resolved: "bg-emerald-100 text-emerald-700",
     Escalated: "bg-rose-100 text-rose-700",
+    Closed: "bg-slate-100 text-slate-600",
   };
 
   const conversation = selected.conversation || [];
+  const hasReplied = conversation.some(m => m.sender === currentUser || m.sender === 'Management Team Leader');
+  const targetLabels = { TL: 'Team Lead', MANAGER: 'Manager', ADMIN: 'Admin', ALL: 'All' };
 
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-2.5">
         {[
-          ["Raised By", selected.raisedBy || currentUser],
-          ["Issue Type", selected.issueType],
-          ["Assigned To", selected.assignedTo],
+          ["Raised By", selected.raisedBy],
+          ["Raised To", targetLabels[selected.targetHierarchy] || selected.targetHierarchy],
           ["Priority", selected.priority],
           ["Status", selected.status],
         ].map(([label, value]) => (
@@ -557,10 +453,6 @@ function TicketConversation({ selected, currentUser, readOnly = false, onSend, o
           </div>
         ))}
         <div className="col-span-2 rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-2.5">
-          <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Project</p>
-          <p className="text-xs font-bold text-[#2a465a]">{selected.project || "General Support"}</p>
-        </div>
-        <div className="col-span-2 rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-2.5">
           <p className="mb-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-400">Issue Title</p>
           <p className="text-xs font-bold text-[#2a465a]">{selected.title}</p>
         </div>
@@ -570,12 +462,13 @@ function TicketConversation({ selected, currentUser, readOnly = false, onSend, o
         <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Conversation</p>
         <UserChat
           messages={conversation}
-          onSend={readOnly ? null : onSend}
+          onSend={readOnly || hasReplied || loading ? null : onSend}
           currentUser={currentUser}
           maxHeight="max-h-72"
           placeholder="Type your reply... (Enter to send)"
-          readOnly={readOnly}
+          readOnly={readOnly || hasReplied}
         />
+        {hasReplied && !readOnly && <p className="text-[10px] text-slate-400 mt-1 px-1">You have already replied to this ticket.</p>}
       </div>
 
       <div className="flex justify-end border-t border-slate-100 pt-1">

@@ -11,9 +11,9 @@ import {
 } from "../../../../components/shared/Common_Components";
 import {
   createTicket, getMyRaisedTickets, getAssignedTickets,
-  getTicketById, addReply, escalateTicket, resolveTicket, mapTicket,
+  getTicketById, addReply, escalateTicket, resolveTicket, closeTicket, mapTicket,
 } from "../../../../services/ticketService";
-import { Ticket, CheckCircle, AlertCircle, Clock, MessageSquare, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Ticket, CheckCircle, AlertCircle, Clock, MessageSquare, AlertTriangle, CheckCircle2, Shield } from "lucide-react";
 
 const kpiIcons   = [<Ticket size={22}/>, <AlertCircle size={22}/>, <Clock size={22}/>, <CheckCircle size={22}/>];
 const kpiAccents = ['#3b82f6', '#f59e0b', '#8b5cf6', '#22c55e'];
@@ -49,6 +49,7 @@ export default function AllTickets() {
   const [loading,      setLoading]      = useState(false);
   const [submitting,   setSubmitting]   = useState(false);
   const [replyLoading, setReplyLoading] = useState(false);
+  const [confirmData, setConfirmData] = useState(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -108,17 +109,40 @@ export default function AllTickets() {
   };
 
   const handleEscalate = async (row) => {
-    try {
-      await escalateTicket(row._id, 'Escalated by Sales Manager to Admin');
-      await fetchData();
-    } catch (err) { alert(err?.message || 'Could not escalate'); }
+    setConfirmData({
+      message: "Are you sure you want to escalate this ticket?",
+      confirmText: "Escalate",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        try {
+          await escalateTicket(row._id, 'Escalated by Sales Manager to Admin');
+          await fetchData();
+        } catch (err) { alert(err?.message || 'Could not escalate'); }
+      }
+    });
+    openModal("confirm-action-modal");
   };
 
   const handleResolve = async (row) => {
+    setConfirmData({
+      message: "Are you sure you want to resolve this ticket?",
+      confirmText: "Resolve",
+      confirmVariant: "success",
+      onConfirm: async () => {
+        try {
+          await resolveTicket(row._id);
+          await fetchData();
+        } catch (err) { alert(err?.message || 'Could not resolve'); }
+      }
+    });
+    openModal("confirm-action-modal");
+  };
+
+  const handleClose = async (row) => {
     try {
-      await resolveTicket(row._id);
+      await closeTicket(row._id, 'Closed by Sales Manager');
       await fetchData();
-    } catch (err) { alert(err?.message || 'Could not resolve'); }
+    } catch (err) { alert(err?.message || 'Could not close'); }
   };
 
   const handleCreateSubmit = async () => {
@@ -146,8 +170,8 @@ export default function AllTickets() {
 
   const allActions = [
     { icon: <MessageSquare size={15}/>, tooltip: 'View & Reply',    variant: 'primary', onClick: openAllView },
-    { icon: <CheckCircle2  size={15}/>, tooltip: 'Mark Resolved',   variant: 'success', onClick: handleResolve },
-    { icon: <AlertTriangle size={15}/>, tooltip: 'Escalate to Admin', variant: 'danger',  onClick: handleEscalate },
+    { icon: <CheckCircle2  size={15}/>, tooltip: 'Mark Resolved',   variant: 'success', onClick: handleResolve, show: (r) => r.status !== 'Resolved' && r.status !== 'Closed' },
+    { icon: <AlertTriangle size={15}/>, tooltip: 'Escalate to Admin', variant: 'danger',  onClick: handleEscalate, show: (r) => r.status !== 'Escalated' && r.status !== 'Resolved' && r.status !== 'Closed' },
   ];
   const myActions = [
     { icon: <MessageSquare size={15}/>, tooltip: 'View', variant: 'primary', onClick: openMyView },
@@ -242,6 +266,28 @@ export default function AllTickets() {
           <ReadOnlyTicketContent selected={mySelected}
             onClose={() => closeModal('sm-my-ticket-view')} currentUser="Sales Manager" />
         )}
+      </Modal>
+
+      {/* ══ CONFIRM ACTION MODAL ═════════════════════════════════════════════ */}
+      <Modal id="confirm-action-modal" title="Confirm Action" size="md">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-slate-600 font-medium">
+            {confirmData?.message || "Are you sure you want to perform this action?"}
+          </p>
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+            <Button text="Cancel" variant="secondary" size={3} onClick={() => {
+              closeModal("confirm-action-modal");
+              setConfirmData(null);
+            }} />
+            <Button text={confirmData?.confirmText || "Confirm"} variant={confirmData?.confirmVariant || "primary"} size={3} onClick={async () => {
+              if (confirmData?.onConfirm) {
+                await confirmData.onConfirm();
+              }
+              closeModal("confirm-action-modal");
+              setConfirmData(null);
+            }} />
+          </div>
+        </div>
       </Modal>
     </div>
   );

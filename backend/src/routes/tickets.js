@@ -188,6 +188,16 @@ router.post(
   ticketController.closeTicket
 );
 
+/**
+ * PATCH /api/support-tickets/:ticketId/status
+ * Update the status of a support ticket
+ */
+router.patch(
+  '/:ticketId/status',
+  ticketValidator.validateUpdateStatus,
+  ticketController.updateTicketStatus
+);
+
 // ─────────────────────────────────────────────────────────────
 // ADMIN-ONLY OPERATIONS
 // ─────────────────────────────────────────────────────────────

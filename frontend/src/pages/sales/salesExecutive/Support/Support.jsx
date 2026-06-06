@@ -16,9 +16,10 @@ import {
   getMyRaisedTickets,
   getTicketStats,
   getTicketById,
+  addReply,
   mapTicket,
 } from "../../../../services/ticketService";
-import { Ticket, Clock, MessageSquare as MsgIcon, CheckCircle2 as CheckIcon } from "lucide-react";
+import { Ticket, Clock, MessageSquare as MsgIcon, CheckCircle2 as CheckIcon, Shield, AlertTriangle } from "lucide-react";
 
 const ticketCols = [
   { key: "title",       label: "Subject"      },
@@ -38,6 +39,7 @@ export default function Support() {
   const [formErr,    setFormErr]    = useState({});
   const [loading,    setLoading]    = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [replyLoading, setReplyLoading] = useState(false);
   const [error,      setError]      = useState(null);
 
   // ── Fetch tickets raised by this SE ──────────────────────────────────────
@@ -53,7 +55,7 @@ export default function Support() {
       const total      = mapped.length;
       const inProgress = mapped.filter(t => t.status === 'In Progress').length;
       const replied    = mapped.filter(t => t.status === 'In Progress').length;
-      const resolved   = mapped.filter(t => t.status === 'Resolved').length;
+      const resolved   = mapped.filter(t => t.status === 'Resolved' || t.status === 'Closed').length;
       setStats({ total, inProgress, replied, resolved });
     } catch (err) {
       setError(err?.message || 'Failed to load tickets');
@@ -108,6 +110,17 @@ export default function Support() {
     }
   };
 
+  const handleReply = async (msg) => {
+    if (!selected) return;
+    setReplyLoading(true);
+    try {
+      const updated = mapTicket(await addReply(selected._id, msg.text));
+      setTickets(prev => prev.map(t => t._id === updated._id ? updated : t));
+      setSelected(updated);
+    } catch (err) { alert(err?.message || 'Failed to send reply'); }
+    finally { setReplyLoading(false); }
+  };
+
   const statCards = [
     { title: 'Total Tickets', value: String(stats.total),      color: '#3b82f6', icon: Ticket    },
     { title: 'In Progress',   value: String(stats.inProgress), color: '#f59e0b', icon: Clock     },
@@ -116,7 +129,7 @@ export default function Support() {
   ];
 
   const actions = [
-    { icon: <MessageSquare size={15} />, tooltip: 'View', variant: 'primary', onClick: openView },
+    { icon: <MessageSquare size={15} />, tooltip: 'View & Reply', variant: 'primary', onClick: openView },
   ];
 
   return (
@@ -229,17 +242,21 @@ export default function Support() {
         </div>
       </Modal>
 
-      {/* ── View Modal (read-only) ── */}
+      {/* ── View Modal ── */}
       <Modal id="se-ticket-view-modal" title="My Ticket Details" size="lg">
         {selected && (
-          <SETicketDetail selected={selected} onClose={() => closeModal('se-ticket-view-modal')} />
+          <SETicketDetail 
+            selected={selected} 
+            onSend={handleReply} 
+            loading={replyLoading}
+            onClose={() => closeModal('se-ticket-view-modal')} />
         )}
       </Modal>
     </div>
   );
 }
 
-function SETicketDetail({ selected, onClose }) {
+function SETicketDetail({ selected, onSend, loading, onClose }) {
   const statusColors = {
     'Open':        'bg-amber-100 text-amber-700',
     'In Progress': 'bg-purple-100 text-purple-700',
@@ -286,8 +303,8 @@ function SETicketDetail({ selected, onClose }) {
 
       <div className="flex flex-col gap-1">
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conversation</p>
-        <UserChat messages={conversation} onSend={null} currentUser="Sales Executive"
-          maxHeight="max-h-72" readOnly />
+        <UserChat messages={conversation} onSend={onSend} currentUser="Sales Executive"
+          maxHeight="max-h-72" loading={loading} />
       </div>
 
       <div className="flex justify-end pt-1 border-t border-slate-100">

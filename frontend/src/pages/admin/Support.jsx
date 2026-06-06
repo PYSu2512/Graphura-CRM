@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
 import {
   Headphones, AlertCircle, Clock, CheckCircle, TrendingUp, TrendingDown,
-  Eye, Pencil, Plus, FileDown, Shield, Zap, AlertTriangle,
+  Eye, Pencil, Plus, FileDown, Shield, Zap, AlertTriangle, CheckCircle2,
 } from "lucide-react";
 import {
   Heading, DashGrid, EnhancedDashCard, DataTable,
   GAreaChart, GBarChart, Button,
   PanelModal as Modal, openModal, closeModal,
 } from "../../components/shared/Common_Components";
-import { getMyTickets } from "../../services/ticketService";
+import { getMyTickets, resolveTicket, escalateTicket, closeTicket, createTicket, updateTicketStatus } from "../../services/ticketService";
 
 // ── Map Backend Ticket to Admin Shape ───────────────────────────────────────
 const mapBackendTicketToAdminShape = (t) => {
@@ -34,7 +34,7 @@ const mapBackendTicketToAdminShape = (t) => {
     OPEN: "Open",
     IN_PROGRESS: "In Progress",
     RESOLVED: "Resolved",
-    CLOSED: "Resolved",
+    CLOSED: "Closed",
     ESCALATED: "Escalated"
   };
 
@@ -72,6 +72,7 @@ export default function Support() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [form, setForm] = useState(defaultForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [confirmData, setConfirmData] = useState(null);
 
   const fetchTickets = async () => {
     try {
@@ -84,6 +85,49 @@ export default function Support() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResolve = async (row) => {
+    setConfirmData({
+      message: "Are you sure you want to resolve this ticket?",
+      confirmText: "Resolve",
+      confirmVariant: "success",
+      onConfirm: async () => {
+        try {
+          const updated = await resolveTicket(row.id, "Resolved by Admin");
+          const mapped = mapBackendTicketToAdminShape(updated);
+          await fetchTickets();
+          setSelectedTicket(mapped);
+        } catch (err) { alert(err?.message || "Failed to resolve"); }
+      }
+    });
+    openModal("confirm-action-modal");
+  };
+
+  const handleEscalate = async (row) => {
+    setConfirmData({
+      message: "Are you sure you want to escalate this ticket?",
+      confirmText: "Escalate",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        try {
+          const updated = await escalateTicket(row.id, "Escalated by Admin");
+          const mapped = mapBackendTicketToAdminShape(updated);
+          await fetchTickets();
+          setSelectedTicket(mapped);
+        } catch (err) { alert(err?.message || "Failed to escalate"); }
+      }
+    });
+    openModal("confirm-action-modal");
+  };
+
+  const handleClose = async (row) => {
+    try {
+      const updated = await closeTicket(row.id, "Closed by Admin");
+      const mapped = mapBackendTicketToAdminShape(updated);
+      await fetchTickets();
+      setSelectedTicket(mapped);
+    } catch (err) { alert(err?.message || "Failed to close"); }
   };
 
   useEffect(() => {
@@ -115,7 +159,7 @@ export default function Support() {
       const monthName = months[date.getMonth()];
       const monthBucket = trend.find(item => item.name === monthName);
       if (monthBucket) {
-        if (t.status === "Resolved") {
+        if (t.status === "Resolved" || t.status === "Closed") {
           monthBucket.resolved++;
         } else if (t.status === "Escalated") {
           monthBucket.escalated++;
@@ -136,7 +180,7 @@ export default function Support() {
         roles[role] = { name: role, tickets: 0, resolved: 0 };
       }
       roles[role].tickets++;
-      if (t.status === "Resolved") {
+      if (t.status === "Resolved" || t.status === "Closed") {
         roles[role].resolved++;
       }
     });
@@ -152,32 +196,37 @@ export default function Support() {
 
   const handleFormChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.user.trim() || !form.issue.trim()) return;
     setIsSubmitting(true);
-    setTimeout(() => {
+    try {
       if (form.id) {
-        setTickets(prev => prev.map(t => t.id === form.id ? { ...form } : t));
+        const original = tickets.find(t => t.id === form.id);
+        if (original && original.status !== form.status) {
+          await updateTicketStatus(form.id, form.status);
+          await fetchTickets();
+        }
       } else {
-        const newTicket = {
-          ...form,
-          id: `SUP-${2105 + tickets.length}`,
-          time: new Date().toLocaleString("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
-        };
-        setTickets(prev => [newTicket, ...prev]);
+        await createTicket({
+          subject: form.user.trim() + " - " + form.issue.slice(0, 30),
+          message: form.issue,
+          priority: form.priority,
+          category: form.category || "SYSTEM",
+          targetHierarchy: form.targetHierarchy || "ALL",
+        });
+        await fetchTickets();
       }
       closeModal("ticket-form-modal");
+    } catch (err) {
+      alert(err?.message || "Failed to save ticket");
+    } finally {
       setIsSubmitting(false);
-    }, 400);
+    }
   };
 
   const handleDelete = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setTickets(prev => prev.filter(t => t.id !== form.id));
-      closeModal("ticket-form-modal");
-      setIsSubmitting(false);
-    }, 400);
+    // The backend does not support deleting tickets yet.
+    alert("Deleting tickets is not supported by the backend.");
   };
 
   const handleExport = () => {
@@ -285,8 +334,9 @@ export default function Support() {
         actions={tableActions}
         size={12} pageSize={10} searchable exportable exportFileName="support-tickets-data"
         defaultSortKey={null}
+        loading={loading}
         filters={[
-          { title: "Status", key: "status", type: "toggle", options: ["Open", "In Progress", "Escalated", "Resolved"] },
+          { title: "Status", key: "status", type: "toggle", options: ["Open", "In Progress", "Escalated", "Resolved", "Closed"] },
           { title: "Priority", key: "priority", type: "toggle", options: ["Low", "Medium", "High"] },
           { title: "Role", key: "role", type: "toggle", options: ["Sales Executive", "Sales Manager", "Finance Manager", "Finance Analyst", "Management Lead"] },
         ]}
@@ -308,7 +358,7 @@ export default function Support() {
 
             <div className="flex flex-wrap gap-2">
               {[
-                { label: selectedTicket.status, cls: selectedTicket.status === "Resolved" ? "bg-emerald-50 text-emerald-600" : selectedTicket.status === "Escalated" ? "bg-rose-50 text-rose-600" : "bg-blue-50 text-blue-600" },
+                { label: selectedTicket.status, cls: (selectedTicket.status === "Resolved" || selectedTicket.status === "Closed") ? "bg-emerald-50 text-emerald-600" : selectedTicket.status === "Escalated" ? "bg-rose-50 text-rose-600" : "bg-blue-50 text-blue-600" },
                 { label: selectedTicket.priority, cls: selectedTicket.priority === "High" ? "bg-amber-50 text-amber-600" : "bg-slate-50 text-slate-500" },
                 { label: selectedTicket.sla, cls: selectedTicket.sla === "Breached" ? "bg-rose-50 text-rose-600" : "bg-sky-50 text-sky-600" },
               ].map(b => (
@@ -335,13 +385,8 @@ export default function Support() {
               <p className="text-sm font-semibold leading-relaxed text-slate-700">{selectedTicket.issue}</p>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <div className="flex justify-end items-center gap-3 pt-4 border-t border-slate-100">
               <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("ticket-view-modal")} />
-              <Button text="Edit Ticket" variant="primary" size={3} onClick={() => {
-                closeModal("ticket-view-modal");
-                setForm({ ...selectedTicket });
-                openModal("ticket-form-modal");
-              }} />
             </div>
           </div>
         )}
@@ -360,7 +405,7 @@ export default function Support() {
           </div>
           <FormInput label="Issue Description" field="issue" multiline placeholder="Describe the issue in detail" disabled={!!form.id} />
           <div className="grid grid-cols-1">
-            <FormSelect label="Status" field="status" options={["Open", "In Progress", "Escalated", "Resolved"]} />
+            <FormSelect label="Status" field="status" options={["Open", "In Progress", "Escalated", "Resolved", "Closed"]} />
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
@@ -375,6 +420,28 @@ export default function Support() {
               <Button text="Delete Ticket" variant="danger" size={3} onClick={handleDelete} />
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* ══ CONFIRM ACTION MODAL ═════════════════════════════════════════════ */}
+      <Modal id="confirm-action-modal" title="Confirm Action" size="md">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-slate-600 font-medium">
+            {confirmData?.message || "Are you sure you want to perform this action?"}
+          </p>
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+            <Button text="Cancel" variant="secondary" size={3} onClick={() => {
+              closeModal("confirm-action-modal");
+              setConfirmData(null);
+            }} />
+            <Button text={confirmData?.confirmText || "Confirm"} variant={confirmData?.confirmVariant || "primary"} size={3} onClick={async () => {
+              if (confirmData?.onConfirm) {
+                await confirmData.onConfirm();
+              }
+              closeModal("confirm-action-modal");
+              setConfirmData(null);
+            }} />
+          </div>
         </div>
       </Modal>
     </div>

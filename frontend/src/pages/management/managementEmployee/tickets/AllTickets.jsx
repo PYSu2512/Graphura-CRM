@@ -1,5 +1,5 @@
-import { CheckCircle2, Clock, Eye, MessageSquare, Ticket } from "lucide-react";
-import { useMemo, useState } from "react";
+import { CheckCircle2, Clock, Eye, MessageSquare, Ticket, Shield, AlertTriangle } from "lucide-react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import {
     Button,
     closeModal,
@@ -15,24 +15,50 @@ import {
     SelectField,
     UserChat,
 } from "../../../../components/shared/Common_Components.jsx";
-import { kpiTickets, TICKET_ROLES, ticketCategories } from "./ticketsStore";
+import {
+  createTicket, getMyRaisedTickets,
+  getTicketById, addReply, mapTicket,
+} from "../../../../services/ticketService";
 
 const ticketCols = [
   { key: "title", label: "Subject" },
   { key: "priority", label: "Priority" },
   { key: "status", label: "Status" },
   { key: "createdDate", label: "Created Date" },
-  { key: "raisedTo", label: "Raised To" },
 ];
 
 const blankForm = { title: "", category: "", priority: "Medium", description: "", targetHierarchy: "ALL" };
 
-export default function AllTickets({ tickets, setTickets }) {
+export default function AllTickets() {
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [stats,   setStats]   = useState({ total: 0, inProgress: 0, open: 0, resolved: 0 });
   const [selected, setSelected] = useState(null);
   const [form, setForm] = useState(blankForm);
   const [formErr, setFormErr] = useState({});
+  const [replyLoading, setReplyLoading] = useState(false);
 
-  const stats = useMemo(() => kpiTickets(tickets), [tickets]);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getMyRaisedTickets({ limit: 100 });
+      const mapped = (res.tickets || []).map(mapTicket);
+      setTickets(mapped);
+      
+      setStats({
+        total:      mapped.length,
+        inProgress: mapped.filter(t => t.status === 'In Progress').length,
+        open:       mapped.filter(t => t.status === 'Open').length,
+        resolved:   mapped.filter(t => t.status === 'Resolved' || t.status === 'Closed').length,
+      });
+    } catch (err) {
+      console.error("Failed to load tickets:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -41,12 +67,13 @@ export default function AllTickets({ tickets, setTickets }) {
     }
   };
 
-  const openView = (row) => {
-    setSelected(row);
+  const openView = async (row) => {
+    try { setSelected(mapTicket(await getTicketById(row._id))); }
+    catch { setSelected(row); }
     openModal("me-ticket-view-modal");
   };
 
-  const handleCreateSubmit = () => {
+  const handleCreateSubmit = async () => {
     const errs = {};
     if (!form.title.trim()) errs.title = "Subject is required.";
     if (!form.description.trim()) errs.description = "Description is required.";
@@ -55,59 +82,33 @@ export default function AllTickets({ tickets, setTickets }) {
       return;
     }
 
-    const newTicket = {
-      id: `TKT-${Date.now()}`,
-      title: form.title.trim(),
-      category: form.category || "Other",
-      priority: form.priority,
-      status: "Open",
-      createdDate: new Date().toISOString().slice(0, 10),
-      lastReply: new Date().toISOString().slice(0, 10),
-      raisedTo: form.targetHierarchy || TICKET_ROLES.defaultSendTo,
-      targetHierarchy: form.targetHierarchy || "ALL",
-      description: form.description.trim(),
-      conversation: [
-        { id: `${Date.now()}-m`, sender: TICKET_ROLES.currentUser, time: `${new Date().toISOString().slice(0, 10)} 09:00`, text: form.description.trim() },
-      ],
-    };
-
-    setTickets((prev) => [newTicket, ...prev]);
-    setForm(blankForm);
-    setFormErr({});
-    closeModal("me-create-ticket-modal");
+    try {
+      await createTicket({
+        subject:  form.title.trim(),
+        message:  form.description.trim(),
+        priority: form.priority,
+        category: form.category || null,
+        targetHierarchy: form.targetHierarchy || "ALL",
+      });
+      setForm(blankForm);
+      setFormErr({});
+      closeModal("me-create-ticket-modal");
+      await fetchData();
+    } catch (err) {
+      setFormErr({ submit: err?.message || 'Failed to create ticket.' });
+    }
   };
 
-  const handleEscalate = () => {
+  const handleReply = async (msg) => {
     if (!selected) return;
-    const updated = { ...selected, raisedTo: TICKET_ROLES.escalateTo, status: "Escalated", lastReply: new Date().toISOString().slice(0, 10), conversation: [
-      ...selected.conversation,
-      { id: `${Date.now()}-escalate`, sender: selected.raisedTo, time: `${new Date().toISOString().slice(0, 10)} 11:00`, text: "Escalated to Management Manager." },
-    ] };
-    setTickets((prev) => prev.map((ticket) => (ticket.id === updated.id ? updated : ticket)));
-    setSelected(updated);
+    setReplyLoading(true);
+    try {
+      const updated = mapTicket(await addReply(selected._id, msg.text));
+      setTickets(prev => prev.map(t => t._id === updated._id ? updated : t));
+      setSelected(updated);
+    } catch (err) { alert(err?.message || 'Failed to send reply'); }
+    finally { setReplyLoading(false); }
   };
-
-  const sortedTickets = useMemo(() => {
-    const getPriorityWeight = (priority) => {
-      if (!priority) return 2;
-      const p = priority.toUpperCase();
-      if (p === 'CRITICAL' || p === 'URGENT' || p === 'HIGH') return 3;
-      if (p === 'MEDIUM' || p === 'NORMAL') return 2;
-      if (p === 'LOW') return 1;
-      return 2;
-    };
-
-    return [...tickets].sort((a, b) => {
-      const weightA = getPriorityWeight(a.priority);
-      const weightB = getPriorityWeight(b.priority);
-      if (weightB !== weightA) {
-        return weightB - weightA;
-      }
-      const dateA = new Date(a.createdDate || a.createdAt || 0);
-      const dateB = new Date(b.createdDate || b.createdAt || 0);
-      return dateA - dateB;
-    });
-  }, [tickets]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -138,7 +139,7 @@ export default function AllTickets({ tickets, setTickets }) {
       <DataTable
         title="My Tickets"
         columns={ticketCols}
-        rows={sortedTickets}
+        rows={tickets}
         actions={[
           {
             icon: <Eye size={15} />,
@@ -150,6 +151,7 @@ export default function AllTickets({ tickets, setTickets }) {
         size={12}
         pageSize={10}
         searchable
+        loading={loading}
         exportable
         exportFileName="my_tickets"
         defaultSortKey={null}
@@ -192,10 +194,9 @@ export default function AllTickets({ tickets, setTickets }) {
                 value={form.category}
                 onChange={(e) => setField("category", e.target.value)}
               >
-                <Option value="" label="Select category" />
-                {ticketCategories.map((option) => (
-                  <Option key={option.value} value={option.value} label={option.label} />
-                ))}
+                <Option value="SYSTEM" label="System Issue" />
+                <Option value="CLIENT_DATA" label="Client Data" />
+                <Option value="MANAGEMENT" label="Management Issue" />
               </SelectField>
             </div>
             <div className="col-span-6">
@@ -222,6 +223,7 @@ export default function AllTickets({ tickets, setTickets }) {
               />
               {formErr.description && <p className="text-xs text-rose-600 mt-1 px-1">{formErr.description}</p>}
             </div>
+            {formErr.submit && <div className="col-span-12"><p className="text-xs text-rose-600 px-1">{formErr.submit}</p></div>}
           </Grid>
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
             <Button text="Cancel" variant="secondary" size={3} onClick={() => { setForm(blankForm); setFormErr({}); closeModal("me-create-ticket-modal"); }} />
@@ -235,7 +237,7 @@ export default function AllTickets({ tickets, setTickets }) {
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-2.5">
               {[
-                { label: "Raised By", value: TICKET_ROLES.currentUser },
+                { label: "Raised By", value: "Me" },
                 { label: "Priority", value: selected.priority },
                 { label: "Status", value: selected.status },
               ].map((item) => (
@@ -251,16 +253,10 @@ export default function AllTickets({ tickets, setTickets }) {
             </div>
             <div className="flex flex-col gap-1">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conversation</p>
-              <UserChat messages={selected.conversation} onSend={null} currentUser={TICKET_ROLES.currentUser} maxHeight="max-h-72" readOnly />
+              <UserChat messages={selected.conversation} onSend={handleReply} currentUser="Me" maxHeight="max-h-72" loading={replyLoading} />
             </div>
-            <div className="flex justify-between items-center pt-3 border-t border-slate-100">
-              <div className="text-sm text-slate-500">Raised To: {selected.raisedTo}</div>
-              <div className="flex gap-3">
-                {selected.raisedTo !== TICKET_ROLES.escalateTo && (
-                  <Button text="Escalate to Management Manager" variant="secondary" size={3} onClick={handleEscalate} />
-                )}
+            <div className="flex justify-end items-center pt-3 border-t border-slate-100">
                 <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("me-ticket-view-modal")} />
-              </div>
             </div>
           </div>
         )}

@@ -1,19 +1,21 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   DashGrid, EnhancedDashCard, DataTable, Grid, DataField,
   openModal, closeModal, Modal, Select, Option,
   Heading, Button, UserChat,
 } from "../../../../components/shared/Common_Components";
 import {
-  kpiTickets, MY_TICKETS_SEED, ROLE_MM, ROLE_ADMIN,
-} from "../ticketsStore";
+  createTicket, getMyRaisedTickets, getAssignedTickets,
+  getTicketById, addReply, escalateTicket, resolveTicket, closeTicket, mapTicket,
+} from "../../../../services/ticketService";
 import {
-  Ticket, CheckCircle, AlertCircle, Clock, Paperclip,
-  MessageSquare, CheckCircle2, AlertTriangle, Trash2, X,
+  Ticket, CheckCircle, AlertCircle, Clock,
+  MessageSquare, CheckCircle2, AlertTriangle, Shield
 } from "lucide-react";
 
 const kpiIcons   = [<Ticket size={22} />, <AlertCircle size={22} />, <Clock size={22} />, <CheckCircle size={22} />];
 const kpiAccents = ["#3b82f6", "#f59e0b", "#8b5cf6", "#22c55e"];
+const kpiLabels  = ['Total Tickets', 'In Progress', 'Replied', 'Resolved'];
 
 // Team Tickets columns — TLs/Employees raised to MM
 const ticketCols = [
@@ -34,180 +36,146 @@ const myTicketCols = [
   { key: "lastReply",   label: "Last Reply"   },
 ];
 
-const blankForm = { title: "", category: "", priority: "", assignedTo: "", description: "", attachments: [] };
+const blankForm = { title: "", category: "", priority: "Medium", description: "", targetHierarchy: "ALL" };
 
-export default function AllTickets({ tickets, setTickets }) {
-  const [selected,   setSelected]   = useState(null);
-  const [form,       setForm]       = useState(blankForm);
-  const [formErr,    setFormErr]    = useState({});
-  const [myTickets,  setMyTickets]  = useState(MY_TICKETS_SEED);
-  const [mySelected, setMySelected] = useState(null);
+export default function AllTickets() {
+  const [allTickets,   setAllTickets]   = useState([]);
+  const [myTickets,    setMyTickets]    = useState([]);
+  const [stats,        setStats]        = useState([0, 0, 0, 0]);
+  const [selected,     setSelected]     = useState(null);
+  const [mySelected,   setMySelected]   = useState(null);
+  const [form,         setForm]         = useState(blankForm);
+  const [formErr,      setFormErr]      = useState({});
+  const [loading,      setLoading]      = useState(false);
+  const [submitting,   setSubmitting]   = useState(false);
+  const [replyLoading, setReplyLoading] = useState(false);
+  const [confirmData, setConfirmData] = useState(null);
 
-  const attachInputRef = useRef(null);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [assignedData, raisedData] = await Promise.all([
+        getAssignedTickets({ limit: 100 }),
+        getMyRaisedTickets({ limit: 100 }),
+      ]);
+      const team = (assignedData.tickets || []).map(mapTicket);
+      const mine = (raisedData.tickets   || []).map(mapTicket)
+        .filter(t => t.status !== 'Resolved' && t.status !== 'Closed');
+      setAllTickets(team);
+      setMyTickets(mine);
+
+      const combined = [...team, ...mine];
+      setStats([
+        combined.length,
+        combined.filter(t => t.status === 'In Progress').length,
+        combined.filter(t => t.status === 'In Progress').length,
+        combined.filter(t => t.status === 'Resolved' || t.status === 'Closed').length,
+      ]);
+    } catch (err) {
+      console.error('Failed to load tickets:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const setField = (k, v) => {
-    setForm((f) => ({ ...f, [k]: v }));
-    if (formErr[k]) setFormErr((e) => ({ ...e, [k]: "" }));
+    setForm(f => ({ ...f, [k]: v }));
+    if (formErr[k]) setFormErr(e => ({ ...e, [k]: '' }));
   };
 
-  const handleAttachFiles = (e) => {
-    const files = Array.from(e.target.files || []);
-    const previews = files.map((file) => ({
-      name: file.name,
-      url:  URL.createObjectURL(file),
-      type: file.type,
-    }));
-    setForm((f) => ({ ...f, attachments: [...f.attachments, ...previews] }));
-    e.target.value = "";
+  const openAllView = async (row) => {
+    try { setSelected(mapTicket(await getTicketById(row._id))); }
+    catch { setSelected(row); }
+    openModal('mm-ticket-view');
   };
 
-  const removeAttachment = (idx) => {
-    setForm((f) => ({ ...f, attachments: f.attachments.filter((_, i) => i !== idx) }));
+  const openMyView = async (row) => {
+    try { setMySelected(mapTicket(await getTicketById(row._id))); }
+    catch { setMySelected(row); }
+    openModal('mm-myticket-view');
   };
 
-  // Build initial conversation with description + attachments prepended.
-  const withInitialMsg = (ticket) => {
-    const SYSTEM_ID = "__initial__";
-    if ((ticket.conversation || [])[0]?.id === SYSTEM_ID) return ticket;
+  const sendAllReply = async (msg) => {
+    if (!selected) return;
+    setReplyLoading(true);
+    try {
+      const updated = mapTicket(await addReply(selected._id, msg.text));
+      setAllTickets(prev => prev.map(t => t._id === updated._id ? updated : t));
+      setSelected(updated);
+    } catch (err) { alert(err?.message || 'Failed to send reply'); }
+    finally { setReplyLoading(false); }
+  };
 
-    const initial = [];
-    if (ticket.description?.trim()) {
-      initial.push({
-        id:     SYSTEM_ID,
-        sender: ticket.raisedBy || "Requester",
-        time:   ticket.createdDate ? `${ticket.createdDate} 00:00` : "",
-        text:   ticket.description,
-      });
-    }
-    (ticket.attachments || []).forEach((att, i) => {
-      if (att.url) {
-        initial.push({
-          id:        `${SYSTEM_ID}_img_${i}`,
-          sender:    ticket.raisedBy || "Requester",
-          time:      ticket.createdDate ? `${ticket.createdDate} 00:00` : "",
-          imageUrl:  att.url,
-          imageName: att.name,
-        });
+  const handleEscalate = async (row) => {
+    setConfirmData({
+      message: "Are you sure you want to escalate this ticket?",
+      confirmText: "Escalate",
+      confirmVariant: "danger",
+      onConfirm: async () => {
+        try {
+          await escalateTicket(row._id, 'Escalated by Management Manager to Admin');
+          await fetchData();
+        } catch (err) { alert(err?.message || 'Could not escalate'); }
       }
     });
-
-    return { ...ticket, conversation: [...initial, ...(ticket.conversation || [])] };
+    openModal("confirm-action-modal");
   };
 
-  const openView = (row) => {
-    const ticket = tickets.find((t) => t.id === row.id) ?? row;
-    setSelected(withInitialMsg(ticket));
-    openModal("mm-ticket-view");
+  const handleResolve = async (row) => {
+    setConfirmData({
+      message: "Are you sure you want to resolve this ticket?",
+      confirmText: "Resolve",
+      confirmVariant: "success",
+      onConfirm: async () => {
+        try {
+          await resolveTicket(row._id);
+          await fetchData();
+        } catch (err) { alert(err?.message || 'Could not resolve'); }
+      }
+    });
+    openModal("confirm-action-modal");
   };
 
-  const openMyView = (row) => {
-    const ticket = myTickets.find((t) => t.id === row.id) ?? row;
-    setMySelected(withInitialMsg(ticket));
-    openModal("mm-myticket-view");
+  const handleClose = async (row) => {
+    try {
+      await closeTicket(row._id, 'Closed by Management Manager');
+      await fetchData();
+    } catch (err) { alert(err?.message || 'Could not close'); }
   };
 
-  // MM replies to a TL/Employee ticket
-  const sendReply = (msg) => {
-    setTickets((prev) =>
-      prev.map((t) =>
-        t.id === selected.id
-          ? { ...t, status: "Replied", lastReply: msg.time.slice(0, 10),
-              conversation: [...(t.conversation || []), msg] }
-          : t
-      )
-    );
-    setSelected((s) => ({
-      ...s, status: "Replied", lastReply: msg.time.slice(0, 10),
-      conversation: [...(s.conversation || []), msg],
-    }));
-  };
-
-  // MM adds to their own ticket (to Admin)
-  const sendMyReply = (msg) => {
-    setMyTickets((prev) =>
-      prev.map((t) =>
-        t.id === mySelected.id
-          ? { ...t, lastReply: msg.time.slice(0, 10),
-              conversation: [...(t.conversation || []), msg] }
-          : t
-      )
-    );
-    setMySelected((s) => ({
-      ...s, lastReply: msg.time.slice(0, 10),
-      conversation: [...(s.conversation || []), msg],
-    }));
-  };
-
-  // MM creates a new ticket addressed to Admin
-  const handleCreateSubmit = () => {
+  const handleCreateSubmit = async () => {
     const errs = {};
-    if (!form.title.trim())       errs.title       = "Title is required.";
-    if (!form.description.trim()) errs.description = "Description is required.";
+    if (!form.title.trim())       errs.title       = 'Title is required.';
+    if (!form.description.trim()) errs.description = 'Description is required.';
     if (Object.keys(errs).length) { setFormErr(errs); return; }
 
-    const now = new Date().toISOString().slice(0, 10);
-    const ticket = {
-      id:           `TKT-${Date.now().toString().slice(-4)}`,
-      title:        form.title,
-      raisedBy:     ROLE_MM,
-      role:         ROLE_MM,
-      priority:     form.priority || "Medium",
-      status:       "In Progress",
-      createdDate:  now,
-      lastReply:    now,
-      description:  form.description,
-      attachments:  form.attachments,
-      conversation: [],
-    };
-    setMyTickets((prev) => [ticket, ...prev]);
-    setForm(blankForm);
-    setFormErr({});
-    closeModal("mm-ticket-create");
+    setSubmitting(true);
+    try {
+      await createTicket({
+        subject:  form.title.trim(),
+        message:  form.description.trim(),
+        priority: form.priority || 'Medium',
+        category: form.category || null,
+        targetHierarchy: form.targetHierarchy || "ALL",
+      });
+      setForm(blankForm);
+      setFormErr({});
+      closeModal('mm-ticket-create');
+      await fetchData();
+    } catch (err) {
+      setFormErr({ submit: err?.message || err?.data?.message || 'Failed to create ticket.' });
+    } finally { setSubmitting(false); }
   };
 
-  const allCombined = [...tickets, ...myTickets];
-  const liveCounts = [
-    allCombined.length,
-    allCombined.filter((t) => t.status === "In Progress").length,
-    allCombined.filter((t) => t.status === "Replied").length,
-    allCombined.filter((t) => t.status === "Resolved").length,
+  const allActions = [
+    { icon: <MessageSquare size={15}/>, tooltip: 'View & Reply',    variant: 'primary', onClick: openAllView },
+    { icon: <CheckCircle2  size={15}/>, tooltip: 'Mark Resolved',   variant: 'success', onClick: handleResolve, show: (r) => r.status !== 'Resolved' && r.status !== 'Closed' },
+    { icon: <AlertTriangle size={15}/>, tooltip: 'Escalate to Admin', variant: 'danger',  onClick: handleEscalate, show: (r) => r.status !== 'Escalated' && r.status !== 'Resolved' && r.status !== 'Closed' },
   ];
-
-  // Team Tickets actions
-  const actions = [
-    {
-      icon: <MessageSquare size={15} />, tooltip: "View & Reply",
-      variant: "primary",
-      onClick: openView,
-    },
-    {
-      icon: <AlertTriangle size={15} />, tooltip: "Escalate to Admin",
-      variant: "danger",
-      onClick: (row) => setTickets((prev) => prev.map((t) =>
-        t.id === row.id ? { ...t, status: "Escalated", raisedTo: ROLE_ADMIN } : t
-      )),
-    },
-  ];
-
-  // My Tickets actions
   const myActions = [
-    {
-      icon: <MessageSquare size={15} />, tooltip: "View & Reply",
-      variant: "primary",
-      onClick: openMyView,
-    },
-    {
-      icon: <CheckCircle2 size={15} />, tooltip: "Mark Resolved",
-      variant: "success",
-      onClick: (row) => setMyTickets((prev) => prev.map((t) =>
-        t.id === row.id ? { ...t, status: "Resolved" } : t
-      )),
-    },
-    {
-      icon: <Trash2 size={15} />, tooltip: "Delete",
-      variant: "danger",
-      onClick: (row) => setMyTickets((prev) => prev.filter((t) => t.id !== row.id)),
-    },
+    { icon: <MessageSquare size={15}/>, tooltip: 'View', variant: 'primary', onClick: openMyView },
   ];
 
   return (
@@ -216,11 +184,11 @@ export default function AllTickets({ tickets, setTickets }) {
       {/* ── KPI cards ────────────────────────────────────────────────────── */}
       <DashGrid cols={12} gap={4}>
         <Heading primaryText="Support Tickets" secondaryText="Management" size={12} />
-        {kpiTickets.map((k, i) => (
+        {kpiLabels.map((label, i) => (
           <EnhancedDashCard
-            key={k.title}
-            title={k.title}
-            value={String(liveCounts[i])}
+            key={label}
+            title={label}
+            value={String(stats[i])}
             icon={kpiIcons[i]}
             accentColor={kpiAccents[i]}
             size={3}
@@ -239,69 +207,43 @@ export default function AllTickets({ tickets, setTickets }) {
       </div>
 
       {/* ── My Tickets table (MM → Admin) ─────────────────────────────────── */}
-      {(() => {
-        const getPriorityWeight = (priority) => {
-          if (!priority) return 2;
-          const p = priority.toUpperCase();
-          if (p === 'CRITICAL' || p === 'URGENT' || p === 'HIGH') return 3;
-          if (p === 'MEDIUM' || p === 'NORMAL') return 2;
-          if (p === 'LOW') return 1;
-          return 2;
-        };
+      <DataTable
+        title="My Tickets"
+        columns={myTicketCols}
+        rows={myTickets}
+        actions={myActions}
+        size={12}
+        pageSize={5}
+        searchable
+        loading={loading}
+        defaultSortKey={null}
+        filters={[
+          { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High"] },
+          { title: "Status",   type: "toggle", key: "status",   options: ["Open", "In Progress", "Resolved", "Escalated"] },
+        ]}
+      />
 
-        const sortFn = (a, b) => {
-          const weightA = getPriorityWeight(a.priority);
-          const weightB = getPriorityWeight(b.priority);
-          if (weightB !== weightA) return weightB - weightA;
-          const dateA = new Date(a.createdDate || a.createdAt || 0);
-          const dateB = new Date(b.createdDate || b.createdAt || 0);
-          return dateA - dateB;
-        };
-
-        const sortedMyTickets = [...myTickets].sort(sortFn);
-        const sortedTeamTickets = [...tickets].sort(sortFn);
-
-        return (
-          <>
-            <DataTable
-              title="My Tickets"
-              columns={myTicketCols}
-              rows={sortedMyTickets}
-              actions={myActions}
-              size={12}
-              pageSize={5}
-              searchable
-              defaultSortKey={null}
-              filters={[
-                { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High"] },
-                { title: "Status",   type: "toggle", key: "status",   options: ["In Progress", "Replied", "Resolved", "Escalated"] },
-              ]}
-            />
-
-            {/* ── Team Tickets table (TLs/Employees → MM) ──────────────────────── */}
-            <DataTable
-              title="Team Tickets"
-              columns={ticketCols}
-              rows={sortedTeamTickets}
-              actions={actions}
-              size={12}
-              pageSize={10}
-              searchable
-              defaultSortKey={null}
-              filters={[
-                { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High"] },
-                { title: "Status",   type: "toggle", key: "status",   options: ["In Progress", "Replied", "Resolved", "Escalated"] },
-              ]}
-            />
-          </>
-        );
-      })()}
+      {/* ── Team Tickets table (TLs/Employees → MM) ──────────────────────── */}
+      <DataTable
+        title="Team Tickets"
+        columns={ticketCols}
+        rows={allTickets}
+        actions={allActions}
+        size={12}
+        pageSize={10}
+        searchable
+        loading={loading}
+        defaultSortKey={null}
+        filters={[
+          { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High"] },
+          { title: "Status",   type: "toggle", key: "status",   options: ["Open", "In Progress", "Resolved", "Escalated"] },
+        ]}
+      />
 
       {/* ── Create Ticket Modal ──────────────────────────────────────────── */}
       <Modal id="mm-ticket-create" title="Create New Ticket" size="lg">
         <div className="flex flex-col gap-5">
           <Grid cols={12} gap={4}>
-
             <div className="col-span-12">
               <DataField
                 label="Ticket Title *" id="mm-tkt-title" size={12}
@@ -310,6 +252,15 @@ export default function AllTickets({ tickets, setTickets }) {
                 placeholder="Enter a clear, concise ticket title"
               />
               {formErr.title && <p className="text-xs text-rose-600 mt-1 px-1">{formErr.title}</p>}
+            </div>
+
+            <div className="col-span-12 flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">Raise To</label>
+              <Select value={form.targetHierarchy} onChange={e => setField('targetHierarchy', e.target.value)} 
+                placeholder="Select an option (Default: All)" size={12}>
+                <Option value="ALL"     label="All" />
+                <Option value="ADMIN"   label="Admin" />
+              </Select>
             </div>
 
             <div className="col-span-6 flex flex-col gap-1.5">
@@ -335,15 +286,6 @@ export default function AllTickets({ tickets, setTickets }) {
 
             <div className="col-span-12">
               <DataField
-                label="Send To" id="mm-tkt-assign" size={12}
-                value={form.assignedTo || ROLE_ADMIN}
-                onChange={(e) => setField("assignedTo", e.target.value)}
-                placeholder="Admin"
-              />
-            </div>
-
-            <div className="col-span-12">
-              <DataField
                 label="Description *" id="mm-tkt-desc" type="textarea" rows={4} size={12}
                 value={form.description}
                 onChange={(e) => setField("description", e.target.value)}
@@ -351,66 +293,13 @@ export default function AllTickets({ tickets, setTickets }) {
               />
               {formErr.description && <p className="text-xs text-rose-600 mt-1 px-1">{formErr.description}</p>}
             </div>
-
-            <div className="col-span-12">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] block mb-2">
-                Attachment (optional)
-              </label>
-              <input
-                ref={attachInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                onChange={handleAttachFiles}
-              />
-              <div
-                onClick={() => attachInputRef.current?.click()}
-                className="flex items-center gap-3 border-2 border-dashed border-slate-200 rounded-2xl p-4 bg-slate-50 cursor-pointer hover:border-[#2a465a]/40 hover:bg-white transition"
-              >
-                <Paperclip size={18} className="text-slate-400 shrink-0" />
-                <span className="text-sm text-slate-400">Click to upload image</span>
-              </div>
-              {form.attachments.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {form.attachments.map((att, idx) => (
-                    <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                      {att.type.startsWith("image/") ? (
-                        <img src={att.url} alt={att.name} className="w-20 h-20 object-cover" />
-                      ) : (
-                        <div className="w-20 h-20 flex flex-col items-center justify-center bg-slate-100 gap-1">
-                          <Paperclip size={20} className="text-slate-400" />
-                          <span className="text-[9px] text-slate-500 text-center px-1 truncate w-full">{att.name}</span>
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); removeAttachment(idx); }}
-                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
+            {formErr.submit && <div className="col-span-12"><p className="text-xs text-rose-600 px-1">{formErr.submit}</p></div>}
           </Grid>
-
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-            <Button
-              text="Cancel"
-              variant="secondary"
-              size={3}
-              onClick={() => { setForm(blankForm); setFormErr({}); closeModal("mm-ticket-create"); }}
-            />
-            <Button
-              text="Submit Ticket"
-              variant="primary"
-              size={3}
-              onClick={handleCreateSubmit}
-            />
+            <Button text="Cancel" variant="secondary" size={3}
+              onClick={() => { setForm(blankForm); setFormErr({}); closeModal("mm-ticket-create"); }} />
+            <Button text={submitting ? 'Submitting…' : 'Submit Ticket'} variant="primary" size={3}
+              onClick={handleCreateSubmit} disabled={submitting} />
           </div>
         </div>
       </Modal>
@@ -418,58 +307,70 @@ export default function AllTickets({ tickets, setTickets }) {
       {/* ── View / Reply Modal (Team Tickets) ────────────────────────────── */}
       <Modal id="mm-ticket-view" title="Ticket Details" size="lg">
         {selected && (
-          <TicketDetailContent
-            selected={selected}
-            onSendMsg={sendReply}
-            onClose={() => closeModal("mm-ticket-view")}
-          />
+          <ReplyTicketContent selected={selected} onSendMsg={sendAllReply}
+            onClose={() => closeModal('mm-ticket-view')}
+            loading={replyLoading} currentUser="Management Manager" />
         )}
       </Modal>
 
       {/* ── View / Reply Modal (My Tickets) ──────────────────────────────── */}
       <Modal id="mm-myticket-view" title="My Ticket Details" size="lg">
         {mySelected && (
-          <TicketDetailContent
-            selected={mySelected}
-            onSendMsg={sendMyReply}
-            onClose={() => closeModal("mm-myticket-view")}
-          />
+          <ReadOnlyTicketContent selected={mySelected}
+            onClose={() => closeModal('mm-myticket-view')} currentUser="Management Manager" />
         )}
+      </Modal>
+
+      {/* ══ CONFIRM ACTION MODAL ═════════════════════════════════════════════ */}
+      <Modal id="confirm-action-modal" title="Confirm Action" size="md">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-slate-600 font-medium">
+            {confirmData?.message || "Are you sure you want to perform this action?"}
+          </p>
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
+            <Button text="Cancel" variant="secondary" size={3} onClick={() => {
+              closeModal("confirm-action-modal");
+              setConfirmData(null);
+            }} />
+            <Button text={confirmData?.confirmText || "Confirm"} variant={confirmData?.confirmVariant || "primary"} size={3} onClick={async () => {
+              if (confirmData?.onConfirm) {
+                await confirmData.onConfirm();
+              }
+              closeModal("confirm-action-modal");
+              setConfirmData(null);
+            }} />
+          </div>
+        </div>
       </Modal>
 
     </div>
   );
 }
 
-// ─── Shared ticket detail content ───────────────────────────────────────────
-function TicketDetailContent({ selected, onSendMsg, onClose }) {
+function ReplyTicketContent({ selected, onSendMsg, onClose, loading, currentUser }) {
   const statusColors = {
-    Open:         "bg-amber-100 text-amber-700",
-    "In Progress":"bg-purple-100 text-purple-700",
-    Replied:      "bg-blue-100 text-blue-700",
-    Resolved:     "bg-emerald-100 text-emerald-700",
-    Escalated:    "bg-rose-100 text-rose-700",
+    'Open': 'bg-amber-100 text-amber-700', 'In Progress': 'bg-purple-100 text-purple-700',
+    'Replied': 'bg-blue-100 text-blue-700', 'Resolved': 'bg-emerald-100 text-emerald-700',
+    'Escalated': 'bg-rose-100 text-rose-700', 'Closed': 'bg-slate-100 text-slate-600',
   };
+  const conversation = (() => {
+    const msgs = selected.conversation || [];
+    if (!selected.description?.trim()) return msgs;
+    return [{ id: '__initial__', sender: selected.raisedBy || 'Employee',
+      time: selected.createdDate ? `${selected.createdDate} 00:00` : '', text: selected.description }, ...msgs];
+  })();
+  const hasReplied = conversation.some(m => m.sender === currentUser || m.sender === 'Management Manager');
 
   return (
     <div className="flex flex-col gap-4">
-
-      {/* ── Ticket meta tiles ── */}
       <div className="grid grid-cols-2 gap-2.5">
-        {[
-          { label: "Raised By",  value: selected.raisedBy },
-          { label: "Priority",   value: selected.priority },
-          { label: "Status",     value: selected.status },
-        ].map(({ label, value }) => (
+        {[['Raised By', selected.raisedBy],
+          ['Priority', selected.priority], ['Status', selected.status]].map(([label, value]) => (
           <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
-            <p className={`text-xs font-bold ${
-              label === "Status"
-                ? `inline-flex px-2 py-0.5 rounded-full ${statusColors[value] ?? "bg-slate-100 text-slate-600"}`
-                : "text-[#2a465a]"
-            }`}>
-              {value}
-            </p>
+            <p className={`text-xs font-bold ${label === 'Status'
+              ? `inline-flex px-2 py-0.5 rounded-full ${statusColors[value] ?? 'bg-slate-100 text-slate-600'}`
+              : 'text-[#2a465a]'}`}>{value}</p>
           </div>
         ))}
         <div className="col-span-2 rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
@@ -477,29 +378,59 @@ function TicketDetailContent({ selected, onSendMsg, onClose }) {
           <p className="text-xs font-bold text-[#2a465a]">{selected.title}</p>
         </div>
       </div>
-
-      {/* ── Chat thread ── */}
       <div className="flex flex-col gap-1">
         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conversation</p>
-        <UserChat
-          messages={selected.conversation || []}
-          onSend={onSendMsg}
-          currentUser={ROLE_MM}
-          maxHeight="max-h-72"
-          placeholder="Type your reply… (Enter to send)"
-        />
+        <UserChat messages={conversation} onSend={hasReplied || loading ? null : onSendMsg}
+          currentUser={currentUser} maxHeight="max-h-72"
+          placeholder="Type your reply… (Enter to send)" readOnly={hasReplied} />
+        {hasReplied && <p className="text-[10px] text-slate-400 mt-1 px-1">You have already replied to this ticket.</p>}
       </div>
-
-      {/* ── Footer ── */}
       <div className="flex justify-end pt-1 border-t border-slate-100">
-        <button
-          onClick={onClose}
-          className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition active:scale-95"
-        >
-          Close
-        </button>
+        <button onClick={onClose} className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition active:scale-95">Close</button>
       </div>
+    </div>
+  );
+}
 
+function ReadOnlyTicketContent({ selected, onClose, currentUser }) {
+  const statusColors = {
+    'Open': 'bg-amber-100 text-amber-700', 'In Progress': 'bg-purple-100 text-purple-700',
+    'Replied': 'bg-blue-100 text-blue-700', 'Resolved': 'bg-emerald-100 text-emerald-700',
+    'Escalated': 'bg-rose-100 text-rose-700', 'Closed': 'bg-slate-100 text-slate-600',
+  };
+  const conversation = (() => {
+    const msgs = selected.conversation || [];
+    if (!selected.description?.trim()) return msgs;
+    return [{ id: '__initial__', sender: currentUser,
+      time: selected.createdDate ? `${selected.createdDate} 00:00` : '', text: selected.description }, ...msgs];
+  })();
+
+  const targetLabels = { TL: 'Team Lead', MANAGER: 'Manager', ADMIN: 'Admin', ALL: 'All' };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-2.5">
+        {[['Raised By', currentUser], ['Raised To', targetLabels[selected.targetHierarchy] || selected.targetHierarchy],
+          ['Priority', selected.priority], ['Status', selected.status]].map(([label, value]) => (
+          <div key={label} className="rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+            <p className={`text-xs font-bold ${label === 'Status'
+              ? `inline-flex px-2 py-0.5 rounded-full ${statusColors[value] ?? 'bg-slate-100 text-slate-600'}`
+              : 'text-[#2a465a]'}`}>{value}</p>
+          </div>
+        ))}
+        <div className="col-span-2 rounded-xl bg-slate-50 border border-slate-100 px-3.5 py-2.5">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Title</p>
+          <p className="text-xs font-bold text-[#2a465a]">{selected.title}</p>
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Conversation</p>
+        <UserChat messages={conversation} onSend={null} currentUser={currentUser} maxHeight="max-h-72" readOnly />
+      </div>
+      <div className="flex justify-end pt-1 border-t border-slate-100">
+        <button onClick={onClose} className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition active:scale-95">Close</button>
+      </div>
     </div>
   );
 }

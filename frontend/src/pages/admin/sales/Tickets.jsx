@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Ticket,
   AlertCircle,
@@ -25,18 +25,7 @@ import {
   Option,
   Grid,
 } from "../../../components/shared/Common_Components";
-
-// ── Mock tickets ──
-const mockTickets = [
-  { id: "TKT-001", subject: "Payment not reflecting in wallet", customer: "Arun Kapoor", priority: "High", status: "Open", assignee: "Rahul S.", created: "Apr 21, 2026", lastUpdate: "2 hr ago", avatar: "AK" },
-  { id: "TKT-002", subject: "Unable to access executive dashboard", customer: "Priya Mehta", priority: "Urgent", status: "In Progress", assignee: "Neha S.", created: "Apr 20, 2026", lastUpdate: "4 hr ago", avatar: "PM" },
-  { id: "TKT-003", subject: "Feature request: batch export to PDF", customer: "Vikash Sharma", priority: "Low", status: "Open", assignee: "Deepika N.", created: "Apr 19, 2026", lastUpdate: "1 day ago", avatar: "VS" },
-  { id: "TKT-004", subject: "Data discrepancy in regional report", customer: "Ritu Desai", priority: "Medium", status: "In Progress", assignee: "Anita B.", created: "Apr 18, 2026", lastUpdate: "3 hr ago", avatar: "RD" },
-  { id: "TKT-005", subject: "Login issues on mobile (Android)", customer: "Rohan Gupta", priority: "High", status: "Resolved", assignee: "Rahul S.", created: "Apr 17, 2026", lastUpdate: "Today", avatar: "RG" },
-  { id: "TKT-006", subject: "Billing cycle query on subscription", customer: "Sanya Patel", priority: "Low", status: "Open", assignee: "Neha S.", created: "Apr 16, 2026", lastUpdate: "2 days ago", avatar: "SP" },
-  { id: "TKT-007", subject: "CRITICAL: API rate limit exceeded", customer: "Deepak Rao", priority: "Urgent", status: "In Progress", assignee: "Deepika N.", created: "Apr 15, 2026", lastUpdate: "1 hr ago", avatar: "DR" },
-  { id: "TKT-008", subject: "Onboarding assistance for team", customer: "Ananya Nair", priority: "Medium", status: "Resolved", assignee: "Anita B.", created: "Apr 14, 2026", lastUpdate: "Yesterday", avatar: "AN" },
-];
+import { getMyTickets, resolveTicket, escalateTicket, closeTicket, createTicket, addReply, getTicketById } from "../../../services/ticketService";
 
 const priorityColors = {
   Low: "bg-slate-100 text-slate-600",
@@ -49,28 +38,90 @@ const statusColors = {
   Open: "bg-blue-50 text-blue-600 border border-blue-100",
   "In Progress": "bg-amber-50 text-amber-600 border border-amber-100",
   Resolved: "bg-emerald-50 text-emerald-600 border border-emerald-100",
+  Closed: "bg-slate-50 text-slate-600 border border-slate-100",
+  Escalated: "bg-rose-50 text-rose-600 border border-rose-100",
 };
 
 const priorityFilters = ["All", "Low", "Medium", "High", "Urgent"];
 
-// ── Mock conversation thread ──
-const mockThread = [
-  { id: 1, author: "Customer", message: "I've been trying to access my dashboard but keep getting a 403 error. Can you help?", time: "Apr 20, 2:30 PM", isInternal: false },
-  { id: 2, author: "Neha S.", message: "I've checked your account permissions. It seems your session expired. I've reset your access tokens.", time: "Apr 20, 3:15 PM", isInternal: false },
-  { id: 3, author: "Neha S.", message: "Internal note: Customer's account had stale JWT token. Cleared cache and regenerated.", time: "Apr 20, 3:16 PM", isInternal: true },
-  { id: 4, author: "Customer", message: "Still getting the same error. I've cleared my browser cache too.", time: "Apr 20, 4:00 PM", isInternal: false },
-];
+const mapBackendTicket = (t) => {
+  const priorityMap = {
+    LOW: "Low",
+    NORMAL: "Medium",
+    MEDIUM: "Medium",
+    HIGH: "High",
+    URGENT: "Urgent",
+  };
+  const statusMap = {
+    OPEN: "Open",
+    IN_PROGRESS: "In Progress",
+    RESOLVED: "Resolved",
+    CLOSED: "Closed",
+    ESCALATED: "Escalated",
+  };
+  return {
+    _id: t._id,
+    id: t._id.slice(-6).toUpperCase(),
+    subject: t.subject || "",
+    customer: t.raisedBy?.name || "Unknown",
+    priority: priorityMap[t.priority] || "Medium",
+    status: statusMap[t.status] || "Open",
+    assignee: t.assignedTo?.name || "Unassigned",
+    created: t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "",
+    lastUpdate: t.updatedAt ? new Date(t.updatedAt).toLocaleDateString() : "",
+    avatar: (t.raisedBy?.name || "U").slice(0, 2).toUpperCase(),
+    message: t.message || "",
+    conversation: t.conversation || [],
+  };
+};
 
 export default function Tickets() {
-  const [tickets] = useState(mockTickets);
+  const [tickets, setTickets] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [priorityFilter, setPriorityFilter] = useState("All");
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // New ticket form state
+  const [subject, setSubject] = useState("");
+  const [customer, setCustomer] = useState("");
+  const [priority, setPriority] = useState("Medium");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Reply state
+  const [replyText, setReplyText] = useState("");
+  const [replying, setReplying] = useState(false);
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      const res = await getMyTickets({ limit: 100 });
+      const mapped = (res.tickets || []).map(mapBackendTicket);
+      setTickets(mapped);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTicketDetails = async (ticket) => {
+    try {
+      const fullTicket = await getTicketById(ticket._id);
+      setSelectedTicket(mapBackendTicket(fullTicket));
+    } catch (err) {
+      setSelectedTicket(ticket);
+    }
+  };
+
+  useEffect(() => {
+    fetchTickets();
+  }, []);
+
   // Stats
-  const openCount = tickets.filter((t) => t.status === "Open").length;
+  const openCount = tickets.filter((t) => t.status === "Open" || t.status === "In Progress" || t.status === "Escalated").length;
   const inProgressCount = tickets.filter((t) => t.status === "In Progress").length;
-  const resolvedToday = tickets.filter((t) => t.status === "Resolved").length;
+  const resolvedCount = tickets.filter((t) => t.status === "Resolved" || t.status === "Closed").length;
 
   // Filtered
   const filtered = useMemo(() => {
@@ -89,8 +140,8 @@ export default function Tickets() {
   const tableRows = filtered.map(t => ({
     ...t,
     subject: <span className="font-bold text-[#2a465a] block truncate max-w-[200px]">{t.subject}</span>,
-    priority: <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${priorityColors[t.priority]}`}>{t.priority}</span>,
-    status: <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${statusColors[t.status]}`}>{t.status}</span>,
+    priority: <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${priorityColors[t.priority] || "bg-slate-100"}`}>{t.priority}</span>,
+    status: <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${statusColors[t.status] || "bg-slate-100"}`}>{t.status}</span>,
     assignee: <div className="flex items-center gap-2 font-bold text-slate-500"><div className="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px]">{t.assignee.charAt(0)}</div>{t.assignee}</div>
   }));
 
@@ -99,18 +150,86 @@ export default function Tickets() {
       label: "View",
       icon: <Eye size={14} />,
       variant: "primary",
-      onClick: (row) => {
-        setSelectedTicket(row);
+      onClick: async (row) => {
+        setReplyText("");
         setDrawerOpen(true);
+        await fetchTicketDetails(row);
       },
     },
     {
       label: "Escalate",
       icon: <Zap size={14} />,
       variant: "ghost",
-      onClick: (row) => alert(`Escalating ${row.id}`),
+      show: (row) => row.status !== "Resolved" && row.status !== "Closed" && row.status !== "Escalated",
+      onClick: async (row) => {
+        try {
+          await escalateTicket(row._id, "Escalated by Admin");
+          await fetchTickets();
+        } catch (err) {
+          alert(err.message || "Failed to escalate");
+        }
+      },
     },
   ];
+
+  const handleLaunchIncident = async () => {
+    if (!subject.trim() || !customer.trim()) return;
+    setSubmitting(true);
+    try {
+      await createTicket({
+        subject: subject.trim(),
+        message: customer.trim(),
+        priority: priority,
+        category: "SYSTEM",
+      });
+      setSubject("");
+      setCustomer("");
+      setPriority("Medium");
+      closeModal("new-ticket-modal");
+      await fetchTickets();
+    } catch (err) {
+      alert(err.message || "Failed to create ticket");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedTicket) return;
+    setReplying(true);
+    try {
+      await addReply(selectedTicket._id, replyText);
+      setReplyText("");
+      await fetchTicketDetails(selectedTicket);
+      await fetchTickets();
+    } catch (err) {
+      alert(err.message || "Failed to send reply");
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  // Convert conversation to display format
+  const thread = useMemo(() => {
+    if (!selectedTicket) return [];
+    const conversation = selectedTicket.conversation || [];
+    return [
+      {
+        id: selectedTicket._id,
+        author: selectedTicket.customer,
+        message: selectedTicket.message,
+        time: selectedTicket.created,
+        isInternal: false,
+      },
+      ...conversation.map((c, idx) => ({
+        id: idx,
+        author: c.senderName || c.senderRole || "System",
+        message: c.message,
+        time: c.repliedAt ? new Date(c.repliedAt).toLocaleString() : "",
+        isInternal: false,
+      }))
+    ];
+  }, [selectedTicket]);
 
   return (
     <div className="space-y-8">
@@ -131,7 +250,7 @@ export default function Tickets() {
       <DashGrid cols={12} gap={4}>
         <EnhancedDashCard title="Open Queue" value={String(openCount)} icon={<AlertCircle size={22} />} accentColor="#3b82f6" size={3} />
         <EnhancedDashCard title="Under Investigation" value={String(inProgressCount)} icon={<Clock size={22} />} accentColor="#f59e0b" size={3} />
-        <EnhancedDashCard title="Solutions Found" value={String(resolvedToday)} icon={<CheckCircle2 size={22} />} accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="Solutions Found" value={String(resolvedCount)} icon={<CheckCircle2 size={22} />} accentColor="#22c55e" size={3} />
         <EnhancedDashCard title="Mean Resolution" value="3.8h" icon={<Zap size={22} />} accentColor="#a855f7" size={3} />
       </DashGrid>
 
@@ -171,9 +290,10 @@ export default function Tickets() {
         searchable 
         size={12}
         defaultSortKey={null}
+        loading={loading}
         filters={[
           { title: "Priority", type: "toggle", key: "priority", options: ["Low", "Medium", "High", "Urgent"] },
-          { title: "Status", type: "toggle", key: "status", options: ["Open", "In Progress", "Resolved"] },
+          { title: "Status", type: "toggle", key: "status", options: ["Open", "In Progress", "Resolved", "Closed", "Escalated"] },
         ]}
       />
 
@@ -186,14 +306,14 @@ export default function Tickets() {
             <div className="relative px-8 py-7 border-b border-slate-100 bg-slate-50/50">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${priorityColors[selectedTicket.priority]}`}>{selectedTicket.priority}</span>
+                  <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${priorityColors[selectedTicket.priority] || "bg-slate-100"}`}>{selectedTicket.priority}</span>
                 </div>
                 <button onClick={() => setDrawerOpen(false)} className="w-10 h-10 rounded-2xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-50 hover:rotate-90 transition-all duration-300"><X size={24} /></button>
               </div>
               <h3 className="text-2xl font-black text-[#2a465a] leading-tight">{selectedTicket.subject}</h3>
               <div className="flex items-center gap-4 mt-4">
                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-[#2a465a] text-white flex items-center justify-center font-black text-xs">A</div>
+                    <div className="w-8 h-8 rounded-full bg-[#2a465a] text-white flex items-center justify-center font-black text-xs">{selectedTicket.avatar}</div>
                     <div>
                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Customer</p>
                        <p className="text-xs font-bold text-[#2a465a]">{selectedTicket.customer}</p>
@@ -202,64 +322,44 @@ export default function Tickets() {
                  <div className="w-px h-8 bg-slate-200" />
                  <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Current Status</p>
-                    <span className={`text-xs font-black uppercase ${selectedTicket.status === "Resolved" ? "text-emerald-500" : "text-amber-500"}`}>{selectedTicket.status}</span>
+                    <span className={`text-xs font-black uppercase ${selectedTicket.status === "Resolved" || selectedTicket.status === "Closed" ? "text-emerald-500" : "text-amber-500"}`}>{selectedTicket.status}</span>
                  </div>
               </div>
             </div>
 
             {/* Conversation Feed */}
             <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6 custom-scrollbar">
-              {mockThread.map((msg) => (
-                <div key={msg.id} className={`flex flex-col ${msg.author === "Customer" ? "items-start" : "items-end"}`}>
+              {thread.map((msg) => (
+                <div key={msg.id} className={`flex flex-col ${msg.author === selectedTicket.customer ? "items-start" : "items-end"}`}>
                   <div className={`max-w-[85%] rounded-[2rem] p-6 shadow-sm border ${
                     msg.isInternal ? "bg-amber-50 border-amber-100 italic" : 
-                    msg.author === "Customer" ? "bg-white border-slate-100 rounded-bl-none" : "bg-[#2a465a] text-white rounded-br-none shadow-[#2a465a]/20"
+                    msg.author === selectedTicket.customer ? "bg-white border-slate-100 rounded-bl-none" : "bg-[#2a465a] text-white rounded-br-none shadow-[#2a465a]/20"
                   }`}>
-                    <div className="flex items-center justify-between mb-3 border-b pb-2 sm:min-w-[200px]" style={{ borderColor: msg.author === "Customer" ? "#f1f5f9" : "#ffffff20" }}>
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${msg.author === "Customer" ? "text-slate-400" : "text-[#7AAACE]"}`}>
-                        {msg.author} {msg.isInternal && "• INTERNAL"}
+                    <div className="flex items-center justify-between mb-3 border-b pb-2 sm:min-w-[200px]" style={{ borderColor: msg.author === selectedTicket.customer ? "#f1f5f9" : "#ffffff20" }}>
+                      <span className={`text-[10px] font-black uppercase tracking-widest ${msg.author === selectedTicket.customer ? "text-slate-400" : "text-[#7AAACE]"}`}>
+                        {msg.author}
                       </span>
-                      <span className={`text-[10px] ${msg.author === "Customer" ? "text-slate-400" : "text-white/60"}`}>{msg.time}</span>
+                      <span className={`text-[10px] ${msg.author === selectedTicket.customer ? "text-slate-400" : "text-white/60"}`}>{msg.time}</span>
                     </div>
                     <p className="text-sm font-medium leading-relaxed">{msg.message}</p>
                   </div>
                 </div>
               ))}
-              
-              {/* Timeline Info */}
-              <div className="mt-12 pt-8 border-t border-slate-100">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6">Workflow Chronology</h4>
-                <div className="space-y-4">
-                  {[
-                    { label: "Ticket Spawned", time: selectedTicket.created, icon: Plus, color: "text-blue-500" },
-                    { label: "Security Handshake", time: "5 min later", icon: UserCog, color: "text-purple-500" },
-                    { label: "Investigation Phase", time: selectedTicket.lastUpdate, icon: Clock, color: "text-amber-500" },
-                  ].map((s, i) => (
-                    <div key={i} className="flex items-center gap-4 group">
-                      <div className={`w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center ${s.color} transition-transform group-hover:scale-110`}>
-                        <s.icon size={14} strokeWidth={3} />
-                      </div>
-                      <div className="flex-1 border-b border-slate-50 pb-2 flex justify-between items-center">
-                         <span className="text-xs font-black text-[#2a465a]/60 uppercase tracking-wider">{s.label}</span>
-                         <span className="text-[10px] font-bold text-slate-400">{s.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
 
             {/* Response Input */}
             <div className="px-8 py-6 border-t border-slate-100 bg-white">
               <div className="flex items-end gap-3">
                 <div className="flex-1 relative">
-                  <textarea rows={2} placeholder="Compose strategic response..." className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-5 py-4 text-sm font-bold text-[#2a465a] placeholder:text-slate-400 focus:outline-none focus:border-[#2a465a]/20 focus:bg-white transition-all resize-none shadow-inner" />
+                  <textarea rows={2} placeholder="Compose strategic response..." value={replyText} onChange={e => setReplyText(e.target.value)} disabled={replying} className="w-full rounded-2xl border-2 border-slate-100 bg-slate-50 px-5 py-4 text-sm font-bold text-[#2a465a] placeholder:text-slate-400 focus:outline-none focus:border-[#2a465a]/20 focus:bg-white transition-all resize-none shadow-inner" />
                   <div className="absolute right-3 bottom-3 flex gap-1">
                      <button className="p-2 text-slate-400 hover:text-[#2a465a] transition"><Paperclip size={18} /></button>
                      <button className="p-2 text-slate-400 hover:text-[#2a465a] transition"><MessageSquare size={18} /></button>
                   </div>
                 </div>
-                <button onClick={() => { alert("Response submitted successfully!"); setDrawerOpen(false); }} className="h-[60px] px-8 rounded-2xl bg-[#2a465a] text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-[#2a465a]/20 hover:scale-105 active:scale-95 transition-all shiny-sweep">Send</button>
+                <button onClick={handleSendReply} disabled={replying || !replyText.trim()} className="h-[60px] px-8 rounded-2xl bg-[#2a465a] text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-[#2a465a]/20 hover:scale-105 active:scale-95 transition-all shiny-sweep disabled:opacity-50">
+                  {replying ? "Sending..." : "Send"}
+                </button>
               </div>
             </div>
           </>
@@ -270,22 +370,22 @@ export default function Tickets() {
       <Modal id="new-ticket-modal" title="Initialize Support Incident">
         <div className="space-y-6 pt-2">
           <Grid cols={12} gap={4}>
-            <DataField label="Subject Description" id="ticket-subject" size={12} placeholder="Clear summary of the issue" />
-            <DataField label="Customer Identity" id="ticket-customer" size={6} placeholder="Client name" />
-            <SelectField label="Priority Level" id="ticket-priority" size={6} placeholder="Dimension">
-              <Option value="low" label="Low Priority" />
-              <Option value="medium" label="Medium Range" />
-              <Option value="high" label="High Priority" />
-              <Option value="urgent" label="Immediate Internal Action" />
+            <DataField label="Subject Description" id="ticket-subject" size={12} placeholder="Clear summary of the issue" value={subject} onChange={e => setSubject(e.target.value)} />
+            <DataField label="Customer Identity / Message" id="ticket-customer" size={12} placeholder="Client name / Message content" value={customer} onChange={e => setCustomer(e.target.value)} />
+            <SelectField label="Priority Level" id="ticket-priority" size={12} placeholder="Dimension" value={priority} onChange={e => setPriority(e.target.value)}>
+              <Option value="Low" label="Low Priority" />
+              <Option value="Medium" label="Medium Range" />
+              <Option value="High" label="High Priority" />
             </SelectField>
           </Grid>
           <div className="flex justify-end gap-3 mt-8 pt-5 border-t border-slate-100">
             <button onClick={() => closeModal("new-ticket-modal")} className="px-6 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-100 transition">ABORT</button>
-            <button onClick={() => { closeModal("new-ticket-modal"); alert("Incident Registered!"); }} className="px-8 py-3 rounded-xl text-sm font-black text-white bg-[#2a465a] shadow-xl shadow-[#2a465a]/20 hover:bg-[#1e3a52] transition active:scale-95 uppercase tracking-wider shiny-sweep">LAUNCH INCIDENT</button>
+            <button onClick={handleLaunchIncident} disabled={submitting || !subject.trim() || !customer.trim()} className="px-8 py-3 rounded-xl text-sm font-black text-white bg-[#2a465a] shadow-xl shadow-[#2a465a]/20 hover:bg-[#1e3a52] transition active:scale-95 uppercase tracking-wider shiny-sweep disabled:opacity-50">
+              {submitting ? "LAUNCHING..." : "LAUNCH INCIDENT"}
+            </button>
           </div>
         </div>
       </Modal>
     </div>
   );
 }
-
