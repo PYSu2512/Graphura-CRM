@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Heading, DashGrid, EnhancedDashCard, DataTable,
   openModal, closeModal, Modal, ModalData, ModalGrid, Button,
@@ -51,7 +51,9 @@ export default function Attendance() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   });
 
-  const fetchMyAttendance = async (filters = {}) => {
+  const { status: attStatus } = useAttendance();
+
+  const fetchMyAttendance = useCallback(async (filters = {}) => {
     setLoading(true);
     try {
       const params = { ...filters };
@@ -59,42 +61,48 @@ export default function Attendance() {
       if (!params.endDate)   params.endDate   = attDate;
 
       const res = await hrmService.getMyAttendanceHistory(params);
-      if (res.success) {
-        const mapped = res.data.map(r => {
-          const formatTime = (date) => {
-            if (!date) return "—";
-            return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          };
+      const data = res.data || [];
+      
+      const mapped = data.map(r => {
+        const formatTime = (date) => {
+          if (!date) return "—";
+          return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
 
-          const d = new Date(r.date);
-          const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const formatHours = (hours) => {
+          const h = Math.floor(hours || 0);
+          const m = Math.round(((hours || 0) % 1) * 60);
+          return `${h}h ${m}m`;
+        };
 
-          let status = "Present";
-          if (r.clockIn && !r.clockOut) status = "Active";
-          if (r.isHalfDay) status = "Half Day";
-          if (r.isAbsent) status = "Absent";
+        const d = new Date(r.date);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-          return {
-            ...r,
-            date: dateStr,
-            clockIn: formatTime(r.clockIn),
-            clockOut: formatTime(r.clockOut),
-            hours: r.hoursWorked ? `${r.hoursWorked}h` : "—",
-            status: status
-          };
-        });
-        setRecords(mapped);
-      }
+        let status = "Present";
+        if (r.clockIn && !r.clockOut) status = "Active";
+        if (r.isHalfDay) status = "Half Day";
+        if (r.isAbsent) status = "Absent";
+
+        return {
+          ...r,
+          date: dateStr,
+          clockIn: formatTime(r.clockIn),
+          clockOut: formatTime(r.clockOut),
+          hours: r.clockOut ? formatHours(r.hoursWorked) : (r.clockIn ? "Working..." : "—"),
+          status: status
+        };
+      });
+      setRecords(mapped);
     } catch (err) {
       console.error("Failed to fetch attendance history:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [attDate]);
 
   useEffect(() => {
     fetchMyAttendance();
-  }, [attDate]);
+  }, [fetchMyAttendance, attStatus]);
 
   const totalDays = records.length;
   const presentDays = records.filter(r => r.status === "Present" || r.status === "Active").length;

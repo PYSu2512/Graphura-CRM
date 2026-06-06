@@ -185,19 +185,51 @@ export default function HRM() {
       if (!params.startDate) params.startDate = attDate;
       if (!params.endDate)   params.endDate   = attDate;
 
-      const res = await hrmService.getTeamAttendance(params);
+      // Fetch Team and Self in parallel
+      const [res, selfRes] = await Promise.all([
+        hrmService.getTeamAttendance(params),
+        hrmService.getMyAttendanceHistory(params)
+      ]);
+
+      let combined = [];
+
+      const formatTime = (iso) => {
+        if (!iso) return "—";
+        return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      };
+
+      const formatHours = (hours) => {
+        const h = Math.floor(hours || 0);
+        const m = Math.round(((hours || 0) % 1) * 60);
+        return `${h}h ${m}m`;
+      };
+
+      // 1. Process Self data
+      if (selfRes.success && selfRes.data) {
+        selfRes.data.forEach(r => {
+          let status = "Present";
+          if (r.clockIn && !r.clockOut) status = "Active";
+          if (r.isHalfDay) status = "Half Day";
+          if (r.isAbsent) status = "Absent";
+
+          combined.push({
+            ...r,
+            id: 'self-' + r._id,
+            name: "Self",
+            department: "Administration",
+            date: new Date(r.date).toISOString().split('T')[0],
+            clockIn: formatTime(r.clockIn),
+            clockOut: formatTime(r.clockOut),
+            totalHours: r.clockOut ? formatHours(r.hoursWorked) : (r.clockIn ? "Working..." : "—"),
+            attStatus: status
+          });
+        });
+      }
+
+      // 2. Process Team data
       if (res.success) {
         const mapped = res.data.map(a => {
           const att = a.attendance;
-          const formatTime = (iso) => {
-            if (!iso) return "—";
-            return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          };
-          const formatHours = (hours) => {
-            const h = Math.floor(hours || 0);
-            const m = Math.round(((hours || 0) % 1) * 60);
-            return `${h}h ${m}m`;
-          };
           return {
             ...a,
             id: a.id,
@@ -210,8 +242,9 @@ export default function HRM() {
             attStatus: a.status
           };
         });
-        setAttendance(mapped);
+        combined = [...combined, ...mapped];
       }
+      setAttendance(combined);
     } catch (err) {
       console.error("Failed to fetch attendance:", err);
     } finally {

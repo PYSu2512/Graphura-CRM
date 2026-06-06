@@ -50,26 +50,53 @@ export default function Attendance() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch team attendance for the selected date
-      const res = await hrmService.getTeamAttendance({ startDate: dateFilter, endDate: dateFilter });
-      if (res.statusCode === 200) {
-        const mapped = res.data.map(r => {
-          const formatHours = (hours) => {
-            const h = Math.floor(hours || 0);
-            const m = Math.round(((hours || 0) % 1) * 60);
-            return `${h}h ${m}m`;
-          };
+      // Fetch Team and Self in parallel
+      const [res, selfRes] = await Promise.all([
+        hrmService.getTeamAttendance({ startDate: dateFilter, endDate: dateFilter }),
+        hrmService.getMyAttendanceHistory({ startDate: dateFilter, endDate: dateFilter })
+      ]);
 
-          return {
+      let combined = [];
+
+      const formatHours = (hours) => {
+        const h = Math.floor(hours || 0);
+        const m = Math.round(((hours || 0) % 1) * 60);
+        return `${h}h ${m}m`;
+      };
+
+      // 1. Process Self data
+      if (selfRes.success && selfRes.data) {
+        selfRes.data.forEach(r => {
+          let status = "Present";
+          if (r.clockIn && !r.clockOut) status = "Active";
+          if (r.isHalfDay) status = "Half Day";
+          if (r.isAbsent) status = "Absent";
+
+          combined.push({
             ...r,
+            name: "Self",
+            role: "Management Manager",
             dateDisplay: new Date(r.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
-            clockIn: r.attendance?.clockIn ? new Date(r.attendance.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
-            clockOut: r.attendance?.clockOut ? new Date(r.attendance.clockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
-            hours: r.attendance?.clockOut ? formatHours(r.attendance.hoursWorked) : (r.attendance?.clockIn ? "Working..." : "—")
-          };
+            clockIn: r.clockIn ? new Date(r.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+            clockOut: r.clockOut ? new Date(r.clockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+            hours: r.clockOut ? formatHours(r.hoursWorked) : (r.clockIn ? "Working..." : "—"),
+            status: status
+          });
         });
-        setRecords(mapped);
       }
+
+      // 2. Process Team data
+      if (res.statusCode === 200) {
+        const mapped = res.data.map(r => ({
+          ...r,
+          dateDisplay: new Date(r.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }),
+          clockIn: r.attendance?.clockIn ? new Date(r.attendance.clockIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+          clockOut: r.attendance?.clockOut ? new Date(r.attendance.clockOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—",
+          hours: r.attendance?.clockOut ? formatHours(r.attendance.hoursWorked) : (r.attendance?.clockIn ? "Working..." : "—")
+        }));
+        combined = [...combined, ...mapped];
+      }
+      setRecords(combined);
     } catch (err) {
       console.error("Failed to fetch team attendance:", err);
     } finally {
