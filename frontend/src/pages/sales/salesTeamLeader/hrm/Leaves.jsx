@@ -19,7 +19,7 @@ const MY_COLS = [
   { key: "leaveType", label: "Type" },
   { key: "dateRange", label: "Date Range" },
   { key: "days",      label: "Days" },
-  { key: "appliedOn", label: "Applied On" },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.raw?.createdAt || row.createdAt).getTime() },
   { key: "status",    label: "Status" },
 ];
 
@@ -28,7 +28,7 @@ const TEAM_COLS = [
   { key: "leaveType", label: "Type" },
   { key: "dateRange", label: "Date Range" },
   { key: "days",      label: "Days" },
-  { key: "appliedOn", label: "Applied On" },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.raw?.createdAt || row.createdAt).getTime() },
   { key: "status",    label: "Status" },
 ];
 
@@ -87,11 +87,14 @@ export default function Leaves() {
         };
       };
 
-      if (myRes.success) setMyLeaves(myRes.data.map(mapLeave));
+      if (myRes.success) {
+        setMyLeaves(myRes.data.map(mapLeave).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      }
       if (teamRes.success) {
         setTeamLeaves(teamRes.data
           .filter(l => String(l.user?._id) !== String(currentUser?._id))
-          .map(mapLeave));
+          .map(mapLeave)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       }
     } catch (err) {
       console.error("Failed to fetch leaves:", err);
@@ -193,6 +196,8 @@ export default function Leaves() {
         columns={MY_COLS}
         rows={myLeaves}
         loading={loading}
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         size={12} pageSize={5} searchable
         filters={[
           { title: "Status",     type: "toggle", key: "status", options: ["Pending", "Approved", "Rejected"] },
@@ -207,6 +212,8 @@ export default function Leaves() {
         rows={pendingRows}
         loading={loading}
         userProfile="name"
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         size={12} pageSize={10} searchable
         filters={[
           { title: "Leave Type", type: "toggle", key: "leaveType",   options: LEAVE_TYPES },
@@ -222,6 +229,8 @@ export default function Leaves() {
         rows={historyRows}
         loading={loading}
         userProfile="name"
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         size={12} pageSize={10}
         filters={[
           { title: "Status",     type: "toggle", key: "status", options: ["Approved", "Rejected"] },

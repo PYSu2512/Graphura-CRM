@@ -35,7 +35,7 @@ const MY_COLS = [
   { key: "reason",    label: "Reason" },
   { key: "dateRange", label: "Date Range" },
   { key: "days",      label: "Days" },
-  { key: "appliedOn", label: "Applied On" },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.appliedOn).getTime() },
   { key: "status",    label: "Status" },
 ];
 
@@ -46,7 +46,7 @@ const PENDING_COLS = [
   { key: "reason",    label: "Reason" },
   { key: "dateRange", label: "Date Range" },
   { key: "days",      label: "Days" },
-  { key: "appliedOn", label: "Applied On" },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.appliedOn).getTime() },
 ];
 
 const HISTORY_COLS = [
@@ -56,7 +56,7 @@ const HISTORY_COLS = [
   { key: "reason",    label: "Reason" },
   { key: "dateRange", label: "Date Range" },
   { key: "days",      label: "Days" },
-  { key: "actionOn",  label: "Actioned On" },
+  { key: "actionOn",  label: "Actioned On", sortValue: (row) => new Date(row.actionOn).getTime() },
   { key: "status",    label: "Status" },
 ];
 
@@ -67,8 +67,12 @@ const calcDays = (from, to) => {
 };
 
 export default function Leaves() {
-  const [myLeaves, setMyLeaves] = useState(() => myLeavesInit.map(toMyRow));
-  const [deptReqs, setDeptReqs] = useState(() => DEPT_LEAVES.map(toDeptRow));
+  const [myLeaves, setMyLeaves] = useState(() => 
+    myLeavesInit.map(toMyRow).sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn))
+  );
+  const [deptReqs, setDeptReqs] = useState(() => 
+    DEPT_LEAVES.map(toDeptRow).sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn))
+  );
 
   const [myView,      setMyView]      = useState(null);
   const [pendingView, setPendingView] = useState(null);
@@ -176,6 +180,8 @@ export default function Leaves() {
         pageSize={5}
         searchable
         exportable
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         exportFileName="my_leaves"
         filters={[
           { title: "Status",     type: "toggle", key: "status", options: ["Pending", "Approved", "Rejected"] },
@@ -207,6 +213,8 @@ export default function Leaves() {
         pageSize={10}
         searchable
         exportable
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         exportFileName="pending_leaves"
         filters={[
           { title: "Leave Type", type: "toggle", key: "type", options: LEAVE_TYPES },
@@ -238,6 +246,8 @@ export default function Leaves() {
         pageSize={10}
         searchable
         exportable
+        defaultSortKey="actionOn"
+        defaultSortDir="desc"
         exportFileName="leave_history"
         bulkAction
         bulkActions={[

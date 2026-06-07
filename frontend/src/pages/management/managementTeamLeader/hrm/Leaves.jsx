@@ -25,7 +25,7 @@ const MY_COLS = [
   { key: "reason",    label: "Reason",     width: "36%" },
   { key: "dateRange", label: "Date Range", width: "20%", align: "center" },
   { key: "days",      label: "Days",       width: "10%", align: "center" },
-  { key: "appliedOn", label: "Applied On", width: "10%", align: "center" },
+  { key: "appliedOn", label: "Applied On", width: "10%", align: "center", sortValue: (row) => new Date(row.appliedOn).getTime() },
   { key: "status",    label: "Status",     width: "8%", align: "center" },
 ];
 
@@ -36,7 +36,7 @@ const PENDING_COLS = [
   { key: "reason",    label: "Reason",        width: "28%" },
   { key: "dateRange", label: "Date Range",    width: "14%", align: "center" },
   { key: "days",      label: "Days",          width: "6%",  align: "center" },
-  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center" },
+  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center", sortValue: (row) => new Date(row.appliedOn).getTime() },
 ];
 
 const HISTORY_COLS = [
@@ -45,7 +45,7 @@ const HISTORY_COLS = [
   { key: "type",      label: "Leave Type",    width: "14%" },
   { key: "reason",    label: "Reason",        width: "28%" },
   { key: "dateRange", label: "Date Range",    width: "14%", align: "center" },
-  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center" },
+  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center", sortValue: (row) => new Date(row.appliedOn).getTime() },
   { key: "status",    label: "Leave Status",  width: "6%",  align: "center" },
 ];
 
@@ -58,9 +58,9 @@ const calcDays = (from, to) => {
 const today = () => new Date().toISOString().split("T")[0];
 
 export default function Leaves() {
-  const [myLeaves,    setMyLeaves]    = useState(myLeavesSeed);
+  const [myLeaves,    setMyLeaves]    = useState(() => [...myLeavesSeed].sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn)));
   const [myView,      setMyView]      = useState(null);
-  const [teamReqs,    setTeamReqs]    = useState(teamLeaveRequests);
+  const [teamReqs,    setTeamReqs]    = useState(() => [...teamLeaveRequests].sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn)));
   const [pendingView, setPendingView] = useState(null);
   const [historyView, setHistoryView] = useState(null);
 
@@ -180,6 +180,8 @@ export default function Leaves() {
         size={12}
         pageSize={5}
         searchable
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         filters={[
           { title: "Leave Status", type: "toggle", key: "status", options: ["Pending", "Approved", "Rejected"] },
           { title: "Leave Type",   type: "toggle", key: "type",   options: LEAVE_TYPES },
@@ -216,6 +218,8 @@ export default function Leaves() {
           pageSize={10}
           searchable
           exportable
+          defaultSortKey="appliedOn"
+          defaultSortDir="desc"
           exportFileName="pending_leaves"
           filters={[
             { title: "Employee", type: "toggle", key: "name", options: [...new Set(teamLeaveRequests.filter(r => r.status === "Pending").map(r => r.name))] },
@@ -259,6 +263,8 @@ export default function Leaves() {
           pageSize={10}
           searchable
           exportable
+          defaultSortKey="appliedOn"
+          defaultSortDir="desc"
           exportFileName="leave_history"
           filters={[
             { title: "Employee", type: "toggle", key: "name", options: [...new Set(teamLeaveRequests.filter(r => r.status !== "Pending").map(r => r.name))] },

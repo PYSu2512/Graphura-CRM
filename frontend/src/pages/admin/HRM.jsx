@@ -116,20 +116,22 @@ const attendanceRows = [
 
 const leaveColumns = [
   { key: "name", label: "NAME", width: "15%" },
-  { key: "department", label: "DEPARTMENT", width: "15%" },
-  { key: "leaveType", label: "LEAVE TYPE", width: "15%" },
-  { key: "dates", label: "FROM - TO DATES", width: "25%" },
-  { key: "days", label: "DAYS", width: "15%" },
-  { key: "statusDisplay", label: "STATUS", width: "15%" },
+  { key: "department", label: "DEPARTMENT", width: "12%" },
+  { key: "appliedOn", label: "APPLIED ON", width: "12%", sortValue: (row) => new Date(row.createdAt).getTime() },
+  { key: "leaveType", label: "LEAVE TYPE", width: "12%" },
+  { key: "dates", label: "FROM - TO DATES", width: "22%" },
+  { key: "days", label: "DAYS", width: "10%" },
+  { key: "statusDisplay", label: "STATUS", width: "10%" },
 ];
 
 const approvalColumns = [
-  { key: "name", label: "NAME", width: "15%" },
-  { key: "department", label: "DEPARTMENT", width: "15%" },
-  { key: "role", label: "ROLE", width: "15%" },
-  { key: "leaveType", label: "LEAVE TYPE", width: "15%" },
-  { key: "dates", label: "FROM - TO DATES", width: "20%" },
-  { key: "days", label: "DAYS", width: "10%" },
+  { key: "name", label: "NAME", width: "12%" },
+  { key: "department", label: "DEPARTMENT", width: "12%" },
+  { key: "appliedOn", label: "APPLIED ON", width: "12%", sortValue: (row) => new Date(row.createdAt).getTime() },
+  { key: "role", label: "ROLE", width: "12%" },
+  { key: "leaveType", label: "LEAVE TYPE", width: "12%" },
+  { key: "dates", label: "FROM - TO DATES", width: "18%" },
+  { key: "days", label: "DAYS", width: "8%" },
   { key: "actionedByName", label: "ACTIONED BY", width: "10%" },
   { key: "statusDisplay", label: "STATUS", width: "10%" },
 ];
@@ -191,6 +193,10 @@ export default function HRM() {
             )
           };
         });
+        
+        // Explicitly sort by createdAt descending (newest first)
+        mapped.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
         setAllLeaves(mapped);
       }
     } catch (err) {
@@ -282,6 +288,10 @@ export default function HRM() {
         });
         combined = [...combined, ...mapped];
       }
+      
+      // Explicitly sort by date descending (newest first)
+      combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
       setAttendance(combined);
     } catch (err) {
       console.error("Failed to fetch attendance:", err);
@@ -551,6 +561,8 @@ export default function HRM() {
               </button>
           </div>
           <DataTable columns={leaveColumns} rows={allLeaves.filter(l => l.status === 'PENDING')} loading={loading} actions={leaveActions} size={12} pageSize={10} searchable={true}
+            defaultSortKey="appliedOn"
+            defaultSortDir="desc"
             filters={[
               { title: "Leave Type", type: "toggle", key: "leaveType", options: LEAVE_TYPES },
             ]}
@@ -574,6 +586,8 @@ export default function HRM() {
             },
             variant: "ghost"
           }]} size={12} pageSize={10} searchable={true}
+            defaultSortKey="appliedOn"
+            defaultSortDir="desc"
             filters={[
               { title: "Leave Type", type: "toggle", key: "leaveType", options: LEAVE_TYPES },
               { title: "Status", type: "toggle", key: "status", options: ["APPROVED", "REJECTED"] }

@@ -19,7 +19,7 @@ const MY_LEAVES_COLS = [
   { key: "reason",      label: "Reason"  },
   { key: "dateRange", label: "Date Range"  },
   { key: "days",      label: "Days"        },
-  { key: "appliedOn", label: "Applied On"  },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.raw?.createdAt || row.createdAt).getTime() },
   { key: "status",    label: "Status"      },
 ];
 
@@ -30,7 +30,7 @@ const PENDING_COLS = [
   { key: "reason",    label: "Reason" },
   { key: "dateRange", label: "Date Range" },
   { key: "days",      label: "Days" },
-  { key: "appliedOn", label: "Applied On" },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.raw?.createdAt || row.createdAt).getTime() },
 ];
 
 // Columns for Leave History table
@@ -41,7 +41,7 @@ const HISTORY_COLS = [
   { key: "reason",    label: "Reason" },
   { key: "dateRange", label: "Date Range" },
   { key: "days",      label: "Days" },
-  { key: "actionOn",  label: "Actioned On" },
+  { key: "actionOn",  label: "Actioned On", sortValue: (row) => row.approvedAt ? new Date(row.approvedAt).getTime() : 0 },
   { key: "status",    label: "Status" },
 ];
 
@@ -99,7 +99,7 @@ export default function Leaves() {
       };
 
       if (myRes.success) {
-        setMyLeaves(myRes.data.map(mapLeave));
+        setMyLeaves(myRes.data.map(mapLeave).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       }
 
       if (teamRes.success) {
@@ -107,7 +107,8 @@ export default function Leaves() {
         const currentId = String(currentUser?._id || currentUser?.id || "");
         const allTeam = teamRes.data
           .filter(l => String(l.user?._id || l.user?.id || "") !== currentId)
-          .map(mapLeave);
+          .map(mapLeave)
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
         setPending(allTeam.filter(l => l.raw.status === 'PENDING'));
         setHistory(allTeam.filter(l => l.raw.status !== 'PENDING'));
@@ -296,6 +297,8 @@ export default function Leaves() {
         rows={myLeaves}
         loading={loading}
         ellipse={4}
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         actions={[
           {
             icon: <Eye size={15} />,
@@ -332,6 +335,8 @@ export default function Leaves() {
         columns={PENDING_COLS}
         rows={pending}
         loading={loading}
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         actions={pendingActions}
         ellipse={3}
         size={12}
@@ -352,6 +357,8 @@ export default function Leaves() {
         columns={HISTORY_COLS}
         rows={history}
         loading={loading}
+        defaultSortKey="actionOn"
+        defaultSortDir="desc"
         actions={historyActions}
         ellipse={3}
         size={12}

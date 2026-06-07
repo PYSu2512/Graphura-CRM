@@ -26,7 +26,7 @@ const COLS = [
   { key: "reason", label: "Reason" },
   { key: "dateRange", label: "Date Range" },
   { key: "days", label: "Days" },
-  { key: "appliedOn", label: "Applied On" },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.appliedOn).getTime() },
   { key: "status", label: "Status" },
 ];
 
@@ -39,11 +39,11 @@ const LEAVE_TYPES = [
 ];
 
 export default function Leaves() {
-  const [myLeaves, setMyLeaves] = useState(
+  const [myLeaves, setMyLeaves] = useState(() => 
     leaveApplications.map((leave) => ({
       ...leave,
       dateRange: `${leave.fromDate} to ${leave.toDate}`,
-    })),
+    })).sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn))
   );
   const [selected, setSelected] = useState(null);
   const [applyForm, setApplyForm] = useState({ leaveType: "", reason: "", dateFrom: "", dateTo: "" });
@@ -137,6 +137,8 @@ export default function Leaves() {
         title="My Leaves"
         columns={COLS}
         rows={myLeaves}
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         actions={[
           {
             icon: <Eye size={15} />,

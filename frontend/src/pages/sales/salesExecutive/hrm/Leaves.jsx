@@ -17,7 +17,7 @@ const MY_LEAVES_COLS = [
   { key: "reason",    label: "Reason"     },
   { key: "dateRange", label: "Date Range" },
   { key: "days",      label: "Days"       },
-  { key: "appliedOn", label: "Applied On" },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.raw?.createdAt || row.createdAt).getTime() },
   { key: "status",    label: "Status"     },
 ];
 
@@ -51,7 +51,7 @@ export default function Leaves() {
           appliedOn: new Date(l.createdAt).toLocaleDateString(),
           status: l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase(),
           raw: l
-        }));
+        })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setMyLeaves(mapped);
       }
     } catch (err) {
@@ -166,6 +166,8 @@ export default function Leaves() {
         rows={myLeaves}
         loading={loading}
         ellipse={4}
+        defaultSortKey="appliedOn"
+        defaultSortDir="desc"
         actions={[
           {
             icon: <Eye size={15} />,
