@@ -32,11 +32,9 @@ async function nextInvoiceNumber(adminId) {
 
 /** Calculate GST and total */
 function calcAmounts(amount, gstPercent, discount) {
-  const base = Number(amount) || 0;
+  const totalAmount = Number(amount) || 0;
   const gst = Number(gstPercent) || 18;
-  const disc = Number(discount) || 0;
-  const gstAmount = Math.round((base * gst) / 100);
-  const totalAmount = base + gstAmount - disc;
+  const gstAmount = Math.round((totalAmount * gst) / (100 + gst));
   return { gstAmount, totalAmount };
 }
 

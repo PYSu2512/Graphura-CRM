@@ -30,8 +30,9 @@ const statusColor = (s) => {
 
 // ── PDF Generator — uses iframe print, no external deps ──────────────────────
 function printInvoicePDF(inv, company = {}) {
-  const gst = inv.gstAmount || Math.round((inv.amount * (inv.gstPct || 18)) / 100);
-  const total = inv.total || (inv.amount + gst - (inv.discount || 0));
+  const gst = inv.gstAmount || Math.round((inv.amount * (inv.gstPct || 18)) / 118);
+  const total = inv.amount;
+  const subtotal = total - gst;
   const fmtAmt = (n) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
   const fmtD = (d) => d ? new Date(d).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—";
 
@@ -101,7 +102,7 @@ function printInvoicePDF(inv, company = {}) {
   <tbody>${itemRows}</tbody>
 </table>
 <table class="totals">
-  <tr><td>Subtotal</td><td style="text-align:right">${fmtAmt(inv.amount)}</td></tr>
+  <tr><td>Subtotal (Service Amount)</td><td style="text-align:right">${fmtAmt(subtotal)}</td></tr>
   <tr><td>GST (${inv.gstPct || 18}%)</td><td style="text-align:right">${fmtAmt(gst)}</td></tr>
   ${(inv.discount || 0) > 0 ? `<tr><td>Discount</td><td style="text-align:right;color:#ef4444">- ${fmtAmt(inv.discount)}</td></tr>` : ""}
   <tr><td><strong>Grand Total</strong></td><td style="text-align:right"><strong>${fmtAmt(total)}</strong></td></tr>
@@ -234,8 +235,6 @@ export default function Invoices() {
     { key: "mobile", label: "Mobile" },
     { key: "email", label: "Email" },
     { key: "amount", label: "Amount", render: (v) => fmt(v) },
-    { key: "gstPct", label: "GST", render: (v) => `${v || 18}%` },
-    { key: "total", label: "Total", render: (v) => fmt(v) },
     {
       key: "status",
       label: "Status",
@@ -309,8 +308,9 @@ export default function Invoices() {
       {/* ── View / Preview Modal ─────────────────────────────────────────── */}
       <Modal id="inv-view" title="Invoice Preview" size="xl">
         {selected && (() => {
-          const gst = selected.gstAmount || Math.round((selected.amount * (selected.gstPct || 18)) / 100);
-          const total = selected.total || (selected.amount + gst - (selected.discount || 0));
+          const gst = selected.gstAmount || Math.round((selected.amount * (selected.gstPct || 18)) / 118);
+          const total = selected.amount;
+          const subtotal = total - gst;
           return (
             <div className="flex flex-col gap-4">
               {/* Header */}
@@ -360,7 +360,7 @@ export default function Invoices() {
               )}
 
               <ModalGrid title="Amounts" cols={2}>
-                <ModalData label="Subtotal" value={fmt(selected.amount)} />
+                <ModalData label="Subtotal (Service Amount)" value={fmt(subtotal)} />
                 <ModalData label={`GST (${selected.gstPct || 18}%)`} value={fmt(gst)} />
                 <ModalData label="Discount" value={fmt(selected.discount || 0)} />
                 <ModalData label="Due Date" value={fmtDate(selected.dueDate)} />
@@ -391,7 +391,7 @@ export default function Invoices() {
       <Modal id="inv-send" title="Send Invoice to Client" size="sm">
         {selected && (
           <div className="flex flex-col gap-4">
-            <ModalProfile name={selected.client} subtitle={`Invoice: ${selected.invoiceNumber} · ${fmt(selected.total)}`} />
+            <ModalProfile name={selected.client} subtitle={`Invoice: ${selected.invoiceNumber} · ${fmt(selected.amount)}`} />
             <DataField
               label="Recipient Email"
               id="send-email"

@@ -243,7 +243,9 @@ exports.sendToClient = catchAsync(async (req, res, next) => {
 
   const totalCost = finalServices.reduce((sum, s) => sum + s.price, 0);
   const totalDiscount = finalServices.reduce((sum, s) => sum + s.discountAmount, 0);
-  const finalAmount = Math.max(0, totalCost - totalDiscount);
+  const baseCost = Math.max(0, totalCost - totalDiscount);
+  const gstAmount = Math.round(baseCost * 0.18);
+  const finalAmount = baseCost + gstAmount;
 
   const leadStatusMap = {
     Interested: 'INTERESTED',
