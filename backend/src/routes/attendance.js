@@ -1,18 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const hrmController = require('../controllers/hrm.controller');
-const { requireUser } = require('../middleware/auth');
+const { requireUser, requireAuth } = require('../middleware/auth');
 
-/**
- * All attendance routes require a USER token
- */
-router.use(requireUser);
-
-router.get('/today', hrmController.getTodayStatus);
-router.get('/my', hrmController.getMyAttendanceHistory);
-router.get('/team', hrmController.getTeamAttendance);
-router.post('/clock-in', hrmController.clockIn);
-router.post('/clock-out', hrmController.clockOut);
-router.post('/break-toggle', hrmController.toggleBreak);
+router.get('/today', requireAuth, hrmController.getTodayStatus);
+router.get('/my', requireAuth, hrmController.getMyAttendanceHistory);
+router.get('/team', requireAuth, hrmController.getTeamAttendance);
+router.post('/clock-in', requireUser, hrmController.clockIn);
+router.post('/clock-out', requireUser, hrmController.clockOut);
+router.post('/break-toggle', requireUser, hrmController.toggleBreak);
 
 module.exports = router;

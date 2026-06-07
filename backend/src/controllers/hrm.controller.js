@@ -209,9 +209,18 @@ exports.toggleBreak = catchAsync(async (req, res, next) => {
  * @access  Private (User)
  */
 exports.getTodayStatus = catchAsync(async (req, res) => {
+  const userId = req.user?._id;
+  const userType = req.userType || req.user?.role;
+
+  if (userType === 'ADMIN' || userType === 'SUPER_ADMIN') {
+    return res.status(200).json(
+      new ApiResponse(200, null, 'Admins do not have attendance status.')
+    );
+  }
+
   const today = getTodayDate();
   const attendance = await Attendance.findOne({
-    user: req.user._id,
+    user: userId,
     date: today
   });
 
@@ -225,8 +234,13 @@ exports.getTodayStatus = catchAsync(async (req, res) => {
  * @access  Private (User)
  */
 exports.getMyAttendanceHistory = catchAsync(async (req, res, next) => {
-  const adminId = getEffectiveAdminId(req);
+  const adminId = req.admin?._id || req.user?.admin?._id || req.user?.admin;
   const userId = req.user?._id;
+  const userType = req.userType || req.user?.role;
+
+  if (userType === 'ADMIN' || userType === 'SUPER_ADMIN') {
+    return res.status(200).json(new ApiResponse(200, [], 'Admins do not have attendance history.'));
+  }
 
   if (!adminId) {
     return next(new AppError('Organization context not found.', 401));
@@ -261,8 +275,8 @@ exports.getMyAttendanceHistory = catchAsync(async (req, res, next) => {
  * @access  Private (Manager/TL)
  */
 exports.getTeamAttendance = catchAsync(async (req, res, next) => {
-  const adminId = getEffectiveAdminId(req);
-  const userId = req.user?._id || req.admin?._id;
+  const adminId = req.admin?._id || req.user?.admin?._id || req.user?.admin;
+  const userId = req.user?._id;
   const role = req.user?.role || req.userType;
   const userDept = req.user?.department;
   
@@ -273,12 +287,12 @@ exports.getTeamAttendance = catchAsync(async (req, res, next) => {
   }
 
   const adminIdObj = new mongoose.Types.ObjectId(String(adminId));
-  const userIdObj = new mongoose.Types.ObjectId(String(userId));
+  const userIdObj = userId ? new mongoose.Types.ObjectId(String(userId)) : null;
 
   let targetUserIds = [];
 
-  if (role === 'ADMIN') {
-    const users = await User.find({ admin: adminIdObj, isDeleted: false, isActive: true }).select('_id');
+  if (role === 'ADMIN' || role === 'SUPER_ADMIN') {
+    const users = await User.find({ admin: adminIdObj, isDeleted: false }).select('_id');
     targetUserIds = users.map(u => u._id);
   } else if (role.endsWith('_MANAGER')) {
     // Managers see everyone in their department
@@ -309,15 +323,20 @@ exports.getTeamAttendance = catchAsync(async (req, res, next) => {
 
   // Build User filter
   const userQuery = { 
-    _id: { $in: targetUserIds, $ne: userIdObj } 
+    _id: { $in: targetUserIds } 
   };
+  if (userIdObj) {
+    userQuery._id.$ne = userIdObj;
+  }
+
   if (search) {
     userQuery.name = { $regex: search, $options: 'i' };
   }
 
   const users = await User.find(userQuery)
-    .select('_id name role email phone manager')
-    .populate('manager', 'name');
+    .select('_id name role email phone manager department')
+    .populate('manager', 'name')
+    .populate('department', 'name');
 
   // If teamLeader filter is applied
   let filteredUsers = users;
@@ -386,6 +405,7 @@ exports.getTeamAttendance = catchAsync(async (req, res, next) => {
         id: u._id,
         name: u.name,
         role: u.role,
+        department: u.department?.name || "Unknown",
         teamLeader: u.manager?.name || "Self",
         date: currentDate.toISOString(),
         attendance: att || null,

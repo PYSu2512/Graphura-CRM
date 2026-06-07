@@ -97,7 +97,11 @@ exports.getTeamLeaves = catchAsync(async (req, res, next) => {
       $ne: new mongoose.Types.ObjectId(String(userId)) 
     }
   })
-  .populate('user', 'name role')
+  .populate({
+    path: 'user',
+    select: 'name role department',
+    populate: { path: 'department', select: 'name' }
+  })
   .sort({ createdAt: -1 })
   .lean();
 

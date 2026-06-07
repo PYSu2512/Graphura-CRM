@@ -45,6 +45,38 @@ const employeeCompositionData = [
   { name: 'Support', value: 25 },
 ];
 
+const LEAVE_TYPES = [
+  "Sick Leave",
+  "Casual Leave",
+  "Earned Leave",
+  "Maternity Leave",
+  "Paternity Leave",
+  "Bereavement Leave",
+  "Unpaid Leave",
+  "Half Day",
+  "Other",
+];
+
+const DEPARTMENTS = ["Sales", "Finance", "Management", "Engineering", "Support", "Marketing", "Administration"];
+const ROLES = [
+  "ADMIN",
+  "SALES_MANAGER",
+  "SALES_TL",
+  "SALES_EXECUTIVE",
+  "FINANCE_MANAGER",
+  "FINANCE_EXECUTIVE",
+  "MANAGEMENT_MANAGER",
+  "MANAGEMENT_TL",
+  "MANAGEMENT_EMPLOYEE",
+];
+
+const formatRole = (str) => {
+  if (!str) return "—";
+  const clean = str.replace(/^(SALES|FINANCE|MANAGEMENT)_/, '');
+  if (clean === 'TL') return "Team Leader";
+  return clean.toLowerCase().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
 // -- Columns for Tables --
 
 const employeesColumns = [
@@ -65,15 +97,15 @@ const employeesRows = [
 ];
 
 const attendanceColumns = [
-  { key: "name", label: "NAME", width: "20%" },
+  { key: "name", label: "NAME", width: "15%" },
+  { key: "roleDisplay", label: "ROLE", width: "15%" },
   { key: "department", label: "DEPARTMENT", width: "15%" },
-  { key: "date", label: "DATE", width: "15%" },
+  { key: "date", label: "DATE", width: "10%" },
   { key: "clockIn", label: "CLOCK IN", width: "15%" },
   { key: "clockOut", label: "CLOCK OUT", width: "15%" },
   { key: "totalHours", label: "TOTAL HOURS", width: "10%" },
-  { key: "attStatus", label: "STATUS", width: "10%" },
+  { key: "status", label: "STATUS", width: "5%" },
 ];
-
 const attendanceRows = [
   { name: "Alice Smith", department: "Sales", date: "2024-11-01", clockIn: "09:00 AM", clockOut: "05:00 PM", totalHours: "8h", status: "Present" },
   { name: "Bob Johnson", department: "Engineering", date: "2024-11-01", clockIn: "09:15 AM", clockOut: "05:30 PM", totalHours: "8h 15m", status: "Late" },
@@ -83,20 +115,22 @@ const attendanceRows = [
 ];
 
 const leaveColumns = [
-  { key: "name", label: "NAME", width: "20%" },
-  { key: "leaveType", label: "LEAVE TYPE", width: "20%" },
-  { key: "dates", label: "FROM - TO DATES", width: "30%" },
+  { key: "name", label: "NAME", width: "15%" },
+  { key: "department", label: "DEPARTMENT", width: "15%" },
+  { key: "leaveType", label: "LEAVE TYPE", width: "15%" },
+  { key: "dates", label: "FROM - TO DATES", width: "25%" },
   { key: "days", label: "DAYS", width: "15%" },
   { key: "statusDisplay", label: "STATUS", width: "15%" },
 ];
 
 const approvalColumns = [
   { key: "name", label: "NAME", width: "15%" },
+  { key: "department", label: "DEPARTMENT", width: "15%" },
   { key: "role", label: "ROLE", width: "15%" },
   { key: "leaveType", label: "LEAVE TYPE", width: "15%" },
   { key: "dates", label: "FROM - TO DATES", width: "20%" },
   { key: "days", label: "DAYS", width: "10%" },
-  { key: "actionedByName", label: "ACTIONED BY", width: "15%" },
+  { key: "actionedByName", label: "ACTIONED BY", width: "10%" },
   { key: "statusDisplay", label: "STATUS", width: "10%" },
 ];
 
@@ -137,16 +171,12 @@ export default function HRM() {
             'OTHER': 'Other',
           };
 
-          const formatRole = (str) => {
-            if (!str) return "—";
-            const clean = str.replace(/^(SALES|FINANCE|MANAGEMENT)_/, '');
-            if (clean === 'TL') return "Team Leader";
-            return clean.toLowerCase().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-          };
           return {
             ...l,
             id: l._id,
+            status,
             name: l.user?.name || "Unknown",
+            department: typeof l.user?.department === 'object' ? l.user?.department?.name : (l.user?.department || "Administration"),
             role: formatRole(l.user?.role),
             leaveType: LEAVE_MAP[l.leaveType] || l.leaveType,
             dates: `${from} to ${to}`,
@@ -173,17 +203,18 @@ export default function HRM() {
 
   const [attendance, setAttendance] = useState([]);
   const [attLoading, setAttLoading] = useState(false);
-  const [attDate, setAttDate] = useState(() => {
+  const [attDateRange, setAttDateRange] = useState(() => {
     const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { startDate: formatted, endDate: formatted };
   });
 
   const fetchAttendance = async (filters = {}) => {
     setAttLoading(true);
     try {
       const params = { ...filters };
-      if (!params.startDate) params.startDate = attDate;
-      if (!params.endDate)   params.endDate   = attDate;
+      if (!params.startDate) params.startDate = attDateRange.startDate;
+      if (!params.endDate)   params.endDate   = attDateRange.endDate;
 
       // Fetch Team and Self in parallel
       const [res, selfRes] = await Promise.all([
@@ -207,39 +238,46 @@ export default function HRM() {
       // 1. Process Self data
       if (selfRes.success && selfRes.data) {
         selfRes.data.forEach(r => {
-          let status = "Present";
-          if (r.clockIn && !r.clockOut) status = "Active";
-          if (r.isHalfDay) status = "Half Day";
-          if (r.isAbsent) status = "Absent";
+          let statusLabel = "Present";
+          if (r.clockIn && !r.clockOut) statusLabel = "Active";
+          if (r.isHalfDay) statusLabel = "Half Day";
+          if (r.isAbsent) statusLabel = "Absent";
 
+          const d = new Date(r.date);
+          const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           combined.push({
             ...r,
-            id: 'self-' + r._id,
+            id: 'self-' + r._id + '-' + formattedDate,
             name: "Self",
+            role: currentUser?.role || "ADMIN",
+            roleDisplay: "Admin",
             department: "Administration",
-            date: new Date(r.date).toISOString().split('T')[0],
+            date: formattedDate,
             clockIn: formatTime(r.clockIn),
             clockOut: formatTime(r.clockOut),
             totalHours: r.clockOut ? formatHours(r.hoursWorked) : (r.clockIn ? "Working..." : "—"),
-            attStatus: status
+            status: statusLabel
           });
         });
       }
 
       // 2. Process Team data
-      if (res.success) {
+      if (res.success && Array.isArray(res.data)) {
         const mapped = res.data.map(a => {
           const att = a.attendance;
+          const d = new Date(a.date);
+          const formattedDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           return {
             ...a,
-            id: a.id,
+            id: `${a.id}-${formattedDate}`,
             name: a.name,
+            roleDisplay: formatRole(a.role),
             department: a.department || "Unknown",
-            date: new Date(a.date).toISOString().split('T')[0],
+            date: formattedDate,
             clockIn: formatTime(att?.clockIn),
             clockOut: formatTime(att?.clockOut),
             totalHours: att?.clockOut ? formatHours(att.hoursWorked) : (att?.clockIn ? "Working..." : "—"),
-            attStatus: a.status
+            status: a.status
           };
         });
         combined = [...combined, ...mapped];
@@ -254,16 +292,29 @@ export default function HRM() {
 
   useEffect(() => {
     fetchLeaves();
-    fetchAttendance();
   }, []);
 
   useEffect(() => {
-    fetchAttendance({ startDate: attDate, endDate: attDate });
-  }, [attDate]);
+    fetchAttendance(attDateRange);
+  }, [attDateRange]);
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const onLeaveTodayCount = allLeaves.filter(l => {
+    if (l.status !== 'APPROVED') return false;
+    const fromStr = l.fromDate ? new Date(l.fromDate).toISOString().split('T')[0] : '';
+    const toStr = l.toDate ? new Date(l.toDate).toISOString().split('T')[0] : '';
+    return fromStr && toStr && todayStr >= fromStr && todayStr <= toStr;
+  }).length;
+
+  const leaveStats = [
+    { name: 'Approved', value: allLeaves.filter(l => l.status === 'APPROVED').length },
+    { name: 'Pending', value: allLeaves.filter(l => l.status === 'PENDING').length },
+    { name: 'Rejected', value: allLeaves.filter(l => l.status === 'REJECTED').length },
+  ];
 
   const totalEmp = 135; // Still using static for now, or could fetch all users count
-  const presentToday = attendance.filter(r => ["Present", "Active", "Late"].includes(r.attStatus)).length;
-  const absentToday  = attendance.filter(r => r.attStatus === "Absent").length;
+  const presentToday = attendance.filter(r => r.date === todayStr && ["Present", "Active", "Late", "Present"].includes(r.status)).length;
+  const absentToday  = attendance.filter(r => r.date === todayStr && r.status === "Absent").length;
 
   const handleUpdateStatus = async (id, status) => {
     if (!id) {
@@ -457,19 +508,36 @@ export default function HRM() {
       {activeTab === 'Attendance' && (
         <div className="flex-col gap-3 w-full">
           <DataTable 
-            title={`Attendance for ${attDate}`}
+            title={attDateRange.startDate === attDateRange.endDate 
+              ? `Attendance for ${attDateRange.startDate}` 
+              : `Attendance for ${attDateRange.startDate} to ${attDateRange.endDate}`
+            }
             columns={attendanceColumns} 
             rows={attendance} 
             loading={attLoading}
             size={12} 
             pageSize={10} 
             searchable={true} 
-            onDateFilter={true}
-            onApplyFilters={(f) => { if (f.startDate) setAttDate(f.startDate); }}
+            onDateFilter={false}
+            date={true}
+            onApplyFilters={(f) => {
+              if (f.startDate || f.endDate) {
+                setAttDateRange({
+                  startDate: f.startDate || attDateRange.startDate,
+                  endDate: f.endDate || attDateRange.endDate
+                });
+              } else {
+                const d = new Date();
+                const formatted = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+                setAttDateRange({ startDate: formatted, endDate: formatted });
+              }
+            }}
             exportable
-            exportFileName={`attendance_${attDate}`}
+            exportFileName={`attendance_${attDateRange.startDate}_${attDateRange.endDate}`}
             filters={[
-              { title: "Status", type: "toggle", key: "attStatus", options: ["Present", "Active", "Absent", "Leave", "Half Day"] },
+              { title: "Status", type: "toggle", key: "status", options: ["Present", "Active", "Absent", "Leave", "Half Day"] },
+              { title: "Department", type: "toggle", key: "department", options: DEPARTMENTS },
+              { title: "Role", type: "toggle", key: "roleDisplay", options: ROLES.map(r => formatRole(r)) },
             ]}
           />
         </div>
@@ -493,11 +561,11 @@ export default function HRM() {
       {activeTab === 'Approvals' && (
         <div className="flex-col gap-3 w-full">
            <div className="flex justify-end mb-4">
-             <button onClick={() => handleExportCSV(approvalColumns, allLeaves.filter(l => l.status !== 'PENDING'), 'leave_approvals_export.csv')} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm w-full sm:w-auto justify-center">
+             <button onClick={() => handleExportCSV(approvalColumns, allLeaves.filter(l => ['APPROVED', 'REJECTED'].includes(l.status)), 'leave_approvals_export.csv')} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm w-full sm:w-auto justify-center">
                  <Download size={16} /> Export CSV
               </button>
           </div>
-          <DataTable columns={approvalColumns} rows={allLeaves.filter(l => l.status !== 'PENDING')} loading={loading} actions={[{
+          <DataTable columns={approvalColumns} rows={allLeaves.filter(l => ['APPROVED', 'REJECTED'].includes(l.status))} loading={loading} actions={[{
             icon: <Eye size={16} />,
             tooltip: "View Details",
             onClick: (row) => {
