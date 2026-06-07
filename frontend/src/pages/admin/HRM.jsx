@@ -176,7 +176,7 @@ export default function HRM() {
             id: l._id,
             status,
             name: l.user?.name || "Unknown",
-            department: typeof l.user?.department === 'object' ? l.user?.department?.name : (l.user?.department || "Administration"),
+            department: l.deptName || "—",
             role: formatRole(l.user?.role),
             leaveType: LEAVE_MAP[l.leaveType] || l.leaveType,
             dates: `${from} to ${to}`,

@@ -100,7 +100,7 @@ exports.getTeamLeaves = catchAsync(async (req, res, next) => {
   .populate({
     path: 'user',
     select: 'name role department',
-    populate: { path: 'department', select: 'name' }
+    populate: { path: 'department', select: 'name displayName' }
   })
   .sort({ createdAt: -1 })
   .lean();
@@ -136,7 +136,11 @@ exports.getTeamLeaves = catchAsync(async (req, res, next) => {
         actionedByName = 'Admin';
       }
     }
-    return { ...l, actionedByName };
+
+    const dept = l.user?.department;
+    const deptName = (typeof dept === 'object' ? (dept?.displayName || dept?.name) : dept) || '—';
+
+    return { ...l, actionedByName, deptName };
   });
 
   res.status(200).json(new ApiResponse(200, processedLeaves, 'Team leaves fetched.'));
