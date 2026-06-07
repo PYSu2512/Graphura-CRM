@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import toast from "react-hot-toast";
 import {
   Heading, DashGrid, EnhancedDashCard, DataTable, Grid,
   GColumnChart, GPieChart,
@@ -11,13 +12,67 @@ import {
   Calendar, CheckCircle, Clock, XCircle,
   Eye, Trash2, AlertCircle, BadgeCheck, Ban,
 } from "lucide-react";
-import {
-  kpiLeaves, myLeavesSeed, teamLeaveRequests, LEAVE_TYPES,
-  monthlyLeaveTrend, leaveTypeDistribution, attendanceRows,
-} from "./hrmStore";
+import { hrmService } from "../../../../services/hrmService";
 
 const KPI_ICONS   = [<Calendar size={20} />, <CheckCircle size={20} />, <Clock size={20} />, <XCircle size={20} />];
 const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f59e0b", "#f43f5e"];
+
+const LEAVE_TYPES = [
+  "SICK",
+  "CASUAL",
+  "EARNED",
+  "MATERNITY",
+  "PATERNITY",
+  "BEREAVEMENT",
+  "UNPAID",
+  "HALF_DAY",
+  "OTHER",
+];
+
+const LEAVE_MAP = {
+  'SICK': 'Sick Leave',
+  'CASUAL': 'Casual Leave',
+  'EARNED': 'Earned Leave',
+  'MATERNITY': 'Maternity Leave',
+  'PATERNITY': 'Paternity Leave',
+  'BEREAVEMENT': 'Bereavement Leave',
+  'UNPAID': 'Unpaid Leave',
+  'HALF_DAY': 'Half Day',
+  'OTHER': 'Other',
+};
+
+const formatRole = (str) => {
+  if (!str) return "—";
+  const clean = str.replace(/^(SALES|FINANCE|MANAGEMENT)_/, '');
+  if (clean === 'TL') return "Team Leader";
+  return clean.toLowerCase().split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
+const formatStatus = (s) => {
+  if (!s) return "—";
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+};
+
+const toMyRow = (l) => ({
+  ...l,
+  type: LEAVE_MAP[l.leaveType] || l.leaveType,
+  appliedOn: l.createdAt ? new Date(l.createdAt).toLocaleDateString() : today(),
+  dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,
+  days:      String(l.days),
+  status:    formatStatus(l.status),
+});
+
+const toTeamRow = (l) => ({
+  ...l,
+  name: l.user?.name || "Unknown",
+  role: formatRole(l.user?.role),
+  type: LEAVE_MAP[l.leaveType] || l.leaveType,
+  appliedOn: l.createdAt ? new Date(l.createdAt).toLocaleDateString() : today(),
+  dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,
+  days:      String(l.days),
+  actionOn: l.approvedAt ? new Date(l.approvedAt).toLocaleDateString() : "—",
+  status:    formatStatus(l.status),
+});
 
 // ── Column definitions ────────────────────────────────────────────────────────
 const MY_COLS = [
@@ -25,7 +80,7 @@ const MY_COLS = [
   { key: "reason",    label: "Reason",     width: "36%" },
   { key: "dateRange", label: "Date Range", width: "20%", align: "center" },
   { key: "days",      label: "Days",       width: "10%", align: "center" },
-  { key: "appliedOn", label: "Applied On", width: "10%", align: "center", sortValue: (row) => new Date(row.appliedOn).getTime() },
+  { key: "appliedOn", label: "Applied On", width: "10%", align: "center", sortValue: (row) => new Date(row.createdAt).getTime() },
   { key: "status",    label: "Status",     width: "8%", align: "center" },
 ];
 
@@ -36,7 +91,7 @@ const PENDING_COLS = [
   { key: "reason",    label: "Reason",        width: "28%" },
   { key: "dateRange", label: "Date Range",    width: "14%", align: "center" },
   { key: "days",      label: "Days",          width: "6%",  align: "center" },
-  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center", sortValue: (row) => new Date(row.appliedOn).getTime() },
+  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center", sortValue: (row) => new Date(row.createdAt).getTime() },
 ];
 
 const HISTORY_COLS = [
@@ -45,7 +100,7 @@ const HISTORY_COLS = [
   { key: "type",      label: "Leave Type",    width: "14%" },
   { key: "reason",    label: "Reason",        width: "28%" },
   { key: "dateRange", label: "Date Range",    width: "14%", align: "center" },
-  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center", sortValue: (row) => new Date(row.appliedOn).getTime() },
+  { key: "appliedOn", label: "Applied On",    width: "10%", align: "center", sortValue: (row) => new Date(row.createdAt).getTime() },
   { key: "status",    label: "Leave Status",  width: "6%",  align: "center" },
 ];
 
@@ -58,18 +113,55 @@ const calcDays = (from, to) => {
 const today = () => new Date().toISOString().split("T")[0];
 
 export default function Leaves() {
-  const [myLeaves,    setMyLeaves]    = useState(() => [...myLeavesSeed].sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn)));
+  const [myLeaves,    setMyLeaves]    = useState([]);
+  const [teamReqs,    setTeamReqs]    = useState([]);
+  const [loading,     setLoading]     = useState(false);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const [myRes, teamRes] = await Promise.all([
+        hrmService.getMyLeaves(),
+        hrmService.getTeamLeaves()
+      ]);
+      if (myRes.success) setMyLeaves(myRes.data.map(toMyRow));
+      if (teamRes.success) setTeamReqs(teamRes.data.map(toTeamRow));
+    } catch (err) {
+      console.error("Failed to fetch leaves:", err);
+      toast.error("Failed to load leave data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
   const [myView,      setMyView]      = useState(null);
-  const [teamReqs,    setTeamReqs]    = useState(() => [...teamLeaveRequests].sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn)));
   const [pendingView, setPendingView] = useState(null);
   const [historyView, setHistoryView] = useState(null);
 
   const EMPTY = { leaveType: "", reason: "", dateFrom: "", dateTo: "" };
   const [form,   setForm]   = useState(EMPTY);
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+
   const applyDays = calcDays(form.dateFrom, form.dateTo);
 
-
+  // ── KPIs ────────────────────────────────────
+  const kpis = useMemo(() => {
+    const total    = myLeaves.length + teamReqs.length;
+    const approved = myLeaves.filter(l => l.status === 'Approved').length + teamReqs.filter(l => l.status === 'Approved').length;
+    const pending  = myLeaves.filter(l => l.status === 'Pending').length + teamReqs.filter(l => l.status === 'Pending').length;
+    const rejected = myLeaves.filter(l => l.status === 'Rejected').length + teamReqs.filter(l => l.status === 'Rejected').length;
+    return [
+      { title: "Total Leaves", value: String(total)    },
+      { title: "Approved",     value: String(approved) },
+      { title: "Pending",      value: String(pending)  },
+      { title: "Rejected",     value: String(rejected) },
+    ];
+  }, [myLeaves, teamReqs]);
 
   const onChange = (field, value) => {
     setForm((p) => ({ ...p, [field]: value }));
@@ -90,32 +182,71 @@ export default function Leaves() {
     return e;
   };
 
-  const submitApply = () => {
+  const submitApply = async () => {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    const newLeave = {
-      id:        `ML-${Date.now()}`,
-      type:      form.leaveType,
-      reason:    form.reason.trim(),
-      from:      form.dateFrom,
-      to:        form.dateTo,
-      days:      applyDays,
-      dateRange: `${form.dateFrom} to ${form.dateTo}`,
-      appliedOn: today(),
-      status:    "Pending",
-    };
-    setMyLeaves((prev) => [newLeave, ...prev]);
-    setForm(EMPTY);
-    setErrors({});
-    closeModal("mtl-hrm-leave-apply");
+    setSubmitting(true);
+    try {
+      const res = await hrmService.applyLeave({
+        leaveType: form.leaveType,
+        reason: form.reason.trim(),
+        fromDate: form.dateFrom,
+        toDate: form.dateTo,
+        days: Number(applyDays),
+      });
+      if (res.success) {
+        toast.success("Leave Applied Successfully!", { icon: "📋" });
+        setForm(EMPTY);
+        setErrors({});
+        closeModal("mtl-hrm-leave-apply");
+        fetchAllData();
+      } else {
+        toast.error(res.message || "Failed to apply leave.");
+      }
+    } catch (err) {
+      toast.error("An error occurred.");
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  const setMemberStatus = async (row, newStatus) => {
+    try {
+      const res = await hrmService.updateLeaveStatus(row._id || row.id, newStatus.toUpperCase());
+      if (res.success) {
+        toast.success(`Leave ${newStatus.toLowerCase()} for ${row.name}.`,
+          { icon: newStatus === "Approved" ? "✅" : "🛑" });
+        fetchAllData();
+      } else {
+        toast.error(res.message || "Failed to update status.");
+      }
+    } catch (err) {
+      toast.error("An error occurred.");
+    }
+  };
+
+  // Mocked for chart display
+  const monthlyLeaveTrend = [
+    { month: "Jan", approved: 12, rejected: 2, pending: 1 },
+    { month: "Feb", approved: 15, rejected: 1, pending: 2 },
+    { month: "Mar", approved: 10, rejected: 4, pending: 3 },
+    { month: "Apr", approved: 18, rejected: 0, pending: 1 },
+    { month: "May", approved: 14, rejected: 2, pending: 4 },
+  ];
+
+  const leaveTypeDistribution = [
+    { name: "Sick", value: 35 },
+    { name: "Casual", value: 25 },
+    { name: "Paid", value: 30 },
+    { name: "Other", value: 10 },
+  ];
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
 
       {/* ── KPI cards ──────────────────────────────────── */}
       <DashGrid cols={12} gap={4}>
-        {kpiLeaves.map((k, i) => (
+        {kpis.map((k, i) => (
           <EnhancedDashCard
             key={k.title}
             title={k.title}
@@ -222,7 +353,7 @@ export default function Leaves() {
           defaultSortDir="desc"
           exportFileName="pending_leaves"
           filters={[
-            { title: "Employee", type: "toggle", key: "name", options: [...new Set(teamLeaveRequests.filter(r => r.status === "Pending").map(r => r.name))] },
+            { title: "Employee", type: "toggle", key: "name", options: [...new Set(teamReqs.filter(r => r.status === "Pending").map(r => r.name))] },
             { title: "Leave Type", type: "toggle", key: "type", options: LEAVE_TYPES },
           ]}
           actions={[
@@ -267,7 +398,7 @@ export default function Leaves() {
           defaultSortDir="desc"
           exportFileName="leave_history"
           filters={[
-            { title: "Employee", type: "toggle", key: "name", options: [...new Set(teamLeaveRequests.filter(r => r.status !== "Pending").map(r => r.name))] },
+            { title: "Employee", type: "toggle", key: "name", options: [...new Set(teamReqs.filter(r => r.status !== "Pending").map(r => r.name))] },
             { title: "Leave Status", type: "toggle", key: "status", options: ["Approved", "Rejected"] },
             { title: "Leave Type", type: "toggle", key: "type", options: LEAVE_TYPES },
           ]}

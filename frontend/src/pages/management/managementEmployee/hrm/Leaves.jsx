@@ -1,5 +1,6 @@
 import { Calendar, CheckCircle, Clock, Eye, Trash2, XCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
+import toast from "react-hot-toast";
 import {
     Button,
     closeModal,
@@ -16,38 +17,77 @@ import {
     Option,
     SelectField,
 } from "../../../../components/shared/Common_Components.jsx";
-import { leaveApplications } from "./hrmStore";
+import { hrmService } from "../../../../services/hrmService";
 
 const KPI_ICONS = [<Calendar size={22} />, <CheckCircle size={22} />, <Clock size={22} />, <XCircle size={22} />];
 const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#f59e0b", "#f43f5e"];
 
+const LEAVE_TYPES = [
+  "SICK",
+  "CASUAL",
+  "EARNED",
+  "MATERNITY",
+  "PATERNITY",
+  "BEREAVEMENT",
+  "UNPAID",
+  "HALF_DAY",
+  "OTHER",
+];
+
+const LEAVE_MAP = {
+  'SICK': 'Sick Leave',
+  'CASUAL': 'Casual Leave',
+  'EARNED': 'Earned Leave',
+  'MATERNITY': 'Maternity Leave',
+  'PATERNITY': 'Paternity Leave',
+  'BEREAVEMENT': 'Bereavement Leave',
+  'UNPAID': 'Unpaid Leave',
+  'HALF_DAY': 'Half Day',
+  'OTHER': 'Other',
+};
+
 const COLS = [
-  { key: "leaveType", label: "Leave Type" },
+  { key: "leaveTypeDisplay", label: "Leave Type" },
   { key: "reason", label: "Reason" },
   { key: "dateRange", label: "Date Range" },
   { key: "days", label: "Days" },
-  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.appliedOn).getTime() },
+  { key: "appliedOn", label: "Applied On", sortValue: (row) => new Date(row.createdAt).getTime() },
   { key: "status", label: "Status" },
 ];
 
-const LEAVE_TYPES = [
-  "Sick Leave",
-  "Casual Leave",
-  "Earned Leave",
-  "Unpaid Leave",
-  "Other",
-];
-
 export default function Leaves() {
-  const [myLeaves, setMyLeaves] = useState(() => 
-    leaveApplications.map((leave) => ({
-      ...leave,
-      dateRange: `${leave.fromDate} to ${leave.toDate}`,
-    })).sort((a, b) => new Date(b.appliedOn) - new Date(a.appliedOn))
-  );
+  const [myLeaves, setMyLeaves] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchMyLeaves = async () => {
+    setLoading(true);
+    try {
+      const res = await hrmService.getMyLeaves();
+      if (res.success) {
+        setMyLeaves(res.data.map(l => ({
+          ...l,
+          leaveTypeDisplay: LEAVE_MAP[l.leaveType] || l.leaveType,
+          dateRange: `${new Date(l.fromDate).toLocaleDateString()} to ${new Date(l.toDate).toLocaleDateString()}`,
+          appliedOn: new Date(l.createdAt).toLocaleDateString(),
+          status: l.status.charAt(0).toUpperCase() + l.status.slice(1).toLowerCase()
+        })));
+      }
+    } catch (err) {
+      console.error("Failed to fetch leaves:", err);
+      toast.error("Failed to load leaves.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMyLeaves();
+  }, []);
+
   const [selected, setSelected] = useState(null);
   const [applyForm, setApplyForm] = useState({ leaveType: "", reason: "", dateFrom: "", dateTo: "" });
   const [applyError, setApplyError] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const calcDays = (from, to) => {
     if (!from || !to) return 0;
@@ -57,10 +97,15 @@ export default function Leaves() {
 
   const applyDays = calcDays(applyForm.dateFrom, applyForm.dateTo);
 
-  const myLeavesCount = myLeaves.length;
-  const approvedCount = myLeaves.filter((l) => l.status === "Approved").length;
-  const pendingCount = myLeaves.filter((l) => l.status === "Pending").length;
-  const usedDays = myLeaves.filter((l) => l.status === "Approved").reduce((sum, l) => sum + l.days, 0);
+  const { usedDays, approvedCount, pendingCount } = useMemo(() => {
+    const approved = myLeaves.filter(l => l.status === 'Approved');
+    return {
+      usedDays: approved.reduce((sum, l) => sum + (l.days || 0), 0),
+      approvedCount: approved.length,
+      pendingCount: myLeaves.filter(l => l.status === 'Pending').length
+    };
+  }, [myLeaves]);
+
   const remainingDays = Math.max(0, 20 - usedDays);
 
   const kpis = [
@@ -77,7 +122,7 @@ export default function Leaves() {
     }
   };
 
-  const handleApplySubmit = () => {
+  const handleApplySubmit = async () => {
     const errs = {};
     if (!applyForm.leaveType) errs.leaveType = "Please select a leave type.";
     if (!applyForm.reason.trim()) errs.reason = "Reason is required.";
@@ -91,26 +136,44 @@ export default function Leaves() {
       return;
     }
 
-    const newLeave = {
-      id: `LV-${Date.now()}`,
-      leaveType: applyForm.leaveType,
-      reason: applyForm.reason.trim(),
-      fromDate: applyForm.dateFrom,
-      toDate: applyForm.dateTo,
-      days: applyDays,
-      appliedOn: new Date().toISOString().slice(0, 10),
-      status: "Pending",
-      dateRange: `${applyForm.dateFrom} to ${applyForm.dateTo}`,
-    };
-    setMyLeaves((prev) => [newLeave, ...prev]);
-    setApplyForm({ leaveType: "", reason: "", dateFrom: "", dateTo: "" });
-    setApplyError({});
-    closeModal("me-apply-leave-modal");
+    setSubmitting(true);
+    try {
+      const res = await hrmService.applyLeave({
+        leaveType: applyForm.leaveType,
+        reason: applyForm.reason.trim(),
+        fromDate: applyForm.dateFrom,
+        toDate: applyForm.dateTo,
+        days: Number(applyDays),
+      });
+      if (res.success) {
+        toast.success("Leave Applied Successfully!", { icon: "📋" });
+        setApplyForm({ leaveType: "", reason: "", dateFrom: "", dateTo: "" });
+        setApplyError({});
+        closeModal("me-apply-leave-modal");
+        fetchMyLeaves();
+      } else {
+        toast.error(res.message || "Failed to apply leave.");
+      }
+    } catch (err) {
+      toast.error("An error occurred.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleCancel = (row) => {
-    setMyLeaves((prev) => prev.map((leave) => (leave.id === row.id ? { ...leave, status: "Cancelled" } : leave)));
-    closeModal("me-leave-view-modal");
+  const handleCancel = async (row) => {
+    try {
+      const res = await hrmService.deleteLeave(row._id || row.id);
+      if (res.success) {
+        toast.success("Leave application cancelled.");
+        closeModal("me-leave-view-modal");
+        fetchMyLeaves();
+      } else {
+        toast.error(res.message || "Failed to cancel leave.");
+      }
+    } catch (err) {
+      toast.error("An error occurred.");
+    }
   };
 
   return (
