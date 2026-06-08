@@ -292,12 +292,12 @@ function ProjectList({ onSelect }) {
   ];
 
   return (
-    <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <main className="flex flex-col gap-6">
 
       {/* Heading banner */}
       <Heading
-        primaryText="Your Projects"
-        secondaryText={`${counts.all} total`}
+        primaryText="Your"
+        secondaryText="Projects"
         size={12}
         fontSize="2xl"
       />
@@ -435,7 +435,7 @@ function ProjectDetail({ project: p, onBack }) {
   }));
 
   return (
-    <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <main className="flex flex-col gap-6">
 
       {/* Back */}
       <button

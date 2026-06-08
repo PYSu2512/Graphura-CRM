@@ -271,7 +271,7 @@ support@graphura.in`;
   };
 
   return (
-    <main className="max-w-[1400px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <main className="flex flex-col gap-6">
 
       {/* Heading */}
       <Heading primaryText="My" secondaryText="Invoices" size={12} fontSize="2xl" />
