@@ -16,6 +16,7 @@
   "dependencies": {
     "axios": "^1.15.2",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.10.0",
     "cors": "^2.8.6",
     "crypto-js": "^4.2.0",
     "csv-parse": "^6.2.1",
@@ -28,12 +29,13 @@
     "mongoose": "^9.4.1",
     "morgan": "^1.10.1",
     "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^4.0.0",
     "rate-limit-mongo": "^2.3.2",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14",
     "mongodb-memory-server": "^8.11.1",
-    "supertest": "^6.4.3"
+    "nodemon": "^3.1.14",
+    "supertest": "^6.3.4"
   }
 }

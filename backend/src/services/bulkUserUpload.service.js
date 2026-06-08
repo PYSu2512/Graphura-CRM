@@ -20,6 +20,8 @@ const {
   RESTRICTED_ROLES,
 } = require('../constants/roleDepartmentMap');
 
+const axios    = require('axios');
+
 // ─────────────────────────────────────────────────────────────
 // FILE PARSERS
 // ─────────────────────────────────────────────────────────────
@@ -29,18 +31,34 @@ const buildDefaultUserPassword = (email, phone) => {
   return `${String(email || "").toLowerCase().trim()}@${lastFiveDigits}`;
 };
 
-const parseCsv = (filePath) =>
-  new Promise((resolve, reject) => {
+const parseCsv = async (filePath) => {
+  let stream;
+  if (filePath.startsWith('http')) {
+    const response = await axios.get(filePath, { responseType: 'stream' });
+    stream = response.data;
+  } else {
+    stream = fs.createReadStream(filePath);
+  }
+
+  return new Promise((resolve, reject) => {
     const results = [];
-    fs.createReadStream(filePath)
+    stream
       .pipe(parse({ columns: true, skip_empty_lines: true, trim: true }))
       .on('data', (data) => results.push(data))
       .on('error', reject)
       .on('end', () => resolve(results));
   });
+};
 
-const parseExcel = (filePath) => {
-  const workbook  = xlsx.readFile(filePath);
+const parseExcel = async (filePath) => {
+  let buffer;
+  if (filePath.startsWith('http')) {
+    const response = await axios.get(filePath, { responseType: 'arraybuffer' });
+    buffer = Buffer.from(response.data);
+  } else {
+    buffer = fs.readFileSync(filePath);
+  }
+  const workbook  = xlsx.read(buffer, { type: 'buffer' });
   const sheetName = workbook.SheetNames[0];
   const worksheet = workbook.Sheets[sheetName];
   return xlsx.utils.sheet_to_json(worksheet, { defval: '' });
@@ -184,7 +202,7 @@ exports.processUploadPreview = async (uploadId) => {
     // ── Parse file ────────────────────────────────────────────
     let rawRows = upload.fileType === 'CSV'
       ? await parseCsv(upload.fileUrl)
-      : parseExcel(upload.fileUrl);
+      : await parseExcel(upload.fileUrl);
 
     validateFileStructure(rawRows);
 
@@ -376,7 +394,7 @@ exports.commitUpload = async (uploadId, importMode) => {
     // ── Re-parse file ─────────────────────────────────────────
     let rawRows = upload.fileType === 'CSV'
       ? await parseCsv(upload.fileUrl)
-      : parseExcel(upload.fileUrl);
+      : await parseExcel(upload.fileUrl);
 
     validateFileStructure(rawRows);
 

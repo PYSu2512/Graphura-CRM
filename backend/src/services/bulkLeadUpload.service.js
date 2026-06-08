@@ -16,6 +16,7 @@ const {
 const fs = require('fs');
 const { parse } = require('csv-parse/sync');
 const XLSX = require('xlsx');
+const axios = require('axios');
 const AppError = require('../utils/appError');
 
 const ASSIGNMENT_RULES = {
@@ -373,12 +374,25 @@ const assignLeadsToUser = async ({
 };
 
 const parseCsv = async (filePath) => {
-  const content = fs.readFileSync(filePath);
+  let content;
+  if (filePath.startsWith('http')) {
+    const response = await axios.get(filePath, { responseType: 'arraybuffer' });
+    content = Buffer.from(response.data);
+  } else {
+    content = fs.readFileSync(filePath);
+  }
   return parse(content, { columns: true, skip_empty_lines: true });
 };
 
-const parseExcel = (filePath) => {
-  const workbook = XLSX.readFile(filePath);
+const parseExcel = async (filePath) => {
+  let content;
+  if (filePath.startsWith('http')) {
+    const response = await axios.get(filePath, { responseType: 'arraybuffer' });
+    content = Buffer.from(response.data);
+  } else {
+    content = fs.readFileSync(filePath);
+  }
+  const workbook = XLSX.read(content, { type: 'buffer' });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   return XLSX.utils.sheet_to_json(sheet);
@@ -458,7 +472,7 @@ exports.processUploadPreview = async (uploadId) => {
   try {
     let rawRows = upload.fileType === 'CSV'
       ? await parseCsv(upload.fileUrl)
-      : parseExcel(upload.fileUrl);
+      : await parseExcel(upload.fileUrl);
 
     validateFileStructure(rawRows);
     upload.totalRows = rawRows.length;
@@ -568,7 +582,7 @@ exports.commitUpload = async (uploadId) => {
 
     let rawRows = upload.fileType === 'CSV'
       ? await parseCsv(upload.fileUrl)
-      : parseExcel(upload.fileUrl);
+      : await parseExcel(upload.fileUrl);
 
     const existingClients = await Client.find({ admin: upload.admin }, 'email mobile');
     const existingEmails = new Set(existingClients.map(c => c.email?.toLowerCase()).filter(Boolean));

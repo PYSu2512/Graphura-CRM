@@ -305,10 +305,7 @@ exports.sendToClient = catchAsync(async (req, res, next) => {
       throw new AppError('Client email is missing. Please update the client record before sending the quotation.', 400);
     }
 
-    const baseUrl = process.env.BACKEND_PUBLIC_URL || `${req.protocol}://${req.get('host')}`;
-    const pdfUrl = prospect.termsAndConditionsPdf 
-      ? `${baseUrl}/uploads/${path.basename(prospect.termsAndConditionsPdf)}`
-      : null;
+    const pdfUrl = prospect.termsAndConditionsPdf || null;
 
     emailResult = await sendProspectQuotationEmail({
       email: recipientEmail,

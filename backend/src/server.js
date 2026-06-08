@@ -9,6 +9,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const dotenv = require('dotenv');
+dotenv.config();
 const AppError = require('./utils/appError');
 const logger = require('./utils/logger');
 
@@ -47,8 +48,6 @@ const logsRoutes = require('./routes/logs');
 const adminRoutes = require('./routes/admin');
 const apiConfigRoutes = require('./routes/apiConfig');
 const financeRoutes = require('./routes/finance');
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
