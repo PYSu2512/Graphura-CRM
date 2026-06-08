@@ -7,7 +7,6 @@ export const defaultProfile = {
   fullName: "Riya Sharma",
   phone: "9876543210",
   email: "riya.sharma@yourcrm.in",
-  employeeId: "EMP-00124",
   role: "Finance Manager",
   isActive: true,
 

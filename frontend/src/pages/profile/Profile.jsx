@@ -222,14 +222,27 @@ export default function Profile({
         accountHolderName:
           bankDetails?.name ?? defaultProfile.bankDetails.accountHolderName,
         accountNumber:
-          bankDetails?.accountNumber ?? defaultProfile.bankDetails.accountNumber,
+          bankDetails?.accountNumber ??
+          defaultProfile.bankDetails.accountNumber,
         bankName: bankDetails?.bankName ?? defaultProfile.bankDetails.bankName,
         ifscCode: bankDetails?.ifscCode ?? defaultProfile.bankDetails.ifscCode,
-        branchName: bankDetails?.branchName ?? defaultProfile.bankDetails.branchName,
+        branchName:
+          bankDetails?.branchName ?? defaultProfile.bankDetails.branchName,
         upiId: bankDetails?.upiId ?? defaultProfile.bankDetails.upiId,
       },
     }),
-    [photo, name, email, phone, employeeId, clientId, role, department, isActive, bankDetails],
+    [
+      photo,
+      name,
+      email,
+      phone,
+      employeeId,
+      clientId,
+      role,
+      department,
+      isActive,
+      bankDetails,
+    ],
   );
 
   const showBank = Boolean(bankDetails);
@@ -259,9 +272,7 @@ export default function Profile({
       videoRef.current.srcObject = streamRef.current;
       videoRef.current
         .play()
-        .catch((err) =>
-          console.error("Error playing video:", err)
-        );
+        .catch((err) => console.error("Error playing video:", err));
     }
 
     return () => {
@@ -356,10 +367,10 @@ export default function Profile({
     setCameraError("");
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { 
+        video: {
           facingMode: "user",
           width: { ideal: 1280 },
-          height: { ideal: 720 }
+          height: { ideal: 720 },
         },
         audio: false,
       });
@@ -367,7 +378,7 @@ export default function Profile({
       setCameraActive(true);
     } catch (err) {
       setCameraError(
-        "Unable to access camera. Please check permissions or try uploading a photo instead."
+        "Unable to access camera. Please check permissions or try uploading a photo instead.",
       );
       console.error("Camera error:", err);
     }
@@ -445,9 +456,9 @@ export default function Profile({
       const response = await changePassword({
         currentPassword: pwForm.current,
         newPassword: pwForm.next,
-        confirmPassword: pwForm.confirm
+        confirmPassword: pwForm.confirm,
       });
-      
+
       setPwSuccess(true);
       setTimeout(() => {
         setPwForm({ current: "", next: "", confirm: "" });
@@ -456,14 +467,18 @@ export default function Profile({
         showToast("🔒 Password changed successfully! Please login again.");
         if (response?.data?.forceLogout || response?.forceLogout) {
           logout();
-          window.location.href = '/login';
+          window.location.href = "/login";
         }
       }, 1500);
     } catch (error) {
-      const errorMsg = error.response?.data?.message || "Failed to change password.";
+      const errorMsg =
+        error.response?.data?.message || "Failed to change password.";
       if (errorMsg.toLowerCase().includes("current password")) {
         setPwErrors((prev) => ({ ...prev, current: errorMsg }));
-      } else if (errorMsg.toLowerCase().includes("new password") || errorMsg.toLowerCase().includes("reuse")) {
+      } else if (
+        errorMsg.toLowerCase().includes("new password") ||
+        errorMsg.toLowerCase().includes("reuse")
+      ) {
         setPwErrors((prev) => ({ ...prev, next: errorMsg }));
       } else {
         showToast(errorMsg, "error");
@@ -547,16 +562,6 @@ export default function Profile({
           <div className="flex flex-col gap-2 w-full sm:w-auto">
             <Grid cols={12} gap={3}>
               <Button
-                text="Update Profile"
-                variant="secondary"
-                size={12}
-                onClick={() => {
-                  setPendingAvatar(avatarPreview);
-                  setPhotoSource(null);
-                  openModal("photo-modal");
-                }}
-              />
-              <Button
                 text="Logout"
                 variant="danger"
                 size={12}
@@ -618,29 +623,6 @@ export default function Profile({
             readOnly
             disabled
           />
-
-          {/* Employee ID or Client ID — read-only */}
-          {form.clientId ? (
-            <DataField
-              label="Client ID"
-              id="clientId"
-              size={6}
-              icon={BadgeCheck}
-              value={form.clientId}
-              readOnly
-              disabled
-            />
-          ) : form.employeeId ? (
-            <DataField
-              label="Employee ID"
-              id="empId"
-              size={6}
-              icon={BadgeCheck}
-              value={form.employeeId}
-              readOnly
-              disabled
-            />
-          ) : null}
 
           {/* Role — read-only */}
           {form.role ? (
@@ -877,11 +859,11 @@ export default function Profile({
                 playsInline
                 muted
                 className="w-full rounded-2xl border-2 border-slate-300 bg-slate-900 object-cover"
-                style={{ 
+                style={{
                   maxHeight: "400px",
                   minHeight: "300px",
                   width: "100%",
-                  display: "block"
+                  display: "block",
                 }}
               />
               <canvas ref={canvasRef} className="hidden" />

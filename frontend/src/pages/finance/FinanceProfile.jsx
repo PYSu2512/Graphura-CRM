@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import Profile from '../profile/Profile';
-import { userService } from '../../services/userService';
+import React, { useState, useEffect } from "react";
+import Profile from "../profile/Profile";
+import { userService } from "../../services/userService";
 
 const FinanceProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -13,7 +13,11 @@ const FinanceProfile = () => {
         const response = await userService.getMe();
         setProfile(response.data.user);
       } catch (err) {
-        setError(err.response?.data?.message || err.message || 'Failed to load profile');
+        setError(
+          err.response?.data?.message ||
+            err.message ||
+            "Failed to load profile",
+        );
       } finally {
         setLoading(false);
       }
@@ -33,19 +37,15 @@ const FinanceProfile = () => {
         name={profile.name}
         email={profile.email}
         phone={profile.phone}
-        employeeId={profile._id}
         role={profile.role}
-        department={
-          profile.department?.displayName ||
-          profile.department?.name
-        }
+        department={profile.department?.displayName || profile.department?.name}
         bankDetails={{
-          name: profile.bankDetails?.beneficiaryName,
-          accountNumber: profile.bankDetails?.accountNumber,
-          bankName: profile.bankDetails?.bankName,
-          ifscCode: profile.bankDetails?.ifscCode,
-          branchName: profile.bankDetails?.branch,
-          upiId: profile.bankDetails?.upiId,
+          name: profile.bankDetails?.beneficiaryName || "",
+          accountNumber: profile.bankDetails?.accountNumber || "",
+          bankName: profile.bankDetails?.bankName || "",
+          ifscCode: profile.bankDetails?.ifscCode || "",
+          branchName: profile.bankDetails?.branch || "",
+          upiId: profile.bankDetails?.upiId || "",
         }}
       />
     </div>
