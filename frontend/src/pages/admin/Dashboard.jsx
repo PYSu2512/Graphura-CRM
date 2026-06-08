@@ -284,7 +284,8 @@ function Dashboard() {
       {/* ── 1. Header ── */}
       <Grid cols={12} gap={4}>
         <Heading
-          primaryText="Admin Dashboard"
+          primaryText="Admin "
+          secondaryText="Dashboard"
           size={12}
         />
       </Grid>
@@ -355,62 +356,22 @@ function Dashboard() {
         />
 
         {/* Sales Performance - Donut style card */}
-        <div className="col-span-12 sm:col-span-4 rounded-2xl p-5 flex flex-col" style={{ background: "#e7e7e7b1", border: "1px solid #aeb0b477" }}>
-          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <h3 className="text-[#2a465a] font-bold text-[15px]">Sales Performance</h3>
-            <div className="flex items-center gap-1">
-              <select
-                value={salesMonth}
-                onChange={(e) => { setSalesMonth(e.target.value); if (e.target.value) setSalesPeriod(""); }}
-                className="rounded-lg px-2 py-1 text-xs font-bold border outline-none cursor-pointer" style={{ background: "#f1f5f9", borderColor: "#aeb0b477", color: "#2a465a" }}
-              >
-                <option value="">By Month</option>
-                {months.map((m) => <option key={m} value={m}>{m}</option>)}
-              </select>
-              <select
-                value={salesPeriod}
-                onChange={(e) => { setSalesPeriod(e.target.value); setSalesMonth(""); }}
-                className="rounded-lg px-2 py-1 text-xs font-bold border outline-none cursor-pointer" style={{ background: "#f1f5f9", borderColor: "#aeb0b477", color: "#2a465a" }}
-              >
-                <option value="">Period</option>
-                {Object.entries(periodLabels).map(([key, label]) => (
-                  <option key={key} value={key}>{label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="flex justify-center my-4">
-            <div className="relative w-36 h-36">
-              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                <circle cx="18" cy="18" r="14" fill="none" stroke="#aeb0b477" strokeWidth="3.5" />
-                <circle
-                  cx="18" cy="18" r="14" fill="none"
-                  stroke="#2a465a" strokeWidth="3.5"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={salesOffset}
-                  strokeLinecap="round"
-                  style={{ transition: "stroke-dashoffset 0.5s ease" }}
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-[#2a465a] text-[28px] font-extrabold">{activeSales.pct}%</span>
-                <span className="text-[#64748b] text-[11px]">Target Reached</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-between mt-auto pt-4" style={{ borderTop: "1px solid #aeb0b477" }}>
-            <div>
-              <span className="text-[#64748b] text-[11px] font-semibold">Target</span>
-              <p className="text-[#2a465a] font-bold text-sm">{activeSales.target}</p>
-            </div>
-            <div className="text-right">
-              <span className="text-[#64748b] text-[11px] font-semibold">Current</span>
-              <p className="text-[#3b82f6] font-bold text-sm">{activeSales.current}</p>
-            </div>
-          </div>
-        </div>
+        <GDoughnutChart
+          title="Sales Performance"
+          subtitle={`Target: ${activeSales.target} | Current: ${activeSales.current}`}
+          data={[
+            { name: "Target Reached", value: activeSales.pct },
+            { name: "Remaining", value: 100 - activeSales.pct }
+          ]}
+          colors={["#2a465a", "#cbd5e1"]}
+          size={4}
+          height={300}
+          filters={[
+            { label: "This Week", onClick: () => { setSalesPeriod("week"); setSalesMonth(""); } },
+            { label: "This Month", onClick: () => { setSalesPeriod("month"); setSalesMonth(""); } },
+            { label: "This Quarter", onClick: () => { setSalesPeriod("quarter"); setSalesMonth(""); } },
+          ]}
+        />
       </Grid>
 
       {/* ── 4. Lead Pipeline Funnel ── */}

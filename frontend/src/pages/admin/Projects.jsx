@@ -14,12 +14,12 @@ import {
 // ── Mock Data ──────────────────────────────────────────────────────────────
 
 const initialProjects = [
-  { id: "p1", name: "CRM Portal Revamp", client: "Acme Corp", team: "Engineering Alpha", leader: "Priya Mehta", priority: "High", status: "In Progress", progress: "72%", payment: "Partial", deadline: "30 Apr 2026", risk: "Medium" },
-  { id: "p2", name: "ERP Integration", client: "Global Tech", team: "Engineering Beta", leader: "Karan Bhatia", priority: "Critical", status: "In Progress", progress: "55%", payment: "Paid", deadline: "15 May 2026", risk: "High" },
-  { id: "p3", name: "Mobile App v2", client: "Nexus Labs", team: "Design Studio", leader: "Arjun Kapoor", priority: "Medium", status: "In Progress", progress: "38%", payment: "Pending", deadline: "10 Jun 2026", risk: "Low" },
-  { id: "p4", name: "Data Migration", client: "Sunrise Retail", team: "Backend Team", leader: "Neha Gupta", priority: "High", status: "Delayed", progress: "80%", payment: "Pending", deadline: "05 Mar 2026", risk: "High" },
-  { id: "p5", name: "Analytics Dashboard", client: "FinTech Ltd.", team: "Data Science", leader: "Priya Mehta", priority: "Low", status: "Completed", progress: "100%", payment: "Paid", deadline: "20 Apr 2026", risk: "None" },
-  { id: "p6", name: "API Gateway Setup", client: "CloudBase Inc.", team: "DevOps", leader: "Karan Bhatia", priority: "Medium", status: "In Progress", progress: "45%", payment: "Partial", deadline: "01 May 2026", risk: "Medium" },
+  { id: "p1", name: "CRM Portal Revamp", client: "Acme Corp", team: "Engineering Alpha", leader: "Priya Mehta", manager: "Rahul Joshi", dealAmount: "₹12,50,000", requirements: "React, Node, Postgres", priority: "High", status: "In Progress", progress: "72%", payment: "Partial", deadline: "30 Apr 2026", risk: "Medium" },
+  { id: "p2", name: "ERP Integration", client: "Global Tech", team: "Engineering Beta", leader: "Karan Bhatia", manager: "Sneha Patel", dealAmount: "₹28,00,000", requirements: "SAP, Python, AWS", priority: "Critical", status: "In Progress", progress: "55%", payment: "Paid", deadline: "15 May 2026", risk: "High" },
+  { id: "p3", name: "Mobile App v2", client: "Nexus Labs", team: "Design Studio", leader: "Arjun Kapoor", manager: "Amit Verma", dealAmount: "₹8,50,000", requirements: "Flutter, Firebase", priority: "Medium", status: "In Progress", progress: "38%", payment: "Pending", deadline: "10 Jun 2026", risk: "Low" },
+  { id: "p4", name: "Data Migration", client: "Sunrise Retail", team: "Backend Team", leader: "Neha Gupta", manager: "Rahul Joshi", dealAmount: "₹15,00,000", requirements: "SQL, ETL, Azure", priority: "High", status: "Delayed", progress: "80%", payment: "Pending", deadline: "05 Mar 2026", risk: "High" },
+  { id: "p5", name: "Analytics Dashboard", client: "FinTech Ltd.", team: "Data Science", leader: "Priya Mehta", manager: "Sneha Patel", dealAmount: "₹18,20,000", requirements: "PowerBI, Snowflake", priority: "Low", status: "Completed", progress: "100%", payment: "Paid", deadline: "20 Apr 2026", risk: "None" },
+  { id: "p6", name: "API Gateway Setup", client: "CloudBase Inc.", team: "DevOps", leader: "Karan Bhatia", manager: "Amit Verma", dealAmount: "₹9,75,000", requirements: "Kong, Kubernetes", priority: "Medium", status: "In Progress", progress: "45%", payment: "Partial", deadline: "01 May 2026", risk: "Medium" },
 ];
 
 const projectTrendData = [
@@ -64,14 +64,11 @@ const aiInsights = [
 const projectColumns = [
   { key: "name", label: "Project" },
   { key: "client", label: "Client" },
-  { key: "team", label: "Assigned Team" },
-  { key: "leader", label: "Team Leader" },
-  { key: "priority", label: "Priority" },
+  { key: "manager", label: "Project Manager" },
   { key: "status", label: "Status" },
   { key: "progress", label: "Progress" },
-  { key: "payment", label: "Payment" },
+  { key: "dealAmount", label: "Deal Amount" },
   { key: "deadline", label: "Deadline" },
-  { key: "risk", label: "Risk Level" },
 ];
 
 const kanbanStatuses = ["In Progress", "Delayed", "Completed"];
@@ -92,11 +89,10 @@ const KPIIcon = ({ children, gradient, shadow }) => (
 const HeaderBtn = ({ icon, label, variant = "ghost", onClick }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200 active:scale-95 ${
-      variant === "primary"
-        ? "text-white shadow-lg bg-[#2a465a] hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5"
-        : "text-[#2a465a] bg-white border border-slate-200 hover:bg-slate-50 hover:-translate-y-0.5"
-    }`}
+    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200 active:scale-95 ${variant === "primary"
+      ? "text-white shadow-lg bg-[#2a465a] hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5"
+      : "text-[#2a465a] bg-white border border-slate-200 hover:bg-slate-50 hover:-translate-y-0.5"
+      }`}
   >
     {icon} {label}
   </button>
@@ -179,11 +175,10 @@ export default function Projects() {
       <p className="text-[11px] text-slate-400 font-semibold mb-3">{project.client}</p>
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{project.leader}</span>
-        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${
-          project.priority === "Critical" ? "bg-rose-50 text-rose-500" :
+        <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-lg ${project.priority === "Critical" ? "bg-rose-50 text-rose-500" :
           project.priority === "High" ? "bg-amber-50 text-amber-600" :
-          "bg-slate-50 text-slate-500"
-        }`}>{project.priority}</span>
+            "bg-slate-50 text-slate-500"
+          }`}>{project.priority}</span>
       </div>
       <div className="mt-3 w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
         <div className="h-full rounded-full bg-[#2a465a] transition-all duration-500" style={{ width: project.progress }} />
@@ -196,9 +191,9 @@ export default function Projects() {
     <div className="flex flex-col gap-6">
 
       {/* ── 1. Header ── */}
-      <Heading primaryText="Projects" secondaryText="Command Center" size={12} />
+      <Heading primaryText="Project" secondaryText="Dashboard" size={12} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 -mt-2">
-        <p className="text-sm font-semibold text-slate-400">Monitor progress, teams, risks & deliveries across all active projects.</p>
+        <div className="hidden sm:block"></div>
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex bg-white rounded-xl border border-slate-100 p-1 shadow-sm">
             <button onClick={() => setViewMode("table")}
@@ -251,42 +246,11 @@ export default function Projects() {
           ]} size={4} height={280} />
       </DashGrid>
 
-      {/* ── 5. Project Lifecycle Timeline ── */}
-      <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-3 mb-6">
-          <KPIIcon gradient="linear-gradient(135deg, #2a465a, #3b6b8a)" shadow="0 4px 12px rgba(42,70,90,0.3)">
-            <Layers size={18} />
-          </KPIIcon>
-          <div>
-            <h3 className="text-sm font-black uppercase tracking-widest text-[#2a465a]">Project Lifecycle</h3>
-            <p className="text-[10px] font-semibold text-slate-400 mt-0.5">Current phase progress across active projects</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3 overflow-x-auto pb-2">
-          {lifecycleStages.map((s, i) => (
-            <div key={s.stage} className="flex items-center gap-3 flex-shrink-0">
-              <div className="flex flex-col items-center gap-2.5 min-w-[140px] p-5 rounded-2xl border border-slate-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1" style={{ background: `${s.color}06` }}>
-                <KPIIcon gradient={`linear-gradient(135deg, ${s.color}, ${s.color}cc)`} shadow={`0 4px 14px ${s.color}40`}>
-                  <span className="text-xs font-black">{s.pct}%</span>
-                </KPIIcon>
-                <span className="text-xs font-bold text-[#2a465a]">{s.stage}</span>
-                <span className="text-[10px] font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{s.team}</span>
-              </div>
-              {i < lifecycleStages.length - 1 && (
-                <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
-                  <div className="w-6 h-[2px] rounded-full" style={{ background: `${s.color}40` }} />
-                  <ArrowRight size={14} style={{ color: `${s.color}60` }} />
-                  <div className="w-6 h-[2px] rounded-full" style={{ background: `${lifecycleStages[i+1].color}40` }} />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
+
 
       {/* ── 6. Table / Kanban + Activity Feed ── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
-        <div className="lg:col-span-9">
+        <div className="lg:col-span-12">
           {viewMode === "table" ? (
             <DataTable title="Projects Directory" columns={projectColumns} rows={projects}
               size={12} pageSize={10} searchable date exportable exportFileName="projects-report"
@@ -315,33 +279,7 @@ export default function Projects() {
           )}
         </div>
 
-        {/* Activity Feed */}
-        <div className="lg:col-span-3">
-          <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm h-full flex flex-col">
-            <div className="flex items-center gap-3 mb-4">
-              <KPIIcon gradient="linear-gradient(135deg, #f59e0b, #fbbf24)" shadow="0 4px 12px rgba(245,158,11,0.3)">
-                <Zap size={16} />
-              </KPIIcon>
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-widest text-[#2a465a]">Live Activity</h3>
-                <p className="text-[10px] font-semibold text-slate-400">Real-time updates</p>
-              </div>
-            </div>
-            <div className="space-y-2.5 flex-1 overflow-y-auto">
-              {activityFeed.map((item, i) => (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/60 hover:bg-slate-100/80 transition-all duration-200 hover:shadow-sm border border-transparent hover:border-slate-100">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 text-sm bg-white border border-slate-100 shadow-sm">
-                    {item.icon}
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-[#2a465a] leading-relaxed">{item.text}</p>
-                    <p className="text-[10px] font-bold text-slate-400 mt-1">{item.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {/* ══ PANEL MODALS ═══════════════════════════════════════════════════════ */}
@@ -361,8 +299,11 @@ export default function Projects() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: "Team", val: selectedProject.team },
-                { label: "Leader", val: selectedProject.leader },
+                { label: "Assigned Team", val: selectedProject.team },
+                { label: "Team Leader", val: selectedProject.leader },
+                { label: "Project Manager", val: selectedProject.manager },
+                { label: "Deal Amount", val: selectedProject.dealAmount },
+                { label: "Requirements", val: selectedProject.requirements },
                 { label: "Priority", val: selectedProject.priority },
                 { label: "Status", val: selectedProject.status },
                 { label: "Progress", val: selectedProject.progress },
