@@ -5,11 +5,16 @@ const path = require('path');
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'crm_uploads',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf', 'csv', 'xlsx'],
-    resource_type: 'auto', // Important for non-image files like CSV/PDF
-    tags: ['crm'],
+  params: async (req, file) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const isRaw = ['.csv', '.xlsx', '.xls', '.pdf'].includes(ext);
+    
+    return {
+      folder: 'crm',
+      resource_type: isRaw ? 'raw' : 'auto',
+      public_id: `${path.parse(file.originalname).name}-${Date.now()}`,
+      tags: ['crm'],
+    };
   },
 });
 

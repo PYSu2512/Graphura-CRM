@@ -13,7 +13,12 @@ const AppError = require('../utils/appError');
 exports.downloadTemplate = catchAsync(async (req, res) => {
   const header = 'NAME,MOBILE,EMAIL,COMPANY NAME\n';
   const sample = 'Rahul Sharma,9876543210,rahul@example.com,Google\n' +
-                 'Priya Gupta,9888777666,priya@business.in,Amazon\n';
+                 'Priya Gupta,9888777666,priya@business.in,Amazon\n' +
+                 'Amit Patel,9911223344,amit.patel@outlook.com,Reliance\n' +
+                 'Sneha Reddy,9822334455,sneha.r@gmail.com,Zomato\n' +
+                 'Vikram Singh,9733445566,vikram.s@tcs.com,TCS\n' +
+                 'Anjali Verma,9644556677,anjali.v@infosys.com,Infosys\n' +
+                 'Rohan Mehra,9555667788,rohan.m@flipkart.com,Flipkart\n';
 
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=lead_template.csv');

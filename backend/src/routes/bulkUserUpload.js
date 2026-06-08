@@ -2,6 +2,7 @@ const express = require('express');
 const router  = express.Router();
 const bulkUserUploadController = require('../controllers/bulkUserUpload.controller');
 const upload = require('../middleware/upload');
+const addToCrmCollection = require('../middleware/cloudinaryCollection');
 const { requireAdmin } = require('../middleware/auth');
 
 // GET template — public, no auth needed to download the template
@@ -12,6 +13,7 @@ router.post(
   '/upload',
   requireAdmin,
   upload.single('file'),
+  addToCrmCollection,
   bulkUserUploadController.uploadPreview,
 );
 

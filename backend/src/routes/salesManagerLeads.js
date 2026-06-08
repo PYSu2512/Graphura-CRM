@@ -5,6 +5,7 @@ const { requireUser } = require('../middleware/auth');
 const { requireSalesManager, requireLeadAssigner } = require('../middleware/leadUpload');
 const validate = require('../middleware/validate');
 const upload = require('../middleware/upload');
+const addToCrmCollection = require('../middleware/cloudinaryCollection');
 const {
   singleAssignSchema,
   bulkAssignSchema,
@@ -33,6 +34,7 @@ router.post(
   requireUser,
   requireSalesManager,
   upload.single('file'),
+  addToCrmCollection,
   bulkLeadUploadController.previewUpload
 );
 
