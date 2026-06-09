@@ -271,17 +271,16 @@ exports.updateMyTask = catchAsync(async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 exports.getStats = catchAsync(async (req, res, next) => {
   if (!requireEmployee(req, next)) return;
-  const { ProjectTask, Project } = require('../models');
+  const { ProjectTask } = require('../models');
 
   const today = new Date();
 
-  const [tasks, projectCount] = await Promise.all([
+  const [tasks, projectIds] = await Promise.all([
     ProjectTask.find({
       admin:      req.admin._id,
       assignedTo: req.user._id,
       isDeleted:  false,
-    }).select('status deadline progressPercent project').lean(),
-    // distinct project count (how many projects I'm part of)
+    }).select('status deadline progressPercent project createdAt updatedAt').lean(),
     ProjectTask.distinct('project', {
       admin:      req.admin._id,
       assignedTo: req.user._id,
@@ -290,18 +289,47 @@ exports.getStats = catchAsync(async (req, res, next) => {
   ]);
 
   const stats = {
-    totalTasks:  tasks.length,
-    activeTasks: tasks.filter((t) => ['IN_PROGRESS', 'REVIEW'].includes(t.status)).length,
-    completed:   tasks.filter((t) => t.status === 'COMPLETED').length,
-    overdue:     tasks.filter((t) => t.deadline && new Date(t.deadline) < today && !['COMPLETED', 'DELAYED'].includes(t.status)).length,
-    notStarted:  tasks.filter((t) => t.status === 'NOT_STARTED').length,
-    totalProjects: projectCount.length,
-    avgProgress: tasks.length
+    totalTasks:    tasks.length,
+    activeTasks:   tasks.filter((t) => ['IN_PROGRESS', 'REVIEW'].includes(t.status)).length,
+    completed:     tasks.filter((t) => t.status === 'COMPLETED').length,
+    overdue:       tasks.filter((t) => t.deadline && new Date(t.deadline) < today && !['COMPLETED', 'DELAYED'].includes(t.status)).length,
+    notStarted:    tasks.filter((t) => t.status === 'NOT_STARTED').length,
+    delayed:       tasks.filter((t) => t.status === 'DELAYED').length,
+    totalProjects: projectIds.length,
+    avgProgress:   tasks.length
       ? Math.round(tasks.reduce((s, t) => s + t.progressPercent, 0) / tasks.length)
       : 0,
   };
 
+  // Status mix for pie chart
+  const statusMix = [
+    { name: 'Not Started', value: stats.notStarted },
+    { name: 'In Progress', value: tasks.filter((t) => t.status === 'IN_PROGRESS').length },
+    { name: 'Review',      value: tasks.filter((t) => t.status === 'REVIEW').length },
+    { name: 'Completed',   value: stats.completed },
+    { name: 'Delayed',     value: stats.delayed },
+  ].filter((s) => s.value > 0);
+
+  // Weekly completion trend — last 8 weeks
+  const weeks = [];
+  for (let i = 7; i >= 0; i--) {
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - i * 7 - today.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    const completed = tasks.filter((t) => {
+      if (t.status !== 'COMPLETED') return false;
+      const updated = new Date(t.updatedAt);
+      return updated >= weekStart && updated < weekEnd;
+    }).length;
+
+    const label = `W${Math.ceil((weekStart.getDate()) / 7)}-${weekStart.toLocaleString('default', { month: 'short' })}`;
+    weeks.push({ name: label, completed });
+  }
+
   return res.status(200).json(
-    new ApiResponse(200, { stats }, 'Stats fetched'),
+    new ApiResponse(200, { stats, statusMix, weeklyTrend: weeks }, 'Stats fetched'),
   );
 });
