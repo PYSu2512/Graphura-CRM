@@ -21,22 +21,6 @@
 const multer  = require('multer');
 const path    = require('path');
 const cloudinary = require('../config/cloudinary');
-const path = require('path');
-
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: async (req, file) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const isRaw = ['.csv', '.xlsx', '.xls'].includes(ext);
-    
-    return {
-      folder: 'crm',
-      resource_type: isRaw ? 'raw' : 'auto',
-      public_id: `${path.parse(file.originalname).name}-${Date.now()}${isRaw ? ext : ''}`,
-      tags: ['crm'],
-    };
-  },
-});
 
 // ── Allowed extensions ────────────────────────────────────────────────────────
 const ALLOWED_EXT = new Set(['.csv', '.xlsx', '.xls', '.pdf', '.jpg', '.jpeg', '.png']);
