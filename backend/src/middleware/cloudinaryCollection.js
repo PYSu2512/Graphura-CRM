@@ -12,7 +12,7 @@ const addToCrmCollection = async (req, res, next) => {
 
   try {
     const ext = path.extname(req.file.originalname).toLowerCase();
-    const isRaw = ['.csv', '.xlsx', '.xls', '.pdf'].includes(ext);
+    const isRaw = ['.csv', '.xlsx', '.xls'].includes(ext);
     const resourceType = isRaw ? 'raw' : 'image';
 
     // Cloudinary Admin API requires resource_type for non-images

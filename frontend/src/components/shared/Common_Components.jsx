@@ -876,19 +876,21 @@ function ActionButton({ action, row, isIconOnly, actionVariantCls }) {
   const resolvedLabel = typeof action.label === "function" ? action.label(row) : action.label;
   const resolvedTooltip = typeof action.tooltip === "function" ? action.tooltip(row) : action.tooltip;
 
+  if (isHidden) return null;
+
   const showTip = () => {
-    if (isHidden || !isIconOnly || !resolvedTooltip) return;
+    if (!isIconOnly || !resolvedTooltip) return;
     const rect = btnRef.current?.getBoundingClientRect();
     if (rect) setTipPos({ top: rect.top - 8, left: rect.left + rect.width / 2 });
   };
   const hideTip = () => setTipPos(null);
 
   return (
-    <div className={`relative ${isHidden ? "invisible pointer-events-none" : ""}`}>
+    <div className="relative">
       <button
         ref={btnRef}
         type="button"
-        onClick={() => !isHidden && action.onClick(row)}
+        onClick={() => action.onClick(row)}
         onMouseEnter={showTip}
         onMouseLeave={hideTip}
         onFocus={showTip}

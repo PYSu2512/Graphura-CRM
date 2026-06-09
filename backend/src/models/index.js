@@ -1198,6 +1198,8 @@ const ProspectFormSchema = new Schema(
     paymentFailureReason: { type: String, default: null },
     paymentNote: { type: String, default: null },
 
+    payments: [{ type: Schema.Types.ObjectId, ref: 'Payment' }],
+
     // ── Razorpay fields ──
     razorpayLinkToken: { type: String, default: null },
     razorpayLinkUrl: { type: String, default: null },
@@ -1465,7 +1467,8 @@ const PaymentSchema = new Schema({
   razorpaySignature: { type: String, default: null },
 
   // Payment link metadata
-  paymentProvider: { type: String, enum: ['RAZORPAY', 'PAYTM', 'OTHER'], default: 'RAZORPAY' },
+  paymentProvider: { type: String, enum: ['RAZORPAY', 'PAYTM', 'OFFLINE', 'OTHER'], default: 'RAZORPAY' },
+
   paymentLinkId: { type: String, default: null },
   paymentLinkUrl: { type: String, default: null },
   paymentLinkStatus: { type: String, enum: ['PENDING','SENT','EXPIRED','FAILED'], default: 'PENDING' },

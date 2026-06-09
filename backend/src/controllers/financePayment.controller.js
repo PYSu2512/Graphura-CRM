@@ -37,7 +37,7 @@ const mapPaymentForFrontend = (payment, prospect) => {
     email: client.email || '',
     amount: payment.amount || 0,
     type: payment.paymentType === 'PARTIAL' ? 'Partial' : 'Full',
-    method: payment.paymentProvider || 'Razorpay',
+    method: payment.paymentProvider === 'OFFLINE' ? 'Global Payment' : (payment.paymentProvider || 'Razorpay'),
     status: toStatusLabel(payment.status),
     date: payment.sentAt || payment.createdAt,
     notes: payment.failureReason || '',
@@ -324,6 +324,150 @@ exports.markFailed = catchAsync(async (req, res, next) => {
   await prospect.save();
 
   res.status(200).json(new ApiResponse(200, { payment: mapPaymentForFrontend(payment.toObject(), prospect) }, 'Payment marked failed'));
+});
+
+/**
+ * GET /api/finance/payments/search-prospect
+ * Search for prospects by client email (tenant-scoped)
+ */
+exports.searchProspectByEmail = catchAsync(async (req, res, next) => {
+  if (!requireFinanceRole(req, next)) return;
+  const { ProspectForm, Payment, Client } = require('../models');
+  const { email } = req.query;
+
+  if (!email) return next(new AppError('Email is required', 400));
+
+  // Find ALL clients with this email (might be multiple entities)
+  const clients = await Client.find({ 
+    admin: req.admin._id, 
+    email: email.toLowerCase().trim() 
+  }).lean();
+
+  if (!clients || clients.length === 0) {
+    return res.status(200).json(new ApiResponse(200, { found: false }, 'No client found with this email'));
+  }
+
+  const clientIds = clients.map(c => c._id);
+  const clientMap = {};
+  clients.forEach(c => { clientMap[String(c._id)] = c; });
+
+  // Find all prospects for all these clients
+  const prospects = await ProspectForm.find({ 
+    admin: req.admin._id, 
+    client: { $in: clientIds } 
+  })
+  .populate('filledBy', 'name email')
+  .sort({ createdAt: -1 });
+
+  if (!prospects || prospects.length === 0) {
+    return res.status(200).json(new ApiResponse(200, { found: false }, 'No prospects found for this email'));
+  }
+
+  // Map and filter out prospects with zero remaining balance
+  const eligibleProspects = await Promise.all(prospects.map(async (p) => {
+    const payments = await Payment.find({ prospectForm: p._id, status: 'SUCCESS' }).lean();
+    const totalPaid = payments.reduce((sum, pay) => sum + (pay.amount || 0), 0);
+    const totalAmount = p.finalAmount || p.totalAmount || 0;
+    const remainingAmount = Math.max(0, totalAmount - totalPaid);
+
+    if (remainingAmount <= 0) return null;
+
+    const client = clientMap[String(p.client)];
+
+    return {
+      prospectId: String(p._id),
+      name: client?.name || p.contactPerson || '',
+      email: client?.email || '',
+      mobile: client?.mobile || '',
+      service: (p.finalServices || p.suggestedServices || []).map(s => s.name).filter(Boolean).join(', ') || p.requirement || 'General Service',
+      totalAmount,
+      paidAmount: totalPaid,
+      remainingAmount,
+      date: p.createdAt
+    };
+  }));
+
+  const filtered = eligibleProspects.filter(Boolean);
+
+  if (filtered.length === 0) {
+    return res.status(200).json(new ApiResponse(200, { found: false, allPaid: true }, 'All payments for this client/email are already completed'));
+  }
+
+  res.status(200).json(new ApiResponse(200, { found: true, prospects: filtered }, 'Prospects found'));
+});
+
+/**
+ * POST /api/finance/payments/offline-payment
+ * Process a cash/offline payment for a prospect
+ */
+exports.processOfflinePayment = catchAsync(async (req, res, next) => {
+  if (!requireFinanceRole(req, next)) return;
+  const { ProspectForm, Payment } = require('../models');
+  const { prospectId, amount, paymentType, note } = req.body;
+
+  if (!prospectId || !amount) {
+    return next(new AppError('Prospect ID and amount are required', 400));
+  }
+
+  const prospect = await ProspectForm.findOne({ _id: prospectId, admin: req.admin._id });
+  if (!prospect) return next(new AppError('Prospect not found', 404));
+
+  const payAmount = Number(amount);
+  const isFull = String(paymentType).toUpperCase() === 'FULL';
+
+  // 1. Create Payment Record
+  const payment = await Payment.create({
+    admin: req.admin._id,
+    prospectForm: prospect._id,
+    client: prospect.client || undefined,
+    amount: payAmount,
+    paymentType: isFull ? 'FULL' : 'PARTIAL',
+    status: 'SUCCESS',
+    paymentProvider: 'OFFLINE',
+    paidAt: new Date(),
+    verifiedBy: req.user._id,
+    notes: note || 'Global Payment (Cash/Offline)',
+    signatureVerified: true,
+  });
+
+  // 2. Update Prospect Form
+  prospect.paymentStatus = 'SUCCESS';
+  prospect.paymentVerifiedAt = new Date();
+  prospect.paymentMethod = 'GLOBAL_PAYMENT';
+  prospect.updatedBy = req.user._id;
+  prospect.payments = prospect.payments || [];
+  prospect.payments.push(payment._id);
+  await prospect.save();
+
+  // 3. Trigger Work Order and Invoice (Async)
+  const { autoCreateWorkOrder } = require('./workOrder.controller');
+  const { autoCreateInvoice } = require('./invoice.controller');
+
+  // We want to ensure these are created
+  try {
+    await autoCreateWorkOrder({
+      adminId: req.admin._id,
+      paymentId: String(payment._id),
+      prospectId: String(prospect._id),
+      createdBy: req.user._id,
+    });
+    
+    await autoCreateInvoice({
+      adminId: req.admin._id,
+      paymentId: String(payment._id),
+      prospectId: String(prospect._id),
+    });
+  } catch (err) {
+    console.error('Offline Payment: Auto-creation failed', err);
+    // We don't fail the whole request because the payment IS recorded
+  }
+
+  res.status(200).json(new ApiResponse(200, {
+    success: true,
+    paymentId: String(payment._id),
+    amount: payAmount,
+    txnId: `OFFLINE-${Date.now()}`
+  }, 'Offline payment processed successfully'));
 });
 
 /**

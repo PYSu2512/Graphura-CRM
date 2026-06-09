@@ -5,6 +5,8 @@ const { requireUser } = require('../middleware/auth');
 
 // Base: /api/finance/payments
 router.get('/', requireUser, controller.listPayments);
+router.get('/search-prospect', requireUser, controller.searchProspectByEmail);
+router.post('/offline-payment', requireUser, controller.processOfflinePayment);
 router.post('/:prospectId/send-razorpay-link', requireUser, controller.sendRazorpayLink);
 router.get('/:prospectId/fetch-razorpay-link', requireUser, controller.fetchExistingRazorpayLink);
 router.post('/:prospectId/recreate-link', requireUser, controller.recreatePaymentLink);

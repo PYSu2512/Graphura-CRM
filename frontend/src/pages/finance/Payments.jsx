@@ -198,8 +198,8 @@ export default function Payments() {
         rows={payments}
         pageSize={10}
         actions={[
-          { icon: <Link2 size={15}/>,        label: paymentLinkActionLabel, tooltip: paymentLinkActionTooltip, variant: "primary", onClick: sendRazorpayLink },
-          { icon: <RefreshCw size={15}/>,    tooltip: "Recreate Link (fix stale ngrok URL)", variant: "ghost", onClick: recreateLink },
+          { icon: <Link2 size={15}/>,        label: paymentLinkActionLabel, tooltip: paymentLinkActionTooltip, variant: "primary", onClick: sendRazorpayLink, show: (row) => row.status !== "Successful" },
+          { icon: <RefreshCw size={15}/>,    tooltip: "Recreate Link (fix stale ngrok URL)", variant: "ghost", onClick: recreateLink, show: (row) => row.status !== "Successful" },
           { icon: <Eye size={15}/>,        tooltip: "View Details",  variant: "ghost",   onClick: openView   },
           { icon: <ShieldCheck size={15}/>, tooltip: "Verify / Update", variant: "success", onClick: openVerify },
           { icon: <Ban size={15}/>,         tooltip: "Mark Failed",   variant: "danger",  onClick: markFailed },
