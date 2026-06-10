@@ -363,8 +363,15 @@ const sendProspectQuotationEmail = async (payload) => {
       }
 
       if (payload.pdfPath.startsWith('http')) {
-        emailPayload.attachment = [{ url: payload.pdfPath, name: fileName }];
-        logger.info(`Sending email with direct URL attachment: ${fileName}`);
+        try {
+          const pdfResponse = await axios.get(payload.pdfPath, { responseType: 'arraybuffer', timeout: 10000 });
+          const b64 = Buffer.from(pdfResponse.data).toString('base64');
+          emailPayload.attachment = [{ content: b64, name: fileName }];
+          logger.info(`Sending email with downloaded base64 attachment: ${fileName}`);
+        } catch (downloadErr) {
+          logger.error(`Failed to download attachment PDF from URL: ${payload.pdfPath}`, downloadErr.message);
+          emailPayload.attachment = [{ url: payload.pdfPath, name: fileName }];
+        }
       } else if (fs.existsSync(payload.pdfPath)) {
         const b64 = fs.readFileSync(payload.pdfPath).toString('base64');
         emailPayload.attachment = [{ content: b64, name: fileName }];
@@ -520,7 +527,7 @@ const sendWorkOrderEmail = async (payload) => {
 
     const {
       email, clientName, companyName, woNumber, service,
-      requirements = [], terms, deliveryDate,
+      requirements = [], terms, termsPdfUrl, deliveryDate,
       totalCost, discountAmt, netPayable, paymentStatus,
       senderName, senderEmail,
     } = payload;
@@ -578,6 +585,14 @@ const sendWorkOrderEmail = async (payload) => {
     </div>
   </div>
   ${terms ? `<div style="padding:20px 32px 0;"><div style="background:#eff6ff;border-left:4px solid #3b82f6;border-radius:8px;padding:12px 16px;"><p style="margin:0;font-size:12px;color:#1e40af;"><strong>Terms & Conditions:</strong></p><p style="margin:6px 0 0;font-size:12px;color:#1e40af;white-space:pre-line;">${terms}</p></div></div>` : ''}
+  
+  ${termsPdfUrl ? `
+  <div style="padding:20px 32px 0; text-align: center;">
+    <a href="${termsPdfUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 10px; display: inline-block; font-size: 14px; font-weight: bold;">
+      View Detailed Terms & Conditions (PDF)
+    </a>
+  </div>` : ''}
+
   <div style="padding:24px 32px;margin-top:24px;border-top:1px solid #e2e8f0;">
     <p style="margin:0;font-size:12px;color:#64748b;">Please review this work order and revert with your signed copy or any queries.</p>
     <p style="margin:8px 0 0;font-size:11px;color:#94a3b8;text-align:center;">— ${senderName || 'Graphura CRM'}</p>
@@ -585,14 +600,33 @@ const sendWorkOrderEmail = async (payload) => {
 </div>
 </body></html>`;
 
+    const emailPayload = {
+      sender: getSender(),
+      to: [{ email, name: clientName || 'Client' }],
+      subject: `Work Order ${woNumber} from ${senderName || 'Graphura CRM'}`,
+      htmlContent,
+    };
+
+    if (termsPdfUrl) {
+      let fileName = `Terms_Conditions_${woNumber}.pdf`;
+      if (termsPdfUrl.startsWith('http')) {
+        try {
+          const pdfResponse = await axios.get(termsPdfUrl, { responseType: 'arraybuffer', timeout: 10000 });
+          const b64 = Buffer.from(pdfResponse.data).toString('base64');
+          emailPayload.attachment = [{ content: b64, name: fileName }];
+          logger.info(`Sending work order email with downloaded base64 attachment: ${fileName}`);
+        } catch (downloadErr) {
+          logger.error(`Failed to download work order PDF from URL: ${termsPdfUrl}`, downloadErr.message);
+          emailPayload.attachment = [{ url: termsPdfUrl, name: fileName }];
+        }
+      } else {
+        emailPayload.attachment = [{ url: termsPdfUrl, name: fileName }];
+      }
+    }
+
     const response = await axios.post(
       'https://api.brevo.com/v3/smtp/email',
-      {
-        sender: getSender(),
-        to: [{ email, name: clientName || 'Client' }],
-        subject: `Work Order ${woNumber} from ${senderName || 'Graphura CRM'}`,
-        htmlContent,
-      },
+      emailPayload,
       {
         headers: { 'api-key': process.env.BREVO_API_KEY.trim(), 'Content-Type': 'application/json' },
         timeout: 15000,

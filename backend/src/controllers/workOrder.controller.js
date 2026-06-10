@@ -73,6 +73,7 @@ function mapWo(wo) {
     approvalComment: wo.approvalComment || '',
     sentToEmail: wo.sentToEmail || null,
     sentAt: wo.sentAt || null,
+    termsPdfUrl: wo.termsPdfUrl || null,
     sentToManagement: wo.sentToManagement || false,
     sentToManagementAt: wo.sentToManagementAt || null,
     generatedDate: wo.createdAt,
@@ -268,6 +269,7 @@ exports.updateWorkOrder = catchAsync(async (req, res, next) => {
     signedStatus, signedByName, totalCost,
   } = req.body;
 
+  // FormData sends everything as strings, so we parse where needed
   if (clientName !== undefined) wo.clientName = clientName;
   if (clientEmail !== undefined) wo.clientEmail = clientEmail;
   if (clientMobile !== undefined) wo.clientMobile = clientMobile;
@@ -277,13 +279,26 @@ exports.updateWorkOrder = catchAsync(async (req, res, next) => {
   if (terms !== undefined) wo.terms = terms;
   if (deliveryDate !== undefined) wo.deliveryDate = deliveryDate ? new Date(deliveryDate) : null;
   if (paymentStatus !== undefined) wo.paymentStatus = paymentStatus;
+  
   if (advanceAmount !== undefined) wo.advanceAmount = Number(advanceAmount) || 0;
-  if (advancePayments !== undefined) wo.advancePayments = advancePayments;
+  
+  if (advancePayments !== undefined) {
+    try {
+      wo.advancePayments = typeof advancePayments === 'string' ? JSON.parse(advancePayments) : advancePayments;
+    } catch (e) {
+      logger.warn('Failed to parse advancePayments', { error: e.message });
+    }
+  }
+
+  // Handle Terms PDF upload from Cloudinary middleware
+  if (req.file && req.file.cloudinaryUrl) {
+    wo.termsPdfUrl = req.file.cloudinaryUrl;
+  }
 
   if (signedStatus !== undefined) {
     wo.signedStatus = signedStatus;
-    wo.isSigned = signedStatus === 'Signed';
-    if (signedStatus === 'Signed' && !wo.signedAt) wo.signedAt = new Date();
+    wo.isSigned = String(signedStatus) === 'Signed';
+    if (wo.isSigned && !wo.signedAt) wo.signedAt = new Date();
     if (signedByName !== undefined) wo.signedByName = signedByName;
   }
 
@@ -291,16 +306,25 @@ exports.updateWorkOrder = catchAsync(async (req, res, next) => {
   const dm = discountMode !== undefined ? discountMode : wo.discountMode;
   const dv = discountValue !== undefined ? discountValue : wo.discountValue;
 
-  if (requirements !== undefined && requirements.length > 0) {
-    wo.requirements = requirements;
-    const { totalCost: tc, discountAmt, netPayable } = calcFinancials(requirements, dm, dv);
+  let parsedReqs = requirements;
+  if (typeof requirements === 'string') {
+    try {
+      parsedReqs = JSON.parse(requirements);
+    } catch (e) {
+      parsedReqs = [];
+    }
+  }
+
+  if (parsedReqs !== undefined && Array.isArray(parsedReqs) && parsedReqs.length > 0) {
+    wo.requirements = parsedReqs;
+    const { totalCost: tc, discountAmt, netPayable } = calcFinancials(parsedReqs, dm, dv);
     wo.totalCost = tc;
     wo.discountAmt = discountAmt;
     wo.netPayable = netPayable;
   } 
   else if (totalCost !== undefined || (wo.requirements || []).length === 0) {
     if (totalCost !== undefined) wo.totalCost = Number(totalCost) || 0;
-    if (requirements !== undefined) wo.requirements = requirements;
+    if (parsedReqs !== undefined) wo.requirements = Array.isArray(parsedReqs) ? parsedReqs : [];
 
     let da = 0;
     const val = parseFloat(dv) || 0;
@@ -399,6 +423,7 @@ exports.sendWorkOrderEmail = catchAsync(async (req, res, next) => {
       service: wo.service || '',
       requirements: wo.requirements || [],
       terms: wo.terms || '',
+      termsPdfUrl: wo.termsPdfUrl || null,
       deliveryDate: wo.deliveryDate,
       totalCost: wo.totalCost,
       discountAmt: wo.discountAmt,

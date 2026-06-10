@@ -1630,6 +1630,7 @@ const WorkOrderSchema = new Schema(
     // Email tracking
     isGenerated: { type: Boolean, default: false },
     pdfUrl: { type: String, default: null },
+    termsPdfUrl: { type: String, default: null },
     sentToEmail: { type: String, default: null },
     sentAt: { type: Date, default: null },
 

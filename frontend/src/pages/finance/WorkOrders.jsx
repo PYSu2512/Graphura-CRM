@@ -7,7 +7,7 @@ import {
 } from "../../components/shared/Common_Components";
 import {
   FileText, CheckCircle, PenLine, Clock, ThumbsUp,
-  Eye, Trash2, MailCheck, ClipboardCheck, Plus, Loader2, IndianRupee, RefreshCw,
+  Eye, MailCheck, ClipboardCheck, Plus, Loader2, IndianRupee, RefreshCw,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import apiClient from "../../services/apiClient";
@@ -39,6 +39,7 @@ export default function WorkOrders() {
   const [editForm, setEditForm] = useState({});
   const [approveComment, setApproveComment] = useState("");
   const [sendEmail, setSendEmail] = useState("");
+  const [termsPdf, setTermsPdf] = useState(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
 
@@ -97,7 +98,9 @@ export default function WorkOrders() {
       paymentStatus: row.paymentStatus || "Unpaid",
       signedStatus: row.signedStatus || "Unsigned",
       signedByName: row.signedByName || "",
+      termsPdfUrl: row.termsPdfUrl || null,
     });
+    setTermsPdf(null);
     openModal("wo-edit");
   };
 
@@ -105,21 +108,29 @@ export default function WorkOrders() {
     if (!selected) return;
     setActionLoading("edit");
     try {
-      await apiClient.put(`/finance/work-orders/${selected.id}`, {
-        clientName: editForm.clientName,
-        clientEmail: editForm.clientEmail,
-        clientMobile: editForm.clientMobile,
-        service: editForm.service,
-        totalCost: Number(editForm.totalCost) || 0,
-        requirements: [],
-        terms: editForm.terms,
-        deliveryDate: editForm.deliveryDate || null,
-        discountMode: "None",
-        discountValue: 0,
-        paymentStatus: editForm.paymentStatus,
-        signedStatus: editForm.signedStatus,
-        signedByName: editForm.signedByName,
+      const formData = new FormData();
+      formData.append("clientName", editForm.clientName);
+      formData.append("clientEmail", editForm.clientEmail);
+      formData.append("clientMobile", editForm.clientMobile);
+      formData.append("service", editForm.service);
+      formData.append("totalCost", Number(editForm.totalCost) || 0);
+      formData.append("requirements", JSON.stringify([]));
+      formData.append("terms", editForm.terms);
+      formData.append("deliveryDate", editForm.deliveryDate || "");
+      formData.append("discountMode", "None");
+      formData.append("discountValue", 0);
+      formData.append("paymentStatus", editForm.paymentStatus);
+      formData.append("signedStatus", editForm.signedStatus);
+      formData.append("signedByName", editForm.signedByName);
+      
+      if (termsPdf) {
+        formData.append("termsPdf", termsPdf);
+      }
+
+      await apiClient.put(`/finance/work-orders/${selected.id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
+
       toast.success("Work order updated");
       closeModal("wo-edit");
       await load();
@@ -189,6 +200,7 @@ export default function WorkOrders() {
     { key: "generatedDate", label: "Generated", render: (v) => fmtDate(v) },
     { key: "signedStatus", label: "Signed", render: (v) => signBadge(v) },
     { key: "approvalStatus", label: "Approval", render: (v) => approvalBadge(v) },
+    { key: "termsPdfUrl", label: "Terms PDF", render: (v) => v ? <a href={v} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-blue-600 hover:text-blue-800 transition-colors"><FileText size={14} /> View</a> : "—" },
   ];
 
   return (
@@ -236,7 +248,6 @@ export default function WorkOrders() {
             { icon: <PenLine size={15} />, tooltip: "Edit", variant: "ghost", onClick: openEdit },
             { icon: <MailCheck size={15} />, tooltip: "Send Email", variant: "ghost", onClick: openSendEmail },
             { icon: <ClipboardCheck size={15} />, tooltip: "Approve / Reject", variant: "primary", onClick: openApprove },
-            { icon: <Trash2 size={15} />, tooltip: "Delete", variant: "danger", onClick: handleDelete },
           ]}
         />
       )}
@@ -282,6 +293,7 @@ export default function WorkOrders() {
               <ModalData label="Approved At" value={fmtDate(selected.approvedAt)} />
               <ModalData label="Comment" value={selected.approvalComment || "—"} />
               <ModalData label="Sent to Management" value={selected.sentToManagement ? `Yes — ${fmtDate(selected.sentToManagementAt)}` : "No"} />
+              <ModalData label="Terms PDF" value={selected.termsPdfUrl ? <a href={selected.termsPdfUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">View Attached Terms</a> : "No PDF attached"} />
             </ModalGrid>
 
             {selected.terms && (
@@ -324,6 +336,17 @@ export default function WorkOrders() {
             </div>
 
             <DataField label="Terms & Conditions" id="wo-terms" type="textarea" value={editForm.terms || ""} onChange={(e) => ef("terms", e.target.value)} size={12} />
+
+            <div className="flex flex-col gap-1 px-1">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Upload Terms & Conditions (PDF)</label>
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={(e) => setTermsPdf(e.target.files[0])}
+                className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+              {editForm.termsPdfUrl && <p className="text-[10px] text-emerald-600 font-bold mt-1">Current PDF: <a href={editForm.termsPdfUrl} target="_blank" rel="noreferrer" className="underline">View PDF</a></p>}
+            </div>
 
             <div className="flex gap-3 justify-end pt-2">
               <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("wo-edit")} />
