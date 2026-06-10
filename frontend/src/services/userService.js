@@ -69,4 +69,8 @@ export const userService = {
     const response = await apiClient.patch('/users/update-bank-details', bankData);
     return response.data;
   },
+  updateProfile: async (profileData) => {
+    const response = await apiClient.patch('/users/me', profileData);
+    return response.data;
+  },
 };

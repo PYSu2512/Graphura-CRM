@@ -419,8 +419,13 @@ export default function Clients() {
       label: "Attached PDF",
       render: (v) => {
         if (!v) return <span className="text-slate-300">—</span>;
-        const filename = v.split(/[\\/]/).pop();
-        const url = `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${filename}`;
+        
+        let url = v;
+        if (!v.startsWith('http')) {
+          const filename = v.split(/[\\/]/).pop();
+          url = `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${filename}`;
+        }
+
         return (
           <a
             href={url}
@@ -518,6 +523,7 @@ export default function Clients() {
               tooltip: "Update status",
               variant: "primary",
               onClick: openAction,
+              show: (row) => row.clientEmailStatus !== "SENT",
             },
           ]}
         />
@@ -569,7 +575,9 @@ export default function Clients() {
                     </p>
                   </div>
                   <a
-                    href={`${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${selected.termsAndConditionsPdf.split(/[\\/]/).pop()}`}
+                    href={selected.termsAndConditionsPdf.startsWith('http') 
+                      ? selected.termsAndConditionsPdf 
+                      : `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000'}/uploads/${selected.termsAndConditionsPdf.split(/[\\/]/).pop()}`}
                     target="_blank"
                     rel="noreferrer"
                     className="px-4 py-2 rounded-xl bg-[#2a465a] text-white text-xs font-bold hover:bg-[#1e3a52] transition"

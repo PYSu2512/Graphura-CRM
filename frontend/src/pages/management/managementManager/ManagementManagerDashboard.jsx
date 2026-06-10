@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Grid,
   Heading,
@@ -22,20 +22,12 @@ import {
   AlertTriangle,
   Percent,
   Link2,
-  Eye,
+  Loader2,
 } from "lucide-react";
-import {
-  currentMM,
-  dashboardKPIs,
-  projectStatusFunnel,
-  monthlyDelivery,
-  tlLoad,
-  recentProjects,
-  projects,
-  teamLeaders,
-} from "./managementManagerStore";
+import apiClient from "../../../services/apiClient.js";
+import toast from "react-hot-toast";
 
-// 6 KPI icons in the same order as dashboardKPIs in the store
+// KPI icon order matches the kpis array below
 const KPI_ICONS = [
   <FolderOpen size={20} />,
   <Activity size={20} />,
@@ -45,25 +37,82 @@ const KPI_ICONS = [
   <Link2 size={20} />,
 ];
 
+const KPI_ACCENTS = ["#3b82f6", "#14b8a6", "#22c55e", "#f43f5e", "#8b5cf6", "#f59e0b"];
+
 const RECENT_COLS = [
-  { key: "id",             label: "ID" },
+  { key: "projectNumber", label: "ID" },
   { key: "name",           label: "Project" },
   { key: "clientName",     label: "Client" },
   { key: "assignedTLName", label: "Team Leader" },
   { key: "deadline",       label: "Deadline" },
-  { key: "progress",       label: "Progress" },
-  { key: "priority",       label: "Priority" },
-  { key: "status",         label: "Status" },
+  {
+    key: "progressPercent",
+    label: "Progress",
+    render: (v) => (
+      <div className="flex items-center gap-2 min-w-[80px]">
+        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-full bg-[#2a465a] rounded-full" style={{ width: `${v || 0}%` }} />
+        </div>
+        <span className="text-xs font-bold text-slate-600 shrink-0">{v || 0}%</span>
+      </div>
+    ),
+  },
+  { key: "priority", label: "Priority" },
+  { key: "status",   label: "Status" },
 ];
 
+const BLANK_DASHBOARD = {
+  kpis:              { totalProjects: 0, activeProjects: 0, completedThisMonth: 0, delayed: 0, onTimeDeliveryPct: 0, pendingHandoverLink: 0 },
+  statusFunnel:      [],
+  monthlyThroughput: [],
+  tlLoad:            [],
+  recentProjects:    [],
+  totalTLs:          0,
+};
+
 export default function ManagementManagerDashboard() {
+  const [data,            setData]            = useState(BLANK_DASHBOARD);
+  const [loading,         setLoading]         = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
 
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get("/management/dashboard");
+      setData(res?.data?.data ?? BLANK_DASHBOARD);
+    } catch (err) {
+      toast.error(err?.message || "Failed to load dashboard");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
+
+  const { kpis, statusFunnel, monthlyThroughput, tlLoad, recentProjects, totalTLs } = data;
+
+  const kpiCards = [
+    { title: "Total Projects",         value: String(kpis.totalProjects         ?? 0) },
+    { title: "Active Projects",        value: String(kpis.activeProjects         ?? 0) },
+    { title: "Completed (This Month)", value: String(kpis.completedThisMonth    ?? 0) },
+    { title: "Delayed",                value: String(kpis.delayed               ?? 0) },
+    { title: "On-time Delivery %",     value: `${kpis.onTimeDeliveryPct         ?? 0}%` },
+    { title: "Pending Handover Links", value: String(kpis.pendingHandoverLink   ?? 0) },
+  ];
+
   const openProjectDetails = (row) => {
-    const full = projects.find((p) => p.id === row.id);
-    setSelectedProject(full ?? row);
-    openModal("mm-project-view");
+    const full = recentProjects.find((p) => p.id === row.id) ?? row;
+    setSelectedProject(full);
+    openModal("mm-dash-project-view");
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-20 text-slate-400 text-sm">
+        <Loader2 size={20} className="animate-spin" /> Loading dashboard…
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-[1600px] mx-auto space-y-6">
@@ -71,31 +120,31 @@ export default function ManagementManagerDashboard() {
       <Grid cols={12} gap={4}>
         <Heading
           primaryText="Manager"
-          secondaryText={`${teamLeaders.length} TLs · ${projects.length} projects`}
+          secondaryText={`${totalTLs} TLs · ${kpis.totalProjects} projects`}
           size={12}
         />
       </Grid>
 
-      {/* ── 2. KPI Cards (6 metrics from spec) ────────────────────────────── */}
+      {/* ── 2. KPI Cards ──────────────────────────────────────────────────── */}
       <Grid cols={12} gap={4}>
-        {dashboardKPIs.map((k, i) => (
+        {kpiCards.map((k, i) => (
           <EnhancedDashCard
             key={k.title}
             title={k.title}
             value={k.value}
             icon={KPI_ICONS[i]}
-            accentColor={k.accent}
+            accentColor={KPI_ACCENTS[i]}
             size={2}
           />
         ))}
       </Grid>
 
-      {/* ── 3. Monthly Delivery Trend + Status Funnel ─────────────────────── */}
+      {/* ── 3. Monthly Throughput + Status Funnel ─────────────────────────── */}
       <Grid cols={12} gap={4}>
         <GAreaChart
           title="Project Throughput"
           subtitle="Projects started vs delivered, last 12 months"
-          data={monthlyDelivery}
+          data={monthlyThroughput}
           areas={[
             { key: "started",   label: "Started",   color: "#3b82f6" },
             { key: "delivered", label: "Delivered", color: "#22c55e" },
@@ -106,28 +155,30 @@ export default function ManagementManagerDashboard() {
         <GPieChart
           title="Project Status Funnel"
           subtitle="Live status breakdown"
-          data={projectStatusFunnel}
-          colors={["#94a3b8", "#0ea5e9", "#f59e0b", "#8b5cf6", "#14b8a6", "#22c55e", "#f43f5e"]}
+          data={statusFunnel.filter(s => s.value > 0)}
+          colors={["#94a3b8", "#0ea5e9", "#f59e0b", "#8b5cf6", "#14b8a6", "#22c55e", "#475569", "#f43f5e"]}
           size={4}
           height={300}
         />
       </Grid>
 
       {/* ── 4. Per-TL Load ────────────────────────────────────────────────── */}
-      <Grid cols={12} gap={4}>
-        <GBarChart
-          title="Team Leader Load"
-          subtitle="Active vs completed vs delayed projects per TL"
-          data={tlLoad}
-          bars={[
-            { key: "active",    label: "Active",    color: "#3b82f6" },
-            { key: "completed", label: "Completed", color: "#22c55e" },
-            { key: "delayed",   label: "Delayed",   color: "#f43f5e" },
-          ]}
-          size={12}
-          height={320}
-        />
-      </Grid>
+      {tlLoad.length > 0 && (
+        <Grid cols={12} gap={4}>
+          <GBarChart
+            title="Team Leader Load"
+            subtitle="Active vs completed vs delayed projects per TL"
+            data={tlLoad}
+            bars={[
+              { key: "active",    label: "Active",    color: "#3b82f6" },
+              { key: "completed", label: "Completed", color: "#22c55e" },
+              { key: "delayed",   label: "Delayed",   color: "#f43f5e" },
+            ]}
+            size={12}
+            height={320}
+          />
+        </Grid>
+      )}
 
       {/* ── 5. Recent Projects ────────────────────────────────────────────── */}
       <Grid cols={12} gap={4}>
@@ -137,7 +188,7 @@ export default function ManagementManagerDashboard() {
           rows={recentProjects}
           actions={[
             {
-              icon: <Eye size={15} />,
+              icon: <span className="text-xs">👁</span>,
               tooltip: "View Details",
               variant: "ghost",
               onClick: openProjectDetails,
@@ -149,31 +200,41 @@ export default function ManagementManagerDashboard() {
           exportable
           exportFileName="recent_projects"
           filters={[
-            { title: "Status",   type: "toggle", key: "status",   options: ["Not Started","Work Started","In Progress","Review Stage","Finalization","Completed","Delayed"] },
-            { title: "Priority", type: "toggle", key: "priority", options: ["High","Medium","Low"] },
+            {
+              title: "Status",
+              type: "toggle",
+              key: "status",
+              options: ["Not Started", "Work Started", "In Progress", "Review Stage", "Finalization", "Completed", "Delivered", "Delayed"],
+            },
+            {
+              title: "Priority",
+              type: "toggle",
+              key: "priority",
+              options: ["High", "Medium", "Low", "Urgent"],
+            },
           ]}
         />
       </Grid>
 
       {/* ── Project Detail Modal ──────────────────────────────────────────── */}
-      <Modal id="mm-project-view" title="Project Details" size="lg">
+      <Modal id="mm-dash-project-view" title="Project Details" size="lg">
         {selectedProject && (
           <div className="flex flex-col gap-4">
             <ModalProfile
               name={selectedProject.name}
               subtitle={`${selectedProject.clientName} · ${selectedProject.assignedTLName}`}
-              meta={`${selectedProject.id} · Deadline ${selectedProject.deadline}`}
+              meta={`${selectedProject.projectNumber} · Deadline ${selectedProject.deadline ?? "—"}`}
             />
             <ModalGrid title="Overview" cols={3}>
-              <ModalData label="Status"     value={selectedProject.status} />
-              <ModalData label="Priority"   value={selectedProject.priority} />
-              <ModalData label="Progress"   value={`${selectedProject.progress ?? "—"}${typeof selectedProject.progress === "number" ? "%" : ""}`} />
-              <ModalData label="Start Date" value={selectedProject.startDate ?? "—"} />
-              <ModalData label="Deadline"   value={selectedProject.deadline ?? "—"} />
-              <ModalData label="Completed On" value={selectedProject.deliveredDate ?? "—"} />
+              <ModalData label="Status"       value={selectedProject.status} />
+              <ModalData label="Priority"     value={selectedProject.priority} />
+              <ModalData label="Progress"     value={`${selectedProject.progressPercent ?? 0}%`} />
+              <ModalData label="Start Date"   value={selectedProject.startDate   ?? "—"} />
+              <ModalData label="Deadline"     value={selectedProject.deadline    ?? "—"} />
+              <ModalData label="Completed On" value={selectedProject.deliveredAt ?? "—"} />
             </ModalGrid>
             <ModalGrid title="Client" cols={2}>
-              <ModalData label="Name"   value={selectedProject.clientName ?? "—"} />
+              <ModalData label="Name"   value={selectedProject.clientName   ?? "—"} />
               <ModalData label="Mobile" value={selectedProject.clientMobile ?? "—"} />
             </ModalGrid>
             <ModalGrid title="Links" cols={1}>
@@ -181,7 +242,8 @@ export default function ManagementManagerDashboard() {
               <ModalData label="Handover Link" value={selectedProject.handoverLink ?? "— (mandatory before delivery)"} />
             </ModalGrid>
             <div className="flex justify-end pt-2">
-              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("mm-project-view")} />
+              <Button text="Close" variant="ghost" size={3}
+                onClick={() => closeModal("mm-dash-project-view")} />
             </div>
           </div>
         )}

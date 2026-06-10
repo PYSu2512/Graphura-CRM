@@ -5,7 +5,7 @@
 const express = require('express');
 const authController = require('../controllers/auth.controller');
 const validate = require('../middleware/validate');
-const { requireUser } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 const {
   sendOTPSchema,
   verifyOTPSchema,
@@ -118,9 +118,15 @@ router.post(
  */
 router.patch(
   '/change-password',
-  requireUser,
+  requireAuth,
   validate(changePasswordSchema, 'body'),
   authController.changePassword
 );
+
+/**
+ * POST /api/auth/logout
+ * Logout endpoint to invalidate token
+ */
+router.post('/logout', authController.logout);
 
 module.exports = router;

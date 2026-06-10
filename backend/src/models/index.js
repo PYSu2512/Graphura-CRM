@@ -236,6 +236,11 @@ const SuperAdminSchema = new Schema(
       lowercase: true,
       trim: true,
     },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     password: { type: String, required: true }, // bcrypt hashed — seeded in DB
     isActive: { type: Boolean, default: true },
   },
@@ -1148,7 +1153,11 @@ const ProspectFormSchema = new Schema(
         name: String,
         price: Number,
         qty: { type: Number, default: 1 },
-        discountMode: { type: String, enum: ["None", "Percentage", "Rupees"], default: "None" },
+        discountMode: {
+          type: String,
+          enum: ["None", "Percentage", "Rupees"],
+          default: "None",
+        },
         discountValue: { type: Number, default: 0 },
         discountAmount: { type: Number, default: 0 },
         netCost: { type: Number, default: 0 },
@@ -1174,7 +1183,11 @@ const ProspectFormSchema = new Schema(
     advanceAmount: { type: Number, default: 0 },
     advancePayments: [
       {
-        mode: { type: String, enum: ["Percentage", "Rupees"], default: "Rupees" },
+        mode: {
+          type: String,
+          enum: ["Percentage", "Rupees"],
+          default: "Rupees",
+        },
         value: { type: String, default: "" },
         method: { type: String, default: "UPI" },
         _id: false,
@@ -1184,19 +1197,21 @@ const ProspectFormSchema = new Schema(
     // ── Payment tracking ──
     paymentStatus: {
       type: String,
-      enum: ['PENDING', 'SUCCESS', 'FAILED'],
-      default: 'PENDING',
+      enum: ["PENDING", "SUCCESS", "FAILED"],
+      default: "PENDING",
     },
     paymentType: {
       type: String,
-      enum: ['FULL', 'PARTIAL'],
-      default: 'FULL',
+      enum: ["FULL", "PARTIAL"],
+      default: "FULL",
     },
     paymentMethod: { type: String, default: null },
     paymentVerifiedAt: { type: Date, default: null },
     paymentFailedAt: { type: Date, default: null },
     paymentFailureReason: { type: String, default: null },
     paymentNote: { type: String, default: null },
+
+    payments: [{ type: Schema.Types.ObjectId, ref: 'Payment' }],
 
     // ── Razorpay fields ──
     razorpayLinkToken: { type: String, default: null },
@@ -1207,19 +1222,19 @@ const ProspectFormSchema = new Schema(
     razorpayPaymentLinkId: { type: String, default: null },
     razorpayLinkStatus: {
       type: String,
-      enum: ['PENDING', 'SENT', 'FAILED'],
-      default: 'PENDING',
+      enum: ["PENDING", "SENT", "FAILED"],
+      default: "PENDING",
     },
     razorpayLinkSentAt: { type: Date, default: null },
 
     // Payments attached to this prospect (references Payment documents)
-    payments: [{ type: Schema.Types.ObjectId, ref: 'Payment' }],
+    payments: [{ type: Schema.Types.ObjectId, ref: "Payment" }],
 
     // ── Prospect status ──
     status: {
       type: String,
-      enum: ['OPEN', 'IN_NEGOTIATION', 'SENT_TO_FINANCE', 'WON', 'LOST'],
-      default: 'OPEN',
+      enum: ["OPEN", "IN_NEGOTIATION", "SENT_TO_FINANCE", "WON", "LOST"],
+      default: "OPEN",
     },
   },
   { timestamps: true },
@@ -1380,6 +1395,24 @@ const ProjectSchema = new Schema(
 
     // ── Progress ──
     progressPercent: { type: Number, default: 0, min: 0, max: 100 },
+
+    // ── Project number (auto-generated, e.g. PRJ-000001) ──
+    projectNumber: { type: String, default: null },
+
+    // ── Work Order link (set when project is created from a WO) ──
+    workOrder: { type: Schema.Types.ObjectId, ref: "WorkOrder", default: null },
+
+    // ── Project Updates timeline ──
+    // inline array (lightweight — full detail in ProjectUpdate model)
+    updates: [
+      {
+        date: { type: Date, default: Date.now },
+        status: { type: String, default: "" },
+        note: { type: String, default: "" },
+        isClientVisible: { type: Boolean, default: true },
+        _id: false,
+      },
+    ],
   },
   { timestamps: true },
 );
@@ -1390,6 +1423,20 @@ ProjectSchema.index({ admin: 1, client: 1 });
 ProjectSchema.index({ admin: 1, teamLeader: 1 });
 ProjectSchema.index({ admin: 1, assignedTo: 1 });
 ProjectSchema.index({ admin: 1, soldBy: 1 });
+ProjectSchema.index({ admin: 1, workOrder: 1 });
+
+// ════════════════════════════════════════════════════════════
+// MODEL 29A — PROJECT COUNTER
+// Atomic project number per admin (PRJ-000001, PRJ-000002 …)
+// ════════════════════════════════════════════════════════════
+const ProjectCounterSchema = new Schema(
+  {
+    admin:  { type: Schema.Types.ObjectId, ref: "Admin", required: true, unique: true },
+    seq:    { type: Number, default: 0 },
+    prefix: { type: String, default: "PRJ", trim: true },
+  },
+  { timestamps: true },
+);
 
 // ════════════════════════════════════════════════════════════
 // MODEL 30 — PROJECT UPDATE (Progress Tracker)
@@ -1421,40 +1468,53 @@ ProjectUpdateSchema.index({ admin: 1, project: 1, createdAt: -1 });
 // webhookVerified = backup confirmation via Razorpay webhook.
 // paidAmount on Project updated via $inc (atomic).
 // ════════════════════════════════════════════════════════════
-const PaymentSchema = new Schema({
-  admin: { type: Schema.Types.ObjectId, ref: 'Admin', required: true },
-  project: { type: Schema.Types.ObjectId, ref: 'Project', default: null },
-  prospectForm: { type: Schema.Types.ObjectId, ref: 'ProspectForm', default: null },
-  client: { type: Schema.Types.ObjectId, ref: 'Client', default: null }, // optional — prospect may not have a client yet
+const PaymentSchema = new Schema(
+  {
+    admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
+    project: { type: Schema.Types.ObjectId, ref: "Project", default: null },
+    prospectForm: {
+      type: Schema.Types.ObjectId,
+      ref: "ProspectForm",
+      default: null,
+    },
+    client: { type: Schema.Types.ObjectId, ref: "Client", default: null }, // optional — prospect may not have a client yet
 
-  // Provider fields (Razorpay)
-  razorpayOrderId: { type: String, default: null },
-  razorpayPaymentId: { type: String, default: null },
-  razorpaySignature: { type: String, default: null },
+    // Provider fields (Razorpay)
+    razorpayOrderId: { type: String, default: null },
+    razorpayPaymentId: { type: String, default: null },
+    razorpaySignature: { type: String, default: null },
 
-  // Payment link metadata
-  paymentProvider: { type: String, enum: ['RAZORPAY', 'PAYTM', 'OTHER'], default: 'RAZORPAY' },
-  paymentLinkId: { type: String, default: null },
-  paymentLinkUrl: { type: String, default: null },
-  paymentLinkStatus: { type: String, enum: ['PENDING','SENT','EXPIRED','FAILED'], default: 'PENDING' },
+    // Payment link metadata
+    paymentProvider: {
+      type: String,
+      enum: ["RAZORPAY", "PAYTM", "OTHER"],
+      default: "RAZORPAY",
+    },
+    paymentLinkId: { type: String, default: null },
+    paymentLinkUrl: { type: String, default: null },
+    paymentLinkStatus: {
+      type: String,
+      enum: ["PENDING", "SENT", "EXPIRED", "FAILED"],
+      default: "PENDING",
+    },
 
-  // Raw response from payment provider and email message id
-  rawResponse: { type: Schema.Types.Mixed, default: null },
-  emailMessageId: { type: String, default: null },
+    // Raw response from payment provider and email message id
+    rawResponse: { type: Schema.Types.Mixed, default: null },
+    emailMessageId: { type: String, default: null },
 
-  amount: { type: Number, required: true, min: 1 },
-  paymentType: { type: String, enum: ['FULL', 'PARTIAL'], required: true },
-  status: { type: String, enum: PAY_STATUS, default: 'PENDING' },
-  failureReason: { type: String, default: null },
+    amount: { type: Number, required: true, min: 1 },
+    paymentType: { type: String, enum: ["FULL", "PARTIAL"], required: true },
+    status: { type: String, enum: PAY_STATUS, default: "PENDING" },
+    failureReason: { type: String, default: null },
 
     signatureVerified: { type: Boolean, default: false },
     webhookVerified: { type: Boolean, default: false },
 
-  sentAt: { type: Date, default: null },
-  sentBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
-  paidAt: { type: Date, default: null },
-  retryCount: { type: Number, default: 0 },
-  verifiedBy: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+    sentAt: { type: Date, default: null },
+    sentBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    paidAt: { type: Date, default: null },
+    retryCount: { type: Number, default: 0 },
+    verifiedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
     isRefunded: { type: Boolean, default: false },
     refundedAt: { type: Date, default: null },
@@ -1481,7 +1541,11 @@ PaymentSchema.index({ paymentLinkId: 1 });
 const WorkOrderSchema = new Schema(
   {
     admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
-    prospectForm: { type: Schema.Types.ObjectId, ref: "ProspectForm", default: null },
+    prospectForm: {
+      type: Schema.Types.ObjectId,
+      ref: "ProspectForm",
+      default: null,
+    },
     project: { type: Schema.Types.ObjectId, ref: "Project", default: null },
     payment: { type: Schema.Types.ObjectId, ref: "Payment", default: null },
     client: { type: Schema.Types.ObjectId, ref: "Client", default: null },
@@ -1513,15 +1577,27 @@ const WorkOrderSchema = new Schema(
 
     // Financials
     totalCost: { type: Number, default: 0 },
-    discountMode: { type: String, enum: ["None", "Percentage", "Rupees", "Flat"], default: "None" },
+    discountMode: {
+      type: String,
+      enum: ["None", "Percentage", "Rupees", "Flat"],
+      default: "None",
+    },
     discountValue: { type: String, default: "" },
     discountAmt: { type: Number, default: 0 },
     netPayable: { type: Number, default: 0 },
-    paymentStatus: { type: String, enum: ["Paid", "Unpaid", "Advance"], default: "Unpaid" },
+    paymentStatus: {
+      type: String,
+      enum: ["Paid", "Unpaid", "Advance"],
+      default: "Unpaid",
+    },
     advanceAmount: { type: Number, default: 0 },
     advancePayments: [
       {
-        mode: { type: String, enum: ["Percentage", "Rupees"], default: "Rupees" },
+        mode: {
+          type: String,
+          enum: ["Percentage", "Rupees"],
+          default: "Rupees",
+        },
         value: { type: String, default: "" },
         method: { type: String, default: "UPI" },
         _id: false,
@@ -1529,13 +1605,21 @@ const WorkOrderSchema = new Schema(
     ],
 
     // Signing
-    signedStatus: { type: String, enum: ["Unsigned", "Signed"], default: "Unsigned" },
+    signedStatus: {
+      type: String,
+      enum: ["Unsigned", "Signed"],
+      default: "Unsigned",
+    },
     isSigned: { type: Boolean, default: false },
     signedAt: { type: Date, default: null },
     signedByName: { type: String, default: null },
 
     // Finance approval
-    approvalStatus: { type: String, enum: ["Pending", "Approved", "Rejected"], default: "Pending" },
+    approvalStatus: {
+      type: String,
+      enum: ["Pending", "Approved", "Rejected"],
+      default: "Pending",
+    },
     isApproved: { type: Boolean, default: false },
     approvedAt: { type: Date, default: null },
     approvalComment: { type: String, default: "" },
@@ -1564,7 +1648,12 @@ WorkOrderSchema.index({ admin: 1, sentToManagement: 1 });
 // ════════════════════════════════════════════════════════════
 const WoCounterSchema = new Schema(
   {
-    admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true, unique: true },
+    admin: {
+      type: Schema.Types.ObjectId,
+      ref: "Admin",
+      required: true,
+      unique: true,
+    },
     seq: { type: Number, default: 0 },
     prefix: { type: String, default: "WO", trim: true },
   },
@@ -1580,7 +1669,11 @@ const InvoiceSchema = new Schema(
   {
     admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
     project: { type: Schema.Types.ObjectId, ref: "Project", default: null }, // optional — prospect-based invoices have no project
-    prospectForm: { type: Schema.Types.ObjectId, ref: "ProspectForm", default: null },
+    prospectForm: {
+      type: Schema.Types.ObjectId,
+      ref: "ProspectForm",
+      default: null,
+    },
     payment: { type: Schema.Types.ObjectId, ref: "Payment", default: null },
     client: { type: Schema.Types.ObjectId, ref: "Client", default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
@@ -1715,16 +1808,16 @@ ExpenseSchema.pre("validate", async function () {
 const TicketSchema = new Schema(
   {
     admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
-    raisedBy: { 
-      type: Schema.Types.ObjectId, 
+    raisedBy: {
+      type: Schema.Types.ObjectId,
       required: true,
-      refPath: "raisedByType" 
+      refPath: "raisedByType",
     },
     raisedByType: {
       type: String,
       required: true,
       enum: ["User", "Admin"],
-      default: "User"
+      default: "User",
     },
     assignedTo: { type: Schema.Types.ObjectId, ref: "User", default: null },
     subject: { type: String, required: true, trim: true },
@@ -1738,10 +1831,23 @@ const TicketSchema = new Schema(
     refType: {
       type: String,
       enum: [
-        "CLIENT_DATA", "SALES_MANAGER", "SALES_TL", "EXECUTIVE", "SYSTEM", 
-        "PROJECT_ISSUE", "TEAM_ISSUE", "CLIENT_ESCALATION", "RESOURCE_REQUEST", 
-        "TECHNICAL_ISSUE", "OTHER", "MANAGEMENT",
-        "CRM Bug", "Lead Data Issue", "Payment Issue", "Account/Login Issue", "Report Issue"
+        "CLIENT_DATA",
+        "SALES_MANAGER",
+        "SALES_TL",
+        "EXECUTIVE",
+        "SYSTEM",
+        "PROJECT_ISSUE",
+        "TEAM_ISSUE",
+        "CLIENT_ESCALATION",
+        "RESOURCE_REQUEST",
+        "TECHNICAL_ISSUE",
+        "OTHER",
+        "MANAGEMENT",
+        "CRM Bug",
+        "Lead Data Issue",
+        "Payment Issue",
+        "Account/Login Issue",
+        "Report Issue",
       ],
       default: null,
     },
@@ -1754,7 +1860,7 @@ const TicketSchema = new Schema(
     replies: [
       {
         user: { type: Schema.Types.ObjectId, ref: "User" },
-        
+
         message: String,
         createdAt: { type: Date, default: Date.now },
         _id: false,
@@ -1997,6 +2103,48 @@ const ApiConfigSchema = new Schema(
 ApiConfigSchema.index({ admin: 1, key: 1 }, { unique: true });
 
 // ════════════════════════════════════════════════════════════
+// MODEL 43A — PROJECT TASK
+// Tasks created by MANAGEMENT_TL within a project.
+// Each task belongs to exactly one Project and is assigned
+// to one MANAGEMENT_EMPLOYEE.
+// Status lifecycle: NOT_STARTED → IN_PROGRESS → REVIEW → COMPLETED | DELAYED
+// progressPercent (0-100): TL manually sets or updated by assignee.
+// ════════════════════════════════════════════════════════════
+const TASK_STATUS = ["NOT_STARTED", "IN_PROGRESS", "REVIEW", "COMPLETED", "DELAYED"];
+const TASK_PRIORITY = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+
+const ProjectTaskSchema = new Schema(
+  {
+    admin:      { type: Schema.Types.ObjectId, ref: "Admin",   required: true },
+    project:    { type: Schema.Types.ObjectId, ref: "Project", required: true },
+    createdBy:  { type: Schema.Types.ObjectId, ref: "User",    required: true }, // MANAGEMENT_TL
+
+    title:       { type: String, required: true, trim: true },
+    description: { type: String, trim: true, default: "" },
+
+    assignedTo:  { type: Schema.Types.ObjectId, ref: "User", default: null }, // MANAGEMENT_EMPLOYEE
+    priority:    { type: String, enum: TASK_PRIORITY, default: "MEDIUM" },
+    status:      { type: String, enum: TASK_STATUS,   default: "NOT_STARTED" },
+
+    deadline:    { type: Date, default: null },
+    completedAt: { type: Date, default: null },
+
+    // Progress 0-100 (can be set by TL or updated by employee)
+    progressPercent: { type: Number, default: 0, min: 0, max: 100 },
+
+    // Status change notes
+    statusNote: { type: String, trim: true, default: "" },
+  },
+  { timestamps: true },
+);
+
+ProjectTaskSchema.plugin(softDeletePlugin);
+ProjectTaskSchema.index({ admin: 1, project: 1, isDeleted: 1 });
+ProjectTaskSchema.index({ admin: 1, assignedTo: 1, isDeleted: 1 });
+ProjectTaskSchema.index({ admin: 1, status: 1, isDeleted: 1 });
+ProjectTaskSchema.index({ project: 1, assignedTo: 1 });
+
+// ════════════════════════════════════════════════════════════
 // MODEL 43 — CLIENT PROJECT TRACKING TOKEN
 // Public-facing page. No login required.
 // Client gets unique token linked to their project.
@@ -2086,7 +2234,9 @@ module.exports = {
 
   // ── Projects ──
   Project: mongoose.model("Project", ProjectSchema),
+  ProjectCounter: mongoose.model("ProjectCounter", ProjectCounterSchema),
   ProjectUpdate: mongoose.model("ProjectUpdate", ProjectUpdateSchema),
+  ProjectTask: mongoose.model("ProjectTask", ProjectTaskSchema),
   ProjectTrackingToken: mongoose.model(
     "ProjectTrackingToken",
     ProjectTrackingTokenSchema,

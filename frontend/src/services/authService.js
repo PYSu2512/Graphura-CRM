@@ -178,3 +178,33 @@ export const logout = () => {
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('superAdmin');
 };
+
+/**
+ * API Logout — Call backend to invalidate tokens, then clear local storage
+ */
+export const apiLogout = async () => {
+  try {
+    const refreshToken = sessionStorage.getItem('refreshToken') || localStorage.getItem('refreshToken');
+    await apiClient.post('/auth/logout', { refreshToken });
+  } catch (error) {
+    console.error('Error during backend logout:', error);
+  } finally {
+    logout();
+  }
+};
+
+/**
+ * Get dynamic login route based on active session
+ */
+export const getLoginRoute = () => {
+  if (sessionStorage.getItem("superAdmin")) {
+    return "/super-admin-login";
+  }
+  if (sessionStorage.getItem("admin")) {
+    return "/admin-login";
+  }
+  if (sessionStorage.getItem("user")) {
+    return "/login";
+  }
+  return "/login";
+};

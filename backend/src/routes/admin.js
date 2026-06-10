@@ -1,10 +1,10 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const leadController = require('../controllers/lead.controller');
-const adminController = require('../controllers/admin.controller');
-const { requireAdmin } = require('../middleware/auth');
+const leadController = require("../controllers/lead.controller");
+const adminController = require("../controllers/admin.controller");
+const { requireAdmin } = require("../middleware/auth");
 
-router.get('/leads', requireAdmin, leadController.getAdminLeads);
-router.get('/profile', requireAdmin, adminController.getAdminProfile);
-
+router.get("/leads", requireAdmin, leadController.getAdminLeads);
+router.get("/profile", requireAdmin, adminController.getAdminProfile);
+router.patch("/profile", requireAdmin, adminController.updateAdminProfile);
 module.exports = router;

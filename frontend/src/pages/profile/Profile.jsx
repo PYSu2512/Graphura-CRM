@@ -67,7 +67,13 @@ import {
 
 import { ProfileSection, SecurityRow } from "./ProfileLayout";
 import { defaultProfile } from "./profileData";
-import { changePassword, logout } from "../../services/authService";
+import {
+  changePassword,
+  logout,
+  apiLogout,
+  getLoginRoute,
+} from "../../services/authService";
+import { userService } from "../../services/userService";
 
 import {
   Camera,
@@ -205,6 +211,8 @@ export default function Profile({
   isActive = true,
   bankDetails = null,
   companyInfo = null,
+  onUpdateProfile,
+  onUpdateBankDetails,
 }) {
   const initialProfile = useMemo(
     () => ({
@@ -213,7 +221,7 @@ export default function Profile({
       fullName: name !== undefined ? name : defaultProfile.fullName,
       email: email !== undefined ? email : defaultProfile.email,
       phone: phone !== undefined ? phone : defaultProfile.phone,
-      employeeId: employeeId !== undefined ? employeeId : null,
+
       clientId: clientId !== undefined ? clientId : null,
       role: role !== undefined ? role : null,
       department: department !== undefined ? department : null,
@@ -320,6 +328,9 @@ export default function Profile({
     setTimeout(() => setToast({ msg: "", variant: "success" }), 3500);
   };
 
+  const [saving, setSaving] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   // ── Generic form field setter ──────────────────────────────────────────────
   const setField = (key, value) =>
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -331,15 +342,85 @@ export default function Profile({
     }));
 
   // ── Save Changes ──────────────────────────────────────────────────────────
-  const handleSave = () => {
+  const handleSave = async () => {
     const errs = {};
     if (validatePhone(form.phone)) errs.phone = validatePhone(form.phone);
+    if (showBank) {
+      if (!form.bankDetails.accountHolderName?.trim())
+        errs.beneficiaryName = "Beneficiary name is required";
+      if (!form.bankDetails.bankName?.trim())
+        errs.bankName = "Bank name is required";
+      if (!form.bankDetails.accountNumber?.trim())
+        errs.accountNumber = "Account number is required";
+      if (!form.bankDetails.ifscCode?.trim())
+        errs.ifscCode = "IFSC code is required";
+    }
     setFieldErrors(errs);
     if (Object.keys(errs).length) return;
 
-    setSaved({ ...form, avatarUrl: pendingAvatar });
-    setAvatarPreview(pendingAvatar);
-    showToast("✅ Profile saved successfully!");
+    setSaving(true);
+    try {
+      const promises = [];
+      const profileFieldsChanged =
+        form.fullName !== saved.fullName ||
+        form.phone !== saved.phone ||
+        form.email !== saved.email;
+
+      if (profileFieldsChanged) {
+        console.log("Profile fields changed:", {
+          name: form.fullName,
+          phone: form.phone,
+          email: form.email,
+        });
+        const updateFn = onUpdateProfile || userService.updateProfile;
+        promises.push(
+          updateFn({
+            name: form.fullName,
+            phone: form.phone,
+            email: form.email,
+          }),
+        );
+      }
+
+      const bankFieldsChanged =
+        showBank &&
+        (form.bankDetails.accountHolderName !==
+          saved.bankDetails.accountHolderName ||
+          form.bankDetails.bankName !== saved.bankDetails.bankName ||
+          form.bankDetails.accountNumber !== saved.bankDetails.accountNumber ||
+          form.bankDetails.ifscCode !== saved.bankDetails.ifscCode ||
+          form.bankDetails.branchName !== saved.bankDetails.branchName ||
+          form.bankDetails.upiId !== saved.bankDetails.upiId);
+
+      if (bankFieldsChanged) {
+        const updateBankFn =
+          onUpdateBankDetails || userService.updateBankDetails;
+        promises.push(
+          updateBankFn({
+            beneficiaryName: form.bankDetails.accountHolderName,
+            bankName: form.bankDetails.bankName,
+            accountNumber: form.bankDetails.accountNumber,
+            ifscCode: form.bankDetails.ifscCode,
+            branch: form.bankDetails.branchName,
+            upiId: form.bankDetails.upiId,
+          }),
+        );
+      }
+
+      if (promises.length > 0) {
+        await Promise.all(promises);
+      }
+
+      setSaved({ ...form, avatarUrl: pendingAvatar });
+      setAvatarPreview(pendingAvatar);
+      showToast("✅ Profile saved successfully!");
+    } catch (error) {
+      const msg =
+        error.response?.data?.message || "Failed to save profile changes";
+      showToast(msg, "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   // ── Reset Changes ─────────────────────────────────────────────────────────
@@ -466,8 +547,9 @@ export default function Profile({
         closeModal("pw-modal");
         showToast("🔒 Password changed successfully! Please login again.");
         if (response?.data?.forceLogout || response?.forceLogout) {
+          const redirectTo = getLoginRoute();
           logout();
-          window.location.href = "/login";
+          window.location.href = redirectTo;
         }
       }, 1500);
     } catch (error) {
@@ -489,10 +571,21 @@ export default function Profile({
   };
 
   // ── Logout ────────────────────────────────────────────────────────────────
-  const handleLogout = () => {
-    closeModal("logout-modal");
-    // In a real app: dispatch logout action / redirect
-    showToast("👋 You have been logged out.", "info");
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      const redirectTo = getLoginRoute();
+      await apiLogout();
+      closeModal("logout-modal");
+      showToast("👋 You have been logged out.", "info");
+      setTimeout(() => {
+        window.location.href = redirectTo;
+      }, 500);
+    } catch (error) {
+      showToast("Error during logout", "error");
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -612,7 +705,7 @@ export default function Profile({
             <FieldError msg={fieldErrors.phone} />
           </div>
 
-          {/* Email — read-only */}
+          {/* Email */}
           <DataField
             label="Email Address"
             id="email"
@@ -620,8 +713,7 @@ export default function Profile({
             size={6}
             icon={Mail}
             value={form.email}
-            readOnly
-            disabled
+            onChange={(e) => setField("email", e.target.value)}
           />
 
           {/* Role — read-only */}
@@ -831,10 +923,11 @@ export default function Profile({
         <div className="bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4">
           <Grid cols={12} gap={3}>
             <Button
-              text="Save Changes →"
+              text={saving ? "Saving..." : "Save Changes →"}
               variant="primary"
               size={4}
               onClick={handleSave}
+              disabled={saving}
             />
             <Button
               text="Reset Changes"
@@ -1174,16 +1267,18 @@ export default function Profile({
           {/* Buttons */}
           <Grid cols={12} gap={3}>
             <Button
-              text="Logout"
+              text={isLoggingOut ? "Logging out..." : "Logout"}
               variant="danger"
               size={6}
               onClick={handleLogout}
+              disabled={isLoggingOut}
             />
             <Button
               text="Cancel"
               variant="secondary"
               size={6}
               onClick={() => closeModal("logout-modal")}
+              disabled={isLoggingOut}
             />
           </Grid>
         </div>

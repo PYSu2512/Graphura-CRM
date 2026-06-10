@@ -24,7 +24,7 @@ const ROLE_LABELS = {
   "sales-executive": { short: "SE", label: "Sales Executive" },
   finance: { short: "FN", label: "Finance" },
   "management-manager": { short: "MM", label: "Management Manager" },
-  "management-leader": { short: "ML", label: "Management Team Leader" },
+  "management-team-leader": { short: "ML", label: "Management Team Leader" },
   "management-employee": { short: "ME", label: "Management Employee" },
   client: { short: "CL", label: "Client" },
 };
@@ -49,7 +49,7 @@ function useRole() {
     "sales-executive",
     "finance",
     "management-manager",
-    "management-leader",
+    "management-team-leader",
     "management-employee",
     "client",
   ];

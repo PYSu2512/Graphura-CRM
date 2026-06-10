@@ -76,11 +76,27 @@ const updateBankDetailsSchema = Joi.object({
   upiId: Joi.string().trim().allow('', null).optional(),
 });
 
+const updateProfileSchema = Joi.object({
+  name: Joi.string().trim().optional().messages({
+    'string.empty': 'Name cannot be empty'
+  }),
+  email: Joi.string().email().lowercase().trim().optional().messages({
+    'string.email': 'Please provide a valid email address',
+    'string.empty': 'Email cannot be empty'
+  }),
+  phone: Joi.string().pattern(/^\d{10}$/).optional().messages({
+    'string.pattern.base': 'Phone must be exactly 10 digits',
+    'string.empty': 'Phone cannot be empty'
+  }),
+  address: Joi.string().trim().allow('', null).optional(),
+});
+
 module.exports = {
   createUserSchema,
   departmentLoginSchema,
   setupAccountSchema,
   setupBankDetailsSchema,
   updateBankDetailsSchema,
+  updateProfileSchema,
 };
 

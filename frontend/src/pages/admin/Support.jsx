@@ -8,7 +8,7 @@ import {
   GAreaChart, GBarChart, Button,
   PanelModal as Modal, openModal, closeModal,
 } from "../../components/shared/Common_Components";
-import { getMyTickets, resolveTicket, escalateTicket, closeTicket, createTicket, updateTicketStatus } from "../../services/ticketService";
+import { getMyRaisedTickets, getAssignedTickets, resolveTicket, escalateTicket, closeTicket, createTicket, updateTicketStatus } from "../../services/ticketService";
 
 // ── Map Backend Ticket to Admin Shape ───────────────────────────────────────
 const mapBackendTicketToAdminShape = (t) => {
@@ -73,7 +73,8 @@ const defaultForm = { user: "", role: "Sales Executive", category: "CRM Bug", is
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function Support() {
-  const [tickets, setTickets] = useState([]);
+  const [myTickets, setMyTickets] = useState([]);
+  const [teamTickets, setTeamTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [form, setForm] = useState(defaultForm);
@@ -83,9 +84,12 @@ export default function Support() {
   const fetchTickets = async () => {
     try {
       setLoading(true);
-      const res = await getMyTickets({ limit: 100 });
-      const mapped = (res.tickets || []).map(mapBackendTicketToAdminShape);
-      setTickets(mapped);
+      const [raisedData, assignedData] = await Promise.all([
+        getMyRaisedTickets({ limit: 100 }),
+        getAssignedTickets({ limit: 100 }),
+      ]);
+      setMyTickets((raisedData.tickets || []).map(mapBackendTicketToAdminShape));
+      setTeamTickets((assignedData.tickets || []).map(mapBackendTicketToAdminShape));
     } catch (err) {
       console.error("Failed to fetch tickets:", err);
     } finally {
@@ -140,11 +144,13 @@ export default function Support() {
     fetchTickets();
   }, []);
 
+  const allTickets = [...myTickets, ...teamTickets];
+
   // KPIs
-  const openCount = tickets.filter(t => t.status === "Open" || t.status === "In Progress" || t.status === "Escalated").length;
-  const highPriority = tickets.filter(t => t.priority === "High").length;
-  const resolvedCount = tickets.filter(t => t.status === "Resolved" || t.status === "Closed").length;
-  const breachedCount = tickets.filter(t => t.sla === "Breached" || t.sla === "Escalated").length;
+  const openCount = allTickets.filter(t => t.status === "Open" || t.status === "In Progress" || t.status === "Escalated").length;
+  const highPriority = allTickets.filter(t => t.priority === "High").length;
+  const resolvedCount = allTickets.filter(t => t.status === "Resolved" || t.status === "Closed").length;
+  const breachedCount = allTickets.filter(t => t.sla === "Breached" || t.sla === "Escalated").length;
 
   // Dynamic ticketTrendData
   const ticketTrendData = (() => {
@@ -158,7 +164,7 @@ export default function Support() {
       trend.push({ name: monthName, open: 0, resolved: 0, escalated: 0 });
     }
 
-    tickets.forEach(t => {
+    allTickets.forEach(t => {
       if (!t.time) return;
       const date = new Date(t.time);
       if (isNaN(date.getTime())) return;
@@ -180,7 +186,7 @@ export default function Support() {
   // Dynamic roleIssueData
   const roleIssueData = (() => {
     const roles = {};
-    tickets.forEach(t => {
+    allTickets.forEach(t => {
       const role = t.role || "Other";
       if (!roles[role]) {
         roles[role] = { name: role, tickets: 0, resolved: 0 };
@@ -197,7 +203,7 @@ export default function Support() {
   const operationalAlerts = [
     { Icon: AlertCircle, text: `${breachedCount} SLA breaches/escalations active`, color: "#ef4444" },
     { Icon: TrendingDown, text: "Avg resolution SLA tracking is operational", color: "#f59e0b" },
-    { Icon: TrendingUp, text: `Ticket volume: ${tickets.length} total tickets`, color: "#22c55e" },
+    { Icon: TrendingUp, text: `Ticket volume: ${allTickets.length} total tickets`, color: "#22c55e" },
   ];
 
   const handleFormChange = (key, value) => setForm(prev => ({ ...prev, [key]: value }));
@@ -212,7 +218,7 @@ export default function Support() {
     setIsSubmitting(true);
     try {
       if (form.id) {
-        const original = tickets.find(t => t.id === form.id);
+        const original = [...myTickets, ...teamTickets].find(t => t.id === form.id);
         if (original && original.status !== form.status) {
           await updateTicketStatus(form.id, form.status);
           await fetchTickets();
@@ -244,7 +250,7 @@ export default function Support() {
 
   const handleExport = () => {
     const headers = columns.map(c => c.label).join(",");
-    const rows = tickets.map(t => columns.map(c => `"${t[c.key] || ""}"`).join(","));
+    const rows = [...myTickets, ...teamTickets].map(t => columns.map(c => `"${t[c.key] || ""}"`).join(","));
     const blob = new Blob([headers + "\n" + rows.join("\n")], { type: "text/csv" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "support-tickets.csv"; a.click();
   };
@@ -339,11 +345,26 @@ export default function Support() {
           ]} size={4} height={260} />
       </DashGrid>
 
+      {/* ── My Tickets Table ── */}
+      <DataTable
+        title="My Tickets"
+        columns={columns}
+        rows={myTickets}
+        actions={tableActions}
+        size={12} pageSize={5} searchable exportable exportFileName="my-support-tickets"
+        defaultSortKey={null}
+        loading={loading}
+        filters={[
+          { title: "Status", key: "status", type: "toggle", options: ["Open", "In Progress", "Escalated", "Resolved", "Closed"] },
+          { title: "Priority", key: "priority", type: "toggle", options: ["Low", "Medium", "High"] },
+        ]}
+      />
+
       {/* ── Tickets Table ── */}
       <DataTable
         title="Ticket Monitoring"
         columns={columns}
-        rows={tickets}
+        rows={teamTickets}
         actions={tableActions}
         size={12} pageSize={10} searchable exportable exportFileName="support-tickets-data"
         defaultSortKey={null}

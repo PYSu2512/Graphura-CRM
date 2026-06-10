@@ -1,4 +1,12 @@
-import { useMemo, useState } from "react";
+/**
+ * ManagementEmployeePerformance.jsx
+ * Real performance metrics from ProjectTask data:
+ *   - KPI cards: Total Tasks / Completed / Active / Avg Progress
+ *   - Status mix pie chart
+ *   - Weekly completion trend line chart
+ */
+
+import { useState, useEffect, useCallback } from "react";
 import {
   Grid,
   Heading,
@@ -7,113 +15,102 @@ import {
   GLineChart,
   GPieChart,
 } from "../../../components/shared/Common_Components.jsx";
-import {
-  FolderOpen,
-  CheckCircle2,
-  Activity,
-  Percent,
-} from "lucide-react";
-import { myProjects, weeklyNotesAdded } from "./managementEmployeeStore";
+import { FolderOpen, CheckCircle2, Activity, TrendingUp } from "lucide-react";
+import { fetchStats } from "./projects/employeeTasksApi";
+import toast from "react-hot-toast";
 
-// Fabricated trend buckets for the period filter on the GLineChart.
-// Week values reuse `weeklyNotesAdded` from the canonical store; month/year
-// are derived rollups so the chart has something to show under each filter.
-const trendData = {
-  week:  weeklyNotesAdded.map(({ name, count }) => ({ name, score: count })),
-  month: [
-    { name: "Wk 1", score: 14 },
-    { name: "Wk 2", score: 18 },
-    { name: "Wk 3", score: 21 },
-    { name: "Wk 4", score: 19 },
-  ],
-  year:  [
-    { name: "Jan", score: 12 }, { name: "Feb", score: 18 }, { name: "Mar", score: 25 },
-    { name: "Apr", score: 22 }, { name: "May", score: 28 }, { name: "Jun", score: 30 },
-  ],
-};
-
-const KPI_ICONS   = [<FolderOpen size={20} />, <CheckCircle2 size={20} />, <Activity size={20} />, <Percent size={20} />];
+const KPI_ICONS   = [<FolderOpen size={20}/>, <CheckCircle2 size={20}/>, <Activity size={20}/>, <TrendingUp size={20}/>];
 const KPI_ACCENTS = ["#3b82f6", "#22c55e", "#14b8a6", "#8b5cf6"];
 
+const STATUS_COLORS = ["#94a3b8", "#f59e0b", "#0ea5e9", "#22c55e", "#f43f5e"];
+
 export default function ManagementEmployeePerformance() {
-  const [period, setPeriod] = useState("week");
+  const [data,    setData]    = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // ── Live-derived KPIs from myProjects ──────────────────────────────
-  const { kpis, statusMix } = useMemo(() => {
-    const total     = myProjects.length;
-    const completed = myProjects.filter((p) => p.status === "Completed");
-    const active    = myProjects.filter((p) => p.status === "In Progress").length;
-
-    // On-time % = completedOnTime / completed. "—" when no completed projects.
-    const onTime = completed.filter((p) => p.deliveredDate && p.deliveredDate <= p.deadline).length;
-    const onTimePct = completed.length === 0
-      ? "—"
-      : `${Math.round((onTime / completed.length) * 100)}%`;
-
-    const statusMix = [
-      "Not Started", "Work Started", "In Progress", "Review Stage", "Finalization", "Completed", "Delayed",
-    ]
-      .map((s) => ({ name: s, value: myProjects.filter((p) => p.status === s).length }))
-      .filter((s) => s.value > 0);
-
-    return {
-      kpis: [
-        { title: "Total Assigned", value: String(total) },
-        { title: "Completed",      value: String(completed.length) },
-        { title: "Active",         value: String(active) },
-        { title: "On-Time %",      value: onTimePct },
-      ],
-      statusMix,
-    };
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetchStats();
+      setData(res.data?.data || null);
+    } catch {
+      toast.error("Failed to load performance data");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const stats      = data?.stats      || {};
+  const statusMix  = data?.statusMix  || [];
+  const weeklyTrend= data?.weeklyTrend|| [];
+
+  const onTimePct = stats.completed > 0
+    ? `${Math.round((stats.completed / (stats.totalTasks || 1)) * 100)}%`
+    : "—";
+
+  const kpis = [
+    { title: "Total Tasks",   value: loading ? "—" : String(stats.totalTasks  || 0) },
+    { title: "Completed",     value: loading ? "—" : String(stats.completed   || 0) },
+    { title: "Active",        value: loading ? "—" : String(stats.activeTasks || 0) },
+    { title: "Avg Progress",  value: loading ? "—" : `${stats.avgProgress || 0}%` },
+  ];
 
   return (
     <div>
       <Grid cols={12} gap={6}>
-        <Heading
-          primaryText="My"
-          secondaryText="Performance"
-          size={12}
-          fontSize="2xl"
-        />
+        <Heading primaryText="My" secondaryText="Performance" size={12} fontSize="2xl" />
 
         <div className="col-span-12">
           <DashGrid cols={12} gap={4}>
             {kpis.map((k, i) => (
-              <EnhancedDashCard
-                key={k.title}
-                title={k.title}
-                value={k.value}
-                icon={KPI_ICONS[i]}
-                accentColor={KPI_ACCENTS[i]}
-                size={3}
-              />
+              <EnhancedDashCard key={k.title} title={k.title} value={k.value}
+                icon={KPI_ICONS[i]} accentColor={KPI_ACCENTS[i]} size={3} />
             ))}
           </DashGrid>
         </div>
 
+        {/* Completion trend */}
         <GLineChart
-          title="My Activity"
-          subtitle="Work notes added — period filter"
-          data={trendData[period]}
-          lines={[{ key: "score", label: "Notes added", color: "#2a465a" }]}
+          title="Weekly Task Completions"
+          subtitle="Tasks completed per week (last 8 weeks)"
+          data={weeklyTrend}
+          lines={[{ key: "completed", label: "Completed", color: "#2a465a" }]}
           size={7}
           height={300}
-          filters={[
-            { label: "This Week",  onClick: () => setPeriod("week")  },
-            { label: "This Month", onClick: () => setPeriod("month") },
-            { label: "This Year",  onClick: () => setPeriod("year")  },
-          ]}
         />
 
+        {/* Status mix */}
         <GPieChart
-          title="My Status Mix"
-          subtitle="Where each of my projects sits today"
+          title="My Task Status Mix"
+          subtitle="Current status distribution"
           data={statusMix}
-          colors={["#94a3b8", "#0ea5e9", "#f59e0b", "#8b5cf6", "#14b8a6", "#22c55e", "#f43f5e"]}
+          colors={STATUS_COLORS}
           size={5}
           height={300}
         />
+
+        {/* Summary detail cards */}
+        {!loading && (
+          <div className="col-span-12">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              {[
+                { label: "Not Started", value: stats.notStarted || 0, color: "#94a3b8" },
+                { label: "In Progress", value: stats.activeTasks  || 0, color: "#3b82f6" },
+                { label: "Completed",   value: stats.completed   || 0, color: "#22c55e" },
+                { label: "Delayed",     value: stats.delayed     || 0, color: "#ef4444" },
+                { label: "Overdue",     value: stats.overdue     || 0, color: "#f97316" },
+                { label: "Projects",    value: stats.totalProjects|| 0, color: "#8b5cf6" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col gap-1 shadow-sm">
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</span>
+                  <span className="text-2xl font-black" style={{ color }}>{value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </Grid>
     </div>
   );

@@ -1,20 +1,14 @@
 /**
  * AssignProjects.jsx → "My Projects" Tab
- * ─────────────────────────────────────────────────────────────────────────────
- * Read-only overview of all projects assigned to this team leader's team.
- * One team = one project. Projects come pre-assigned from the Manager.
- * Shows task completion progress (X/Y tasks done) and drill-down modal.
- * Uses Common_Components + projectsStore
+ * Fetches real projects assigned to this TL from the backend.
+ * Edit action → opens an inline progress detail panel (no more task-status dropdown modal).
  */
 
-import React, { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Grid,
   Button,
   DataTable,
-  DataField,
-  SelectField,
-  Option,
   Modal,
   ModalProfile,
   ModalGrid,
@@ -22,19 +16,25 @@ import {
   openModal,
   closeModal,
 } from "../../../../components/shared/Common_Components";
-import {
-  useProjectsStore,
-  TASK_STATUSES,
-  getAvatarColor,
-  getInitials,
-} from "./projectsStore";
-import { Eye, PencilLine, CheckCircle2, AlertTriangle, ListTodo, Clock } from "lucide-react";
+import { Eye, CheckCircle2, AlertTriangle, ListTodo, Clock, TrendingUp } from "lucide-react";
+import { fetchMyProjects } from "./tlProjectsApi";
+import toast from "react-hot-toast";
 
-// ── Progress bar cell ────────────────────────────────────────────────────────
-function ProgressCell({ value }) {
+// ── helpers ───────────────────────────────────────────────────────────────────
+const getAvatarColor = (name = "") => {
+  const colors = ["#6366f1","#3b82f6","#22c55e","#f97316","#ec4899","#14b8a6","#a855f7","#eab308"];
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return colors[Math.abs(h) % colors.length];
+};
+const getInitials = (name = "") =>
+  name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+function ProgressBar({ value }) {
   const color = value === 100 ? "#22c55e" : value > 0 ? "#3b82f6" : "#94a3b8";
   return (
-    <div className="flex items-center gap-2 min-w-[100px]">
+    <div className="flex items-center gap-2 min-w-[110px]">
       <div className="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
@@ -46,176 +46,142 @@ function ProgressCell({ value }) {
   );
 }
 
-// ── Task breakdown mini badge ────────────────────────────────────────────────
-function TaskBadge({ tasks }) {
-  const completed = tasks.filter((t) => t.status === "Completed").length;
-  const total = tasks.length;
+function TaskBadge({ stats }) {
+  const { completed = 0, total = 0 } = stats || {};
   return (
-    <div className="flex items-center gap-1.5">
-      <div
-        className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
-        style={{
-          background: completed === total && total > 0 ? "#dcfce7" : "#f1f5f9",
-          color: completed === total && total > 0 ? "#16a34a" : "#475569",
-        }}
-      >
-        <CheckCircle2 size={11} />
-        {completed}/{total}
-      </div>
+    <div
+      className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold"
+      style={{
+        background: completed === total && total > 0 ? "#dcfce7" : "#f1f5f9",
+        color:      completed === total && total > 0 ? "#16a34a" : "#475569",
+      }}
+    >
+      <CheckCircle2 size={11} />
+      {completed}/{total}
     </div>
   );
 }
 
-// ── Status pill ──────────────────────────────────────────────────────────────
 function StatusPill({ status }) {
   const map = {
-    Completed: { bg: "#dcfce7", color: "#16a34a" },
-    "In Progress": { bg: "#dbeafe", color: "#2563eb" },
-    "Not Started": { bg: "#f1f5f9", color: "#64748b" },
-    Delayed: { bg: "#fee2e2", color: "#dc2626" },
-    "On Hold": { bg: "#fef3c7", color: "#d97706" },
+    "Completed":    { bg: "#dcfce7", color: "#16a34a" },
+    "Delivered":    { bg: "#d1fae5", color: "#059669" },
+    "In Progress":  { bg: "#dbeafe", color: "#2563eb" },
+    "Work Started": { bg: "#ede9fe", color: "#7c3aed" },
+    "Not Started":  { bg: "#f1f5f9", color: "#64748b" },
+    "Delayed":      { bg: "#fee2e2", color: "#dc2626" },
+    "Review Stage": { bg: "#fef3c7", color: "#d97706" },
+    "Finalization": { bg: "#fce7f3", color: "#db2777" },
   };
   const s = map[status] || map["Not Started"];
   return (
-    <span
-      className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold"
-      style={{ background: s.bg, color: s.color }}
-    >
+    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+      style={{ background: s.bg, color: s.color }}>
       {status}
     </span>
   );
 }
 
-// ── Table columns ────────────────────────────────────────────────────────────
-const COLUMNS = [
-  { key: "name", label: "Project Name" },
-  { key: "priority", label: "Priority" },
-  { key: "deadline", label: "Deadline" },
-  {
-    key: "tasks",
-    label: "Tasks",
-    render: (val) => <TaskBadge tasks={val} />,
-  },
-  {
-    key: "progress",
-    label: "Progress",
-    render: (val) => <ProgressCell value={val} />,
-    sortValue: (row) => row.progress,
-  },
-  {
-    key: "status",
-    label: "Status",
-    render: (val) => <StatusPill status={val} />,
-  },
-];
-
-// ── Task list columns for the modal ──────────────────────────────────────────
-const TASK_COLUMNS = [
-  { key: "title", label: "Task" },
-  {
-    key: "assignee",
-    label: "Assignee",
-    render: (val) => (
-      <div className="flex items-center gap-1.5">
-        <div
-          className="w-6 h-6 rounded-md flex items-center justify-center text-white text-[9px] font-black flex-shrink-0"
-          style={{ background: getAvatarColor(val) }}
-        >
-          {getInitials(val)}
-        </div>
-        <span className="text-xs font-semibold text-[#0f172a]">{val}</span>
-      </div>
-    ),
-  },
-  { key: "priority", label: "Priority" },
-  { key: "deadline", label: "Deadline" },
-  {
-    key: "status",
-    label: "Status",
-    render: (val) => <StatusPill status={val} />,
-  },
-];
-
-// ── Component ─────────────────────────────────────────────────────────────────
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function Toast({ msg, type }) {
-  if (!msg) return null;
-  const cls =
-    type === "success"
-      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-      : "bg-amber-50 border-amber-200 text-amber-700";
+function PriorityBadge({ priority }) {
+  const map = {
+    Critical: { bg: "#fef2f2", color: "#dc2626", border: "#fecaca" },
+    High:     { bg: "#fff7ed", color: "#ea580c", border: "#fed7aa" },
+    Medium:   { bg: "#fffbeb", color: "#d97706", border: "#fde68a" },
+    Low:      { bg: "#f0fdf4", color: "#16a34a", border: "#bbf7d0" },
+  };
+  const s = map[priority] || map["Medium"];
   return (
-    <div className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${cls}`}>
-      {msg}
-    </div>
+    <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold border"
+      style={{ background: s.bg, color: s.color, borderColor: s.border }}>
+      {priority}
+    </span>
   );
 }
 
+// ── Task status pill (for modal task list) ────────────────────────────────────
+const TASK_STATUS_STYLE = {
+  "Completed":   { bg: "#dcfce7", color: "#16a34a" },
+  "In Progress": { bg: "#dbeafe", color: "#2563eb" },
+  "Review":      { bg: "#fef3c7", color: "#d97706" },
+  "Not Started": { bg: "#f1f5f9", color: "#64748b" },
+  "Delayed":     { bg: "#fee2e2", color: "#dc2626" },
+};
+function TaskStatusPill({ status }) {
+  const s = TASK_STATUS_STYLE[status] || TASK_STATUS_STYLE["Not Started"];
+  return (
+    <span className="inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold"
+      style={{ background: s.bg, color: s.color }}>
+      {status}
+    </span>
+  );
+}
+
+// ── Table columns ─────────────────────────────────────────────────────────────
+const COLUMNS = [
+  { key: "name",     label: "Project Name" },
+  { key: "priority", label: "Priority",    render: (v) => <PriorityBadge priority={v} /> },
+  { key: "deadline", label: "Deadline" },
+  { key: "taskStats",label: "Tasks",       render: (v) => <TaskBadge stats={v} /> },
+  { key: "progressPercent", label: "Progress", render: (v) => <ProgressBar value={v} />, sortValue: (row) => row.progressPercent },
+  { key: "status",   label: "Status",      render: (v) => <StatusPill status={v} /> },
+];
+
+const TASK_COLS = [
+  {
+    key: "assignee", label: "Assignee",
+    render: (v) => (
+      <div className="flex items-center gap-2">
+        <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-black"
+          style={{ background: getAvatarColor(v) }}>
+          {getInitials(v)}
+        </div>
+        <span className="text-xs font-semibold">{v}</span>
+      </div>
+    ),
+  },
+  { key: "title",    label: "Task" },
+  { key: "priority", label: "Priority", render: (v) => <PriorityBadge priority={v} /> },
+  { key: "deadline", label: "Deadline" },
+  { key: "progressPercent", label: "Progress %", render: (v) => <span className="text-xs font-bold text-[#2a465a]">{v}%</span> },
+  { key: "status",   label: "Status",   render: (v) => <TaskStatusPill status={v} /> },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function AssignProjects() {
-  const { projects, updateTask } = useProjectsStore();
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [editProject, setEditProject] = useState(null);
-  const [editTaskStatuses, setEditTaskStatuses] = useState({});
-  const [toast, setToast] = useState({ msg: "", type: "" });
+  const [projects, setProjects] = useState([]);
+  const [stats,    setStats]    = useState({ total: 0, active: 0, completed: 0, delayed: 0, totalTasks: 0 });
+  const [loading,  setLoading]  = useState(true);
+  const [selected, setSelected] = useState(null); // project for detail modal
 
-  const showToast = (msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast({ msg: "", type: "" }), 4000);
-  };
-
-  const handleViewProject = (row) => {
-    setSelectedProject(row);
-    openModal("my-project-details-modal");
-  };
-
-  const handleEditProgress = (row) => {
-    setEditProject(row);
-    // Initialize task statuses from current values
-    const statuses = {};
-    row.tasks.forEach((t) => {
-      statuses[t.id] = t.status;
-    });
-    setEditTaskStatuses(statuses);
-    openModal("my-project-edit-progress-modal");
-  };
-
-  const handleSaveProgress = () => {
-    if (!editProject) return;
-    let updatedCount = 0;
-    editProject.tasks.forEach((t) => {
-      if (editTaskStatuses[t.id] && editTaskStatuses[t.id] !== t.status) {
-        updateTask(editProject.id, t.id, { status: editTaskStatuses[t.id] });
-        updatedCount++;
-      }
-    });
-    if (updatedCount > 0) {
-      showToast(`✅ Updated ${updatedCount} task${updatedCount > 1 ? "s" : ""} in "${editProject.name}".`);
-    } else {
-      showToast("ℹ️ No changes were made.", "warning");
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetchMyProjects();
+      setProjects(res.data?.data?.projects || []);
+      setStats(res.data?.data?.stats || {});
+    } catch (err) {
+      toast.error(err?.message || "Failed to load projects");
+    } finally {
+      setLoading(false);
     }
-    closeModal("my-project-edit-progress-modal");
-    setEditProject(null);
-    setEditTaskStatuses({});
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const handleView = (row) => {
+    setSelected(row);
+    openModal("tl-project-detail-modal");
   };
 
-  // Summary stats
-  const totalTasks = projects.reduce((sum, p) => sum + p.tasks.length, 0);
-  const completedTasks = projects.reduce(
-    (sum, p) => sum + p.tasks.filter((t) => t.status === "Completed").length,
-    0
-  );
-  const delayedTasks = projects.reduce(
-    (sum, p) => sum + p.tasks.filter((t) => t.status === "Delayed").length,
-    0
-  );
-  const inProgressTasks = projects.reduce(
-    (sum, p) => sum + p.tasks.filter((t) => t.status === "In Progress").length,
-    0
-  );
+  // Derived summary stats for the badge bar
+  const totalTasks    = stats.totalTasks ?? projects.reduce((s, p) => s + (p.taskStats?.total || 0), 0);
+  const inProgTasks   = projects.reduce((s, p) => s + (p.taskStats?.inProgress || 0), 0);
+  const doneTasks     = projects.reduce((s, p) => s + (p.taskStats?.completed  || 0), 0);
+  const delayedTasks  = projects.reduce((s, p) => s + (p.taskStats?.delayed    || 0), 0);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ── Section header + stats ── */}
+      {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <p className="text-lg font-black text-[#2a465a]">My Projects</p>
@@ -224,180 +190,84 @@ export default function AssignProjects() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-100">
-            <ListTodo size={13} className="text-blue-600" />
-            <span className="text-xs font-bold text-blue-700">{totalTasks} Tasks</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-50 border border-cyan-100">
-            <Clock size={13} className="text-cyan-600" />
-            <span className="text-xs font-bold text-cyan-700">{inProgressTasks} Active</span>
-          </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-100">
-            <CheckCircle2 size={13} className="text-emerald-600" />
-            <span className="text-xs font-bold text-emerald-700">{completedTasks} Done</span>
-          </div>
-          {delayedTasks > 0 && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-50 border border-red-100">
-              <AlertTriangle size={13} className="text-red-500" />
-              <span className="text-xs font-bold text-red-600">{delayedTasks} Delayed</span>
+          {[
+            { label: `${totalTasks} Tasks`,   icon: <ListTodo size={13} />, bg: "#dbeafe", color: "#2563eb", border: "#bfdbfe" },
+            { label: `${inProgTasks} Active`, icon: <Clock size={13} />,    bg: "#cffafe", color: "#0891b2", border: "#a5f3fc" },
+            { label: `${doneTasks} Done`,     icon: <CheckCircle2 size={13} />, bg: "#dcfce7", color: "#16a34a", border: "#bbf7d0" },
+            ...(delayedTasks > 0 ? [{ label: `${delayedTasks} Delayed`, icon: <AlertTriangle size={13} />, bg: "#fee2e2", color: "#dc2626", border: "#fecaca" }] : []),
+          ].map(({ label, icon, bg, color, border }) => (
+            <div key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold"
+              style={{ background: bg, color, borderColor: border }}>
+              {icon} {label}
             </div>
-          )}
+          ))}
         </div>
       </div>
 
-      {/* ── Projects Table ── */}
-      <div>
-        <DataTable
-          columns={COLUMNS}
-          rows={projects}
-          size={12}
-          pageSize={5}
-          pageSizeOptions={[5, 10, 20]}
-          searchable={true}
-          filters={[
-            {
-              title: "Status",
-              type: "toggle",
-              key: "status",
-              options: ["Not Started", "In Progress", "Completed", "Delayed"],
-            },
-            {
-              title: "Priority",
-              type: "toggle",
-              key: "priority",
-              options: ["Critical", "High", "Medium", "Low"],
-            },
-          ]}
-          actions={[
-            {
-              icon: <Eye size={16} />,
-              tooltip: "View Project & Tasks",
-              variant: "ghost",
-              onClick: handleViewProject,
-            },
-            {
-              icon: <PencilLine size={16} />,
-              tooltip: "Edit Progress",
-              variant: "primary",
-              onClick: handleEditProgress,
-            },
-          ]}
-          exportable
-          exportFileName="my-projects"
-        />
-      </div>
+      <DataTable
+        columns={COLUMNS}
+        rows={projects}
+        pageSize={5}
+        pageSizeOptions={[5, 10, 20]}
+        searchable
+        loading={loading}
+        filters={[
+          { title: "Status",   type: "toggle", key: "status",   options: ["Not Started","Work Started","In Progress","Review Stage","Finalization","Completed","Delivered","Delayed"] },
+          { title: "Priority", type: "toggle", key: "priority", options: ["Critical","High","Medium","Low"] },
+        ]}
+        actions={[
+          { icon: <Eye size={16} />, tooltip: "View Details", variant: "ghost", onClick: handleView },
+        ]}
+        exportable
+        exportFileName="my-projects"
+      />
 
-      {/* ── Project Details Modal ── */}
-      <Modal id="my-project-details-modal" title="Project Details" size="lg">
-        {selectedProject && (
-          <div className="flex flex-col gap-4">
+      {/* Project Detail Modal */}
+      <Modal id="tl-project-detail-modal" title="Project Details" size="xl">
+        {selected && (
+          <div className="flex flex-col gap-5">
             <ModalProfile
-              name={selectedProject.name}
-              subtitle={selectedProject.description}
-              meta={`Priority: ${selectedProject.priority} · Deadline: ${selectedProject.deadline}`}
+              name={selected.name}
+              subtitle={selected.description || "No description."}
+              meta={`Priority: ${selected.priority}  ·  Deadline: ${selected.deadline || "—"}  ·  Client: ${selected.clientName || "—"}`}
             />
-            <ModalGrid title="Overview" cols={3}>
-              <ModalData label="Status" value={selectedProject.status} />
-              <ModalData label="Progress" value={`${selectedProject.progress}%`} />
-              <ModalData
-                label="Tasks"
-                value={`${selectedProject.tasks.filter((t) => t.status === "Completed").length}/${selectedProject.tasks.length} completed`}
-              />
+
+            <ModalGrid title="Overview" cols={4}>
+              <ModalData label="Status"   value={<StatusPill status={selected.status} />} />
+              <ModalData label="Progress" value={<ProgressBar value={selected.progressPercent} />} />
+              <ModalData label="Tasks"    value={`${selected.taskStats?.completed}/${selected.taskStats?.total} done`} />
+              <ModalData label="Delayed"  value={<span className={selected.taskStats?.delayed > 0 ? "text-rose-600 font-bold" : ""}>{selected.taskStats?.delayed} delayed</span>} />
             </ModalGrid>
 
-            {/* Task list inside the modal */}
-            {selectedProject.tasks.length > 0 && (
+            {/* Task breakdown inside modal */}
+            {selected.tasks?.length > 0 ? (
               <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
-                  Task Breakdown
-                </p>
-                <DataTable
-                  columns={TASK_COLUMNS}
-                  rows={selectedProject.tasks}
-                  size={12}
-                  pageSize={5}
-                  searchable={false}
-                />
-              </div>
-            )}
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Task Breakdown</p>
 
-            {selectedProject.tasks.length === 0 && (
-              <div className="flex flex-col items-center py-6 text-slate-400">
-                <ListTodo size={28} strokeWidth={1.5} />
-                <p className="text-xs font-semibold mt-2">No tasks assigned yet. Use the "Assign Tasks" tab to add tasks.</p>
-              </div>
-            )}
-
-            <Grid cols={12} gap={2} className="pt-2">
-              <div className="hidden sm:block sm:col-span-9"></div>
-              <Button
-                text="Close"
-                variant="ghost"
-                size={3}
-                onClick={() => closeModal("my-project-details-modal")}
-              />
-            </Grid>
-          </div>
-        )}
-      </Modal>
-
-      {/* ── Edit Progress Modal ── */}
-      <Modal id="my-project-edit-progress-modal" title="Edit Project Progress" size="lg">
-        {editProject && (
-          <div className="flex flex-col gap-4">
-            <ModalProfile
-              name={editProject.name}
-              subtitle={editProject.description}
-              meta={`Priority: ${editProject.priority} · Deadline: ${editProject.deadline} · Current Progress: ${editProject.progress}%`}
-            />
-
-            {editProject.tasks.length > 0 ? (
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">
-                  Update Task Statuses
-                </p>
-                <div className="flex flex-col gap-2">
-                  {editProject.tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-3 rounded-xl bg-slate-50 border border-slate-100 px-4 py-3"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-[#2a465a] truncate">{task.title}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <div className="flex items-center gap-1">
-                            <div
-                              className="w-5 h-5 rounded flex items-center justify-center text-white text-[8px] font-black"
-                              style={{ background: getAvatarColor(task.assignee) }}
-                            >
-                              {getInitials(task.assignee)}
-                            </div>
-                            <span className="text-[11px] text-slate-500">{task.assignee}</span>
-                          </div>
-                          <span className="text-[11px] text-slate-400">·</span>
-                          <span className="text-[11px] text-slate-500">{task.priority}</span>
-                          <span className="text-[11px] text-slate-400">·</span>
-                          <span className="text-[11px] text-slate-500">Due: {task.deadline}</span>
-                        </div>
+                {/* Mini progress bars per assignee */}
+                <div className="flex flex-col gap-2 mb-4">
+                  {selected.tasks.map((t) => (
+                    <div key={t.id}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-slate-50 border-slate-100">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[9px] font-black shrink-0"
+                        style={{ background: getAvatarColor(t.assignee) }}>
+                        {getInitials(t.assignee)}
                       </div>
-                      <div className="w-44 flex-shrink-0">
-                        <SelectField
-                          label=""
-                          id={`edit-task-status-${task.id}`}
-                          size={12}
-                          value={editTaskStatuses[task.id] || task.status}
-                          onChange={(e) =>
-                            setEditTaskStatuses((prev) => ({
-                              ...prev,
-                              [task.id]: e.target.value,
-                            }))
-                          }
-                          searchable={false}
-                        >
-                          {TASK_STATUSES.map((s) => (
-                            <Option key={s} value={s} label={s} />
-                          ))}
-                        </SelectField>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-[#2a465a] truncate">{t.title}</span>
+                          <TaskStatusPill status={t.status} />
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-[10px] text-slate-500">{t.assignee}</span>
+                          <span className="text-slate-300">·</span>
+                          <PriorityBadge priority={t.priority} />
+                          <span className="text-slate-300">·</span>
+                          <span className="text-[10px] text-slate-500">Due: {t.deadline || "—"}</span>
+                        </div>
+                        <div className="mt-1.5">
+                          <ProgressBar value={t.progressPercent} />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -406,28 +276,16 @@ export default function AssignProjects() {
             ) : (
               <div className="flex flex-col items-center py-6 text-slate-400">
                 <ListTodo size={28} strokeWidth={1.5} />
-                <p className="text-xs font-semibold mt-2">No tasks to update.</p>
+                <p className="text-xs font-semibold mt-2">No tasks yet. Use "Assign Tasks" tab to add tasks.</p>
               </div>
             )}
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button
-                text="Cancel"
-                variant="secondary"
-                onClick={() => closeModal("my-project-edit-progress-modal")}
-              />
-              <Button
-                text="Save Progress"
-                variant="primary"
-                onClick={handleSaveProgress}
-              />
+              <Button text="Close" variant="ghost" onClick={() => closeModal("tl-project-detail-modal")} />
             </div>
           </div>
         )}
       </Modal>
-
-      {/* Toast */}
-      {toast.msg && <Toast msg={toast.msg} type={toast.type} />}
     </div>
   );
 }

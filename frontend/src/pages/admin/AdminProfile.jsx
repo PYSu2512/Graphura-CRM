@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import Profile from "../profile/Profile";
-import { getProfile } from "../../services/adminService";
+import { getProfile, updateProfile } from "../../services/adminService";
 
 const AdminProfile = () => {
   const [adminData, setAdminData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -15,11 +15,11 @@ const AdminProfile = () => {
         if (response.success && response.data && response.data.admin) {
           setAdminData(response.data.admin);
         } else {
-          setError('Failed to load profile');
+          setError("Failed to load profile");
         }
       } catch (err) {
-        console.error('Error fetching admin profile:', err);
-        setError('Failed to load profile');
+        console.error("Error fetching admin profile:", err);
+        setError("Failed to load profile");
       } finally {
         setLoading(false);
       }
@@ -29,11 +29,19 @@ const AdminProfile = () => {
   }, []);
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500 font-medium">Loading profile...</div>;
+    return (
+      <div className="p-8 text-center text-slate-500 font-medium">
+        Loading profile...
+      </div>
+    );
   }
 
   if (error || !adminData) {
-    return <div className="p-8 text-center text-red-500 font-medium">{error || 'Failed to load profile'}</div>;
+    return (
+      <div className="p-8 text-center text-red-500 font-medium">
+        {error || "Failed to load profile"}
+      </div>
+    );
   }
 
   return (
@@ -42,7 +50,6 @@ const AdminProfile = () => {
       name={adminData.name}
       email={adminData.email}
       phone={adminData.phone || "N/A"}
-      employeeId={`AD-${adminData.id.slice(-4).toUpperCase()}`}
       role="Admin"
       department="Administration"
       companyInfo={{
@@ -53,8 +60,9 @@ const AdminProfile = () => {
         foundedYear: new Date(adminData.createdAt).getFullYear(),
         website: adminData.company?.website || "N/A",
       }}
+      onUpdateProfile={updateProfile}
     />
   );
 };
-
+console.log("ADMIN PROFILE MOUNTED");
 export default AdminProfile;

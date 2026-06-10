@@ -4,28 +4,28 @@
  * Handles: Create, Read, Update, Escalate, Resolve, Close tickets
  */
 
-'use strict';
+"use strict";
 
-const mongoose = require('mongoose');
-const catchAsync = require('../utils/catchAsync');
-const AppError = require('../utils/appError');
-const ApiResponse = require('../utils/apiResponse');
-const { Ticket, User, AuditLog, Notification, Team } = require('../models');
-const ticketService = require('../services/ticket.service');
-const notificationService = require('../services/notification.service');
+const mongoose = require("mongoose");
+const catchAsync = require("../utils/catchAsync");
+const AppError = require("../utils/appError");
+const ApiResponse = require("../utils/apiResponse");
+const { Ticket, User, AuditLog, Notification, Team, SuperAdminTicket } = require("../models");
+const ticketService = require("../services/ticket.service");
+const notificationService = require("../services/notification.service");
 
 // Helper to resolve requester details supporting both USER and ADMIN tokens
 const getRequesterUser = async (req) => {
   const userId = req.user?._id;
-  if (req.userType === 'ADMIN') {
+  if (req.userType === "ADMIN") {
     return {
       _id: req.user._id,
       name: req.user.name,
-      role: 'ADMIN',
-      department: 'ADMIN'
+      role: "ADMIN",
+      department: "ADMIN",
     };
   }
-  return await User.findById(userId).select('role name department');
+  return await User.findById(userId).select("role name department");
 };
 
 // Helper to get all subordinate/team member IDs under a manager or TL
@@ -33,14 +33,14 @@ const getSubordinateIds = async (user, adminObjectId) => {
   const userObjectId = new mongoose.Types.ObjectId(user._id);
   let underIds = [];
 
-  if (['SALES_MANAGER', 'MANAGEMENT_MANAGER'].includes(user.role)) {
+  if (["SALES_MANAGER", "MANAGEMENT_MANAGER"].includes(user.role)) {
     // 1. Direct subordinates of the Manager (usually TLs)
     const directSubordinates = await User.find({
       admin: adminObjectId,
       manager: userObjectId,
       isDeleted: false,
-    }).select('_id');
-    const directSubordinateIds = directSubordinates.map(u => u._id);
+    }).select("_id");
+    const directSubordinateIds = directSubordinates.map((u) => u._id);
 
     // 2. Indirect subordinates
     let indirectSubordinateIds = [];
@@ -49,8 +49,8 @@ const getSubordinateIds = async (user, adminObjectId) => {
         admin: adminObjectId,
         manager: { $in: directSubordinateIds },
         isDeleted: false,
-      }).select('_id');
-      indirectSubordinateIds = indirectSubordinates.map(u => u._id);
+      }).select("_id");
+      indirectSubordinateIds = indirectSubordinates.map((u) => u._id);
     }
 
     // 3. Department users
@@ -58,48 +58,61 @@ const getSubordinateIds = async (user, adminObjectId) => {
       admin: adminObjectId,
       department: user.department,
       isDeleted: false,
-    }).select('_id');
-    const departmentUserIds = departmentUsers.map(u => u._id);
+    }).select("_id");
+    const departmentUserIds = departmentUsers.map((u) => u._id);
 
     // 4. Teams
-    const leadIds = [userObjectId, ...directSubordinateIds, ...indirectSubordinateIds];
+    const leadIds = [
+      userObjectId,
+      ...directSubordinateIds,
+      ...indirectSubordinateIds,
+    ];
     const departmentTeams = await Team.find({
       admin: adminObjectId,
-      $or: [
-        { leader: { $in: leadIds } },
-        { department: user.department }
-      ],
+      $or: [{ leader: { $in: leadIds } }, { department: user.department }],
       isActive: true,
-      isDeleted: false
+      isDeleted: false,
     });
-    const teamMemberIds = departmentTeams.flatMap(t => (t.members || []).map(m => m.user));
+    const teamMemberIds = departmentTeams.flatMap((t) =>
+      (t.members || []).map((m) => m.user),
+    );
 
-    underIds = Array.from(new Set([
-      ...directSubordinateIds.map(id => id.toString()),
-      ...indirectSubordinateIds.map(id => id.toString()),
-      ...departmentUserIds.map(id => id.toString()),
-      ...teamMemberIds.map(id => id && id.toString())
-    ].filter(Boolean)));
-  } else if (['SALES_TL', 'MANAGEMENT_TL', 'FINANCE_TL'].includes(user.role)) {
+    underIds = Array.from(
+      new Set(
+        [
+          ...directSubordinateIds.map((id) => id.toString()),
+          ...indirectSubordinateIds.map((id) => id.toString()),
+          ...departmentUserIds.map((id) => id.toString()),
+          ...teamMemberIds.map((id) => id && id.toString()),
+        ].filter(Boolean),
+      ),
+    );
+  } else if (["SALES_TL", "MANAGEMENT_TL", "FINANCE_TL"].includes(user.role)) {
     const teams = await Team.find({
       admin: adminObjectId,
       leader: userObjectId,
       isActive: true,
-      isDeleted: false
+      isDeleted: false,
     });
-    const teamMemberIdsFromTeams = teams.flatMap(t => (t.members || []).map(m => m.user));
+    const teamMemberIdsFromTeams = teams.flatMap((t) =>
+      (t.members || []).map((m) => m.user),
+    );
 
     const teamUsers = await User.find({
       admin: adminObjectId,
       manager: userObjectId,
       isDeleted: false,
-    }).select('_id');
-    const teamMemberIdsFromManager = teamUsers.map(u => u._id);
+    }).select("_id");
+    const teamMemberIdsFromManager = teamUsers.map((u) => u._id);
 
-    underIds = Array.from(new Set([
-      ...teamMemberIdsFromTeams.map(id => id && id.toString()),
-      ...teamMemberIdsFromManager.map(id => id.toString())
-    ].filter(Boolean)));
+    underIds = Array.from(
+      new Set(
+        [
+          ...teamMemberIdsFromTeams.map((id) => id && id.toString()),
+          ...teamMemberIdsFromManager.map((id) => id.toString()),
+        ].filter(Boolean),
+      ),
+    );
   }
 
   return underIds;
@@ -120,16 +133,17 @@ const isSubordinate = async (user, employeeId, adminId) => {
 // Auto-assigns to appropriate level based on hierarchy
 // ─────────────────────────────────────────────────────────────
 exports.createTicket = catchAsync(async (req, res, next) => {
-  const { subject, message, priority, refType, refId, targetHierarchy } = req.body;
+  const { subject, message, priority, refType, refId, targetHierarchy } =
+    req.body;
   const userId = req.user?._id;
   const adminId = req.admin?._id;
 
   if (!userId || !adminId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   let raiser;
-  if (req.userType === 'ADMIN') {
+  if (req.userType === "ADMIN") {
     raiser = req.user;
   } else {
     // Validate user exists and is active
@@ -138,44 +152,59 @@ exports.createTicket = catchAsync(async (req, res, next) => {
       admin: adminId,
       isDeleted: false,
       isActive: true,
-    }).select('_id name email role department');
+    }).select("_id name email role department");
   }
 
   if (!raiser) {
-    return next(new AppError('User not found or is inactive', 404));
+    return next(new AppError("User not found or is inactive", 404));
   }
 
   // Determine initial assignee based on role hierarchy and target selection
-  const assigneeId = await ticketService.determineInitialAssignee(userId, req.admin, targetHierarchy);
+  const assigneeId = await ticketService.determineInitialAssignee(
+    userId,
+    req.admin,
+    targetHierarchy,
+  );
 
   // Create ticket
   const newTicket = await Ticket.create({
     admin: adminId,
     raisedBy: userId,
-    raisedByType: req.userType === 'ADMIN' ? 'Admin' : 'User',
+    raisedByType: req.userType === "ADMIN" ? "Admin" : "User",
     assignedTo: assigneeId,
     subject: subject.trim(),
     message: message.trim(),
-    priority: priority || 'NORMAL',
+    priority: priority || "NORMAL",
     refType: refType || null,
     refId: refId || null,
-    targetHierarchy: targetHierarchy || 'ALL',
-    status: 'OPEN',
+    targetHierarchy: targetHierarchy || "ALL",
+    status: "OPEN",
   });
 
   // Populate references
   await newTicket.populate([
-    { path: 'raisedBy', select: 'name email role' },
-    { path: 'assignedTo', select: 'name email role' },
+    { path: "raisedBy", select: "name email role" },
+    { path: "assignedTo", select: "name email role" },
   ]);
+
+  // If created by an ADMIN, also create a SuperAdminTicket for visibility
+  if (req.userType === "ADMIN") {
+    await SuperAdminTicket.create({
+      raisedBy: adminId,
+      subject: subject.trim(),
+      message: message.trim(),
+      priority: priority || "NORMAL",
+      status: "OPEN",
+    });
+  }
 
   // Create audit log
   await AuditLog.create({
     admin: adminId,
     performedBy: userId,
-    performerType: 'USER',
-    action: 'TICKET_CREATED',
-    targetModel: 'Ticket',
+    performerType: "USER",
+    action: "TICKET_CREATED",
+    targetModel: "Ticket",
     targetId: newTicket._id,
     after: {
       subject,
@@ -190,35 +219,37 @@ exports.createTicket = catchAsync(async (req, res, next) => {
       await notificationService.createNotification({
         admin: adminId,
         recipient: assigneeId,
-        type: 'TICKET_CREATED',
-        title: 'New Support Ticket',
+        type: "TICKET_CREATED",
+        title: "New Support Ticket",
         body: `${raiser.name} raised ticket: "${subject}"`,
-        refType: 'Ticket',
+        refType: "Ticket",
         refId: newTicket._id,
-        priority: priority || 'NORMAL',
+        priority: priority || "NORMAL",
       });
 
       // Send push notification if user has FCM token
-      const assignee = await User.findById(assigneeId).select('fcmToken');
+      const assignee = await User.findById(assigneeId).select("fcmToken");
       if (assignee?.fcmToken) {
         await notificationService.sendPushNotification(
           assignee.fcmToken,
-          'New Support Ticket Assigned',
-          `${raiser.name}: "${subject}"`
+          "New Support Ticket Assigned",
+          `${raiser.name}: "${subject}"`,
         );
       }
     } catch (err) {
-      console.error('Error sending notification:', err);
+      console.error("Error sending notification:", err);
     }
   }
 
-  res.status(201).json(
-    new ApiResponse(
-      201,
-      { ticket: newTicket },
-      'Support ticket created successfully'
-    )
-  );
+  res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        { ticket: newTicket },
+        "Support ticket created successfully",
+      ),
+    );
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -229,12 +260,21 @@ exports.createTicket = catchAsync(async (req, res, next) => {
 // Admin sees all tickets in organization
 // ─────────────────────────────────────────────────────────────
 exports.getAllTickets = catchAsync(async (req, res, next) => {
-  const { status, priority, assignedTo, sortBy, page = 1, limit = 20, showEscalated, view } = req.query;
+  const {
+    status,
+    priority,
+    assignedTo,
+    sortBy,
+    page = 1,
+    limit = 20,
+    showEscalated,
+    view,
+  } = req.query;
   const userId = req.user?._id;
   const adminId = req.admin?._id;
 
   if (!adminId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   // Ensure ObjectIds for aggregation match
@@ -246,16 +286,16 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
   // Build filter
   const filter = { admin: adminObjectId };
 
-  if (user?.role && !['ADMIN'].includes(user.role)) {
-    if (view === 'assigned') {
-      if (['SALES_MANAGER', 'MANAGEMENT_MANAGER'].includes(user.role)) {
+  if (user?.role && !["ADMIN"].includes(user.role)) {
+    if (view === "assigned") {
+      if (["SALES_MANAGER", "MANAGEMENT_MANAGER"].includes(user.role)) {
         // 1. Direct subordinates of the Manager (usually TLs)
         const directSubordinates = await User.find({
           admin: adminObjectId,
           manager: userObjectId,
           isDeleted: false,
-        }).select('_id');
-        const directSubordinateIds = directSubordinates.map(u => u._id);
+        }).select("_id");
+        const directSubordinateIds = directSubordinates.map((u) => u._id);
 
         // 2. Indirect subordinates (e.g. Executives managed by Team Leaders under the Manager)
         let indirectSubordinateIds = [];
@@ -264,8 +304,8 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
             admin: adminObjectId,
             manager: { $in: directSubordinateIds },
             isDeleted: false,
-          }).select('_id');
-          indirectSubordinateIds = indirectSubordinates.map(u => u._id);
+          }).select("_id");
+          indirectSubordinateIds = indirectSubordinates.map((u) => u._id);
         }
 
         // 3. Department users (all users in the manager's department)
@@ -273,29 +313,36 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
           admin: adminObjectId,
           department: user.department,
           isDeleted: false,
-        }).select('_id');
-        const departmentUserIds = departmentUsers.map(u => u._id);
+        }).select("_id");
+        const departmentUserIds = departmentUsers.map((u) => u._id);
 
         // 4. Teams led by the manager or any subordinate, or within the department
-        const leadIds = [userObjectId, ...directSubordinateIds, ...indirectSubordinateIds];
+        const leadIds = [
+          userObjectId,
+          ...directSubordinateIds,
+          ...indirectSubordinateIds,
+        ];
         const departmentTeams = await Team.find({
           admin: adminObjectId,
-          $or: [
-            { leader: { $in: leadIds } },
-            { department: user.department }
-          ],
+          $or: [{ leader: { $in: leadIds } }, { department: user.department }],
           isActive: true,
-          isDeleted: false
+          isDeleted: false,
         });
-        const teamMemberIds = departmentTeams.flatMap(t => (t.members || []).map(m => m.user));
+        const teamMemberIds = departmentTeams.flatMap((t) =>
+          (t.members || []).map((m) => m.user),
+        );
 
         // Combine all subordinate/team member IDs into a unique list of ObjectIds
-        const allUnderIds = Array.from(new Set([
-          ...directSubordinateIds.map(id => id.toString()),
-          ...indirectSubordinateIds.map(id => id.toString()),
-          ...departmentUserIds.map(id => id.toString()),
-          ...teamMemberIds.map(id => id && id.toString())
-        ].filter(Boolean))).map(id => new mongoose.Types.ObjectId(id));
+        const allUnderIds = Array.from(
+          new Set(
+            [
+              ...directSubordinateIds.map((id) => id.toString()),
+              ...indirectSubordinateIds.map((id) => id.toString()),
+              ...departmentUserIds.map((id) => id.toString()),
+              ...teamMemberIds.map((id) => id && id.toString()),
+            ].filter(Boolean),
+          ),
+        ).map((id) => new mongoose.Types.ObjectId(id));
 
         // Sales Manager View:
         // - Tickets assigned to ME
@@ -310,41 +357,49 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
               {
                 $and: [
                   { raisedBy: { $in: allUnderIds } },
-                  { targetHierarchy: { $in: ['MANAGER', 'ALL'] } }
-                ]
+                  { targetHierarchy: { $in: ["MANAGER", "ALL"] } },
+                ],
               },
               {
                 $and: [
                   { assignedTo: { $in: allUnderIds } },
-                  { targetHierarchy: 'ALL' }
-                ]
-              }
-            ]
-          }
+                  { targetHierarchy: "ALL" },
+                ],
+              },
+            ],
+          },
         ];
         // Remove top-level admin as it's now in $and
         delete filter.admin;
-      } else if (['SALES_TL', 'MANAGEMENT_TL', 'FINANCE_TL'].includes(user.role)) {
+      } else if (
+        ["SALES_TL", "MANAGEMENT_TL", "FINANCE_TL"].includes(user.role)
+      ) {
         // Team Leader views tickets of team members (from Team model or manager field)
         const teams = await Team.find({
           admin: adminObjectId,
           leader: userObjectId,
           isActive: true,
-          isDeleted: false
+          isDeleted: false,
         });
-        const teamMemberIdsFromTeams = teams.flatMap(t => (t.members || []).map(m => m.user));
+        const teamMemberIdsFromTeams = teams.flatMap((t) =>
+          (t.members || []).map((m) => m.user),
+        );
 
         const teamUsers = await User.find({
           admin: adminObjectId,
           manager: userObjectId,
           isDeleted: false,
-        }).select('_id');
-        const teamMemberIdsFromManager = teamUsers.map(u => u._id);
+        }).select("_id");
+        const teamMemberIdsFromManager = teamUsers.map((u) => u._id);
 
-        const allTeamMemberIds = Array.from(new Set([
-          ...teamMemberIdsFromTeams.map(id => id && id.toString()),
-          ...teamMemberIdsFromManager.map(id => id.toString())
-        ].filter(Boolean))).map(id => new mongoose.Types.ObjectId(id));
+        const allTeamMemberIds = Array.from(
+          new Set(
+            [
+              ...teamMemberIdsFromTeams.map((id) => id && id.toString()),
+              ...teamMemberIdsFromManager.map((id) => id.toString()),
+            ].filter(Boolean),
+          ),
+        ).map((id) => new mongoose.Types.ObjectId(id));
 
         // Team Leader View:
         // - Tickets assigned to ME
@@ -358,11 +413,11 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
               {
                 $and: [
                   { raisedBy: { $in: allTeamMemberIds } },
-                  { targetHierarchy: { $in: ['TL', 'ALL'] } }
-                ]
-              }
-            ]
-          }
+                  { targetHierarchy: { $in: ["TL", "ALL"] } },
+                ],
+              },
+            ],
+          },
         ];
         delete filter.admin;
       } else {
@@ -370,15 +425,18 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
         filter.assignedTo = userObjectId;
         filter.raisedBy = { $ne: userObjectId };
       }
-    } else if (view === 'raised') {
+    } else if (view === "raised") {
       // My Tickets: only tickets raised by this user
       filter.raisedBy = userObjectId;
     } else {
       // Default: tickets assigned to OR raised by this user
-      filter.$or = [
-        { assignedTo: userObjectId },
-        { raisedBy: userObjectId },
-      ];
+      filter.$or = [{ assignedTo: userObjectId }, { raisedBy: userObjectId }];
+    }
+  } else if (user?.role && ["ADMIN"].includes(user.role)) {
+    if (view === "assigned") {
+      filter.raisedBy = { $ne: userObjectId };
+    } else if (view === "raised") {
+      filter.raisedBy = userObjectId;
     }
   }
 
@@ -393,12 +451,12 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
   }
 
   // Apply assignee filter (admin only)
-  if (assignedTo && ['ADMIN'].includes(user?.role)) {
+  if (assignedTo && ["ADMIN"].includes(user?.role)) {
     filter.assignedTo = new mongoose.Types.ObjectId(assignedTo);
   }
 
   // Show escalated only
-  if (showEscalated === 'true') {
+  if (showEscalated === "true") {
     filter.isEscalated = true;
   }
 
@@ -414,8 +472,16 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
         priorityWeight: {
           $switch: {
             branches: [
-              { case: { $in: [{ $toUpper: "$priority" }, ["URGENT", "HIGH"]] }, then: 3 },
-              { case: { $in: [{ $toUpper: "$priority" }, ["MEDIUM", "NORMAL"]] }, then: 2 },
+              {
+                case: { $in: [{ $toUpper: "$priority" }, ["URGENT", "HIGH"]] },
+                then: 3,
+              },
+              {
+                case: {
+                  $in: [{ $toUpper: "$priority" }, ["MEDIUM", "NORMAL"]],
+                },
+                then: 2,
+              },
               { case: { $in: [{ $toUpper: "$priority" }, ["LOW"]] }, then: 1 },
             ],
             default: 2,
@@ -430,9 +496,9 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
   let sortObj = { priorityWeight: -1, createdAt: 1 };
 
   // Handle specific sort requests while maintaining priority as primary
-  if (sortBy === 'escalatedAt') {
+  if (sortBy === "escalatedAt") {
     sortObj = { escalatedAt: -1, priorityWeight: -1, createdAt: 1 };
-  } else if (sortBy === 'createdAt') {
+  } else if (sortBy === "createdAt") {
     // Even if user sorts by date, we keep priority as the grouping factor
     sortObj = { priorityWeight: -1, createdAt: 1 };
   }
@@ -446,33 +512,44 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
 
   // Populate references on aggregated results
   // We use separate population for User and Admin to be 100% sure for aggregation results
-  const adminTickets = tickets.filter(t => t.raisedByType === 'Admin');
-  const userTickets = tickets.filter(t => t.raisedByType === 'User');
+  const adminTickets = tickets.filter((t) => t.raisedByType === "Admin");
+  const userTickets = tickets.filter((t) => t.raisedByType === "User");
 
   if (adminTickets.length > 0) {
-    await Ticket.populate(adminTickets, { path: 'raisedBy', model: 'Admin', select: 'name email' });
+    await Ticket.populate(adminTickets, {
+      path: "raisedBy",
+      model: "Admin",
+      select: "name email",
+    });
   }
   if (userTickets.length > 0) {
-    await Ticket.populate(userTickets, { path: 'raisedBy', model: 'User', select: 'name email role' });
+    await Ticket.populate(userTickets, {
+      path: "raisedBy",
+      model: "User",
+      select: "name email role",
+    });
   }
 
   // Populate common fields
   await Ticket.populate(tickets, [
-    { path: 'assignedTo', select: 'name email role' },
-    { path: 'resolvedBy', select: 'name email' },
-    { path: 'replies.user', select: 'name email role' },
+    { path: "assignedTo", select: "name email role" },
+    { path: "resolvedBy", select: "name email" },
+    { path: "replies.user", select: "name email role" },
   ]);
 
   // Ensure raisedBy details are visible even if role is missing (for Admins)
-  tickets.forEach(t => {
-    if (t.raisedBy && typeof t.raisedBy === 'object') {
-      if (!t.raisedBy.role && t.raisedByType === 'Admin') {
-        t.raisedBy.role = 'ADMIN';
+  tickets.forEach((t) => {
+    if (t.raisedBy && typeof t.raisedBy === "object") {
+      if (!t.raisedBy.role && t.raisedByType === "Admin") {
+        t.raisedBy.role = "ADMIN";
       }
     }
   });
 
-  console.log(`[DEBUG] Fetched ${tickets.length} tickets. First ticket raisedBy:`, tickets[0]?.raisedBy);
+  console.log(
+    `[DEBUG] Fetched ${tickets.length} tickets. First ticket raisedBy:`,
+    tickets[0]?.raisedBy,
+  );
 
   // Get total count for pagination
   const total = await Ticket.countDocuments(filter);
@@ -489,8 +566,8 @@ exports.getAllTickets = catchAsync(async (req, res, next) => {
           pages: Math.ceil(total / limit),
         },
       },
-      'Tickets fetched successfully'
-    )
+      "Tickets fetched successfully",
+    ),
   );
 });
 
@@ -505,12 +582,12 @@ exports.getTicketById = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   // Validate ObjectId format
   if (!mongoose.Types.ObjectId.isValid(ticketId)) {
-    return next(new AppError('Invalid ticket ID format', 400));
+    return next(new AppError("Invalid ticket ID format", 400));
   }
 
   // NOTE: TicketSchema does not use softDeletePlugin, no isDeleted field
@@ -518,31 +595,40 @@ exports.getTicketById = catchAsync(async (req, res, next) => {
     _id: ticketId,
     admin: adminId,
   })
-    .populate('raisedBy', 'name email role department')
-    .populate('assignedTo', 'name email role department')
-    .populate('resolvedBy', 'name email')
-    .populate('replies.user', 'name email role');
+    .populate("raisedBy", "name email role department")
+    .populate("assignedTo", "name email role department")
+    .populate("resolvedBy", "name email")
+    .populate("replies.user", "name email role");
 
   if (!ticket) {
-    return next(new AppError('Ticket not found', 404));
+    return next(new AppError("Ticket not found", 404));
   }
 
   // Handle Admin raiser role
-  if (ticket.raisedBy && !ticket.raisedBy.role && ticket.raisedByType === 'Admin') {
-    ticket.raisedBy.role = 'ADMIN';
+  if (
+    ticket.raisedBy &&
+    !ticket.raisedBy.role &&
+    ticket.raisedByType === "Admin"
+  ) {
+    ticket.raisedBy.role = "ADMIN";
   }
 
   // Authorization: User can only view their own tickets (unless admin)
   const user = await getRequesterUser(req);
-  if (!['ADMIN'].includes(user?.role)) {
-    if (!ticket.raisedBy._id.equals(userId) && !ticket.assignedTo?._id.equals(userId)) {
-      return next(new AppError('You do not have permission to view this ticket', 403));
+  if (!["ADMIN"].includes(user?.role)) {
+    if (
+      !ticket.raisedBy._id.equals(userId) &&
+      !ticket.assignedTo?._id.equals(userId)
+    ) {
+      return next(
+        new AppError("You do not have permission to view this ticket", 403),
+      );
     }
   }
 
-  res.status(200).json(
-    new ApiResponse(200, { ticket }, 'Ticket fetched successfully')
-  );
+  res
+    .status(200)
+    .json(new ApiResponse(200, { ticket }, "Ticket fetched successfully"));
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -556,11 +642,11 @@ exports.addReply = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId || !userId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   if (!mongoose.Types.ObjectId.isValid(ticketId)) {
-    return next(new AppError('Invalid ticket ID format', 400));
+    return next(new AppError("Invalid ticket ID format", 400));
   }
 
   const ticket = await Ticket.findOne({
@@ -569,7 +655,7 @@ exports.addReply = catchAsync(async (req, res, next) => {
   });
 
   if (!ticket) {
-    return next(new AppError('Ticket not found', 404));
+    return next(new AppError("Ticket not found", 404));
   }
 
   // Authorization:
@@ -578,19 +664,25 @@ exports.addReply = catchAsync(async (req, res, next) => {
   // - The RAISER (sales executive) CANNOT send additional messages after creation
   //   (their initial message is the ticket description itself)
   const user = await getRequesterUser(req);
-  if (!['ADMIN'].includes(user?.role) && !ticket.assignedTo?.equals(userId)) {
+  if (!["ADMIN"].includes(user?.role) && !ticket.assignedTo?.equals(userId)) {
     const isSub = await isSubordinate(user, ticket.raisedBy, adminId);
     if (!isSub) {
-      return next(new AppError('Only the assigned handler can reply to this ticket', 403));
+      return next(
+        new AppError("Only the assigned handler can reply to this ticket", 403),
+      );
     }
   }
 
   // Add reply and update status to IN_PROGRESS when assignee first replies
-  const updatedTicket = await ticketService.addReplyToTicket(ticket, message, user);
+  const updatedTicket = await ticketService.addReplyToTicket(
+    ticket,
+    message,
+    user,
+  );
 
   // Mark ticket as IN_PROGRESS when assignee replies (if still OPEN)
-  if (ticket.status === 'OPEN') {
-    updatedTicket.status = 'IN_PROGRESS';
+  if (ticket.status === "OPEN") {
+    updatedTicket.status = "IN_PROGRESS";
     await updatedTicket.save();
   }
 
@@ -598,9 +690,9 @@ exports.addReply = catchAsync(async (req, res, next) => {
   await AuditLog.create({
     admin: adminId,
     performedBy: userId,
-    performerType: 'USER',
-    action: 'TICKET_UPDATED',
-    targetModel: 'Ticket',
+    performerType: "USER",
+    action: "TICKET_UPDATED",
+    targetModel: "Ticket",
     targetId: ticketId,
     changes: { replyAdded: true },
   });
@@ -611,25 +703,31 @@ exports.addReply = catchAsync(async (req, res, next) => {
       await notificationService.createNotification({
         admin: adminId,
         recipient: ticket.raisedBy,
-        type: 'TICKET_UPDATED',
-        title: 'Ticket Replied',
+        type: "TICKET_UPDATED",
+        title: "Ticket Replied",
         body: `${user.name} replied to your ticket: "${ticket.subject}"`,
-        refType: 'Ticket',
+        refType: "Ticket",
         refId: ticketId,
       });
     }
   } catch (err) {
-    console.error('Error sending notification:', err);
+    console.error("Error sending notification:", err);
   }
 
   await updatedTicket.populate([
-    { path: 'raisedBy', select: 'name email' },
-    { path: 'assignedTo', select: 'name email' },
+    { path: "raisedBy", select: "name email" },
+    { path: "assignedTo", select: "name email" },
   ]);
 
-  res.status(200).json(
-    new ApiResponse(200, { ticket: updatedTicket }, 'Reply added successfully')
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { ticket: updatedTicket },
+        "Reply added successfully",
+      ),
+    );
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -644,11 +742,11 @@ exports.escalateTicket = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId || !userId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   if (!mongoose.Types.ObjectId.isValid(ticketId)) {
-    return next(new AppError('Invalid ticket ID format', 400));
+    return next(new AppError("Invalid ticket ID format", 400));
   }
 
   const ticket = await Ticket.findOne({
@@ -657,31 +755,33 @@ exports.escalateTicket = catchAsync(async (req, res, next) => {
   });
 
   if (!ticket) {
-    return next(new AppError('Ticket not found', 404));
+    return next(new AppError("Ticket not found", 404));
   }
 
   // Authorization: Only assignee, admin or manager can escalate
   const user = await getRequesterUser(req);
-  if (!['ADMIN'].includes(user?.role) && !ticket.assignedTo?.equals(userId)) {
+  if (!["ADMIN"].includes(user?.role) && !ticket.assignedTo?.equals(userId)) {
     const isSub = await isSubordinate(user, ticket.raisedBy, adminId);
     if (!isSub) {
-      return next(new AppError('Only the assignee or admin can escalate this ticket', 403));
+      return next(
+        new AppError(
+          "Only the assignee or admin can escalate this ticket",
+          403,
+        ),
+      );
     }
   }
 
   try {
-    const { ticket: updatedTicket, nextAssignee } = await ticketService.escalateTicket(
-      ticket,
-      user,
-      req.admin
-    );
+    const { ticket: updatedTicket, nextAssignee } =
+      await ticketService.escalateTicket(ticket, user, req.admin);
 
     // Add escalation note
     if (escalationReason) {
       await ticketService.addReplyToTicket(
         updatedTicket,
         `ESCALATION: ${escalationReason}`,
-        user
+        user,
       );
     }
 
@@ -691,41 +791,47 @@ exports.escalateTicket = catchAsync(async (req, res, next) => {
         await notificationService.createNotification({
           admin: adminId,
           recipient: nextAssignee._id,
-          type: 'TICKET_ESCALATED',
-          title: 'Ticket Escalated',
+          type: "TICKET_ESCALATED",
+          title: "Ticket Escalated",
           body: `Ticket escalated: "${updatedTicket.subject}"`,
-          refType: 'Ticket',
+          refType: "Ticket",
           refId: ticketId,
           priority: updatedTicket.priority,
         });
 
-        const assigneeUser = await User.findById(nextAssignee._id).select('fcmToken');
+        const assigneeUser = await User.findById(nextAssignee._id).select(
+          "fcmToken",
+        );
         if (assigneeUser?.fcmToken) {
           await notificationService.sendPushNotification(
             assigneeUser.fcmToken,
-            'Ticket Escalated',
-            updatedTicket.subject
+            "Ticket Escalated",
+            updatedTicket.subject,
           );
         }
       } catch (err) {
-        console.error('Error sending escalation notification:', err);
+        console.error("Error sending escalation notification:", err);
       }
     }
 
     await updatedTicket.populate([
-      { path: 'raisedBy', select: 'name email' },
-      { path: 'assignedTo', select: 'name email' },
+      { path: "raisedBy", select: "name email" },
+      { path: "assignedTo", select: "name email" },
     ]);
 
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        { ticket: updatedTicket, escalatedTo: nextAssignee },
-        'Ticket escalated successfully'
-      )
-    );
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { ticket: updatedTicket, escalatedTo: nextAssignee },
+          "Ticket escalated successfully",
+        ),
+      );
   } catch (error) {
-    return next(new AppError(error.message || 'Cannot escalate ticket further', 400));
+    return next(
+      new AppError(error.message || "Cannot escalate ticket further", 400),
+    );
   }
 });
 
@@ -741,11 +847,11 @@ exports.resolveTicket = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId || !userId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   if (!mongoose.Types.ObjectId.isValid(ticketId)) {
-    return next(new AppError('Invalid ticket ID format', 400));
+    return next(new AppError("Invalid ticket ID format", 400));
   }
 
   const ticket = await Ticket.findOne({
@@ -754,15 +860,17 @@ exports.resolveTicket = catchAsync(async (req, res, next) => {
   });
 
   if (!ticket) {
-    return next(new AppError('Ticket not found', 404));
+    return next(new AppError("Ticket not found", 404));
   }
 
   // Authorization: Only assignee, admin or manager can resolve
   const user = await getRequesterUser(req);
-  if (!['ADMIN'].includes(user?.role) && !ticket.assignedTo?.equals(userId)) {
+  if (!["ADMIN"].includes(user?.role) && !ticket.assignedTo?.equals(userId)) {
     const isSub = await isSubordinate(user, ticket.raisedBy, adminId);
     if (!isSub) {
-      return next(new AppError('Only the assignee or admin can resolve this ticket', 403));
+      return next(
+        new AppError("Only the assignee or admin can resolve this ticket", 403),
+      );
     }
   }
 
@@ -771,7 +879,7 @@ exports.resolveTicket = catchAsync(async (req, res, next) => {
     ticket,
     resolutionMessage,
     user,
-    req.admin
+    req.admin,
   );
 
   // Notify raiser
@@ -779,25 +887,31 @@ exports.resolveTicket = catchAsync(async (req, res, next) => {
     await notificationService.createNotification({
       admin: adminId,
       recipient: resolvedTicket.raisedBy,
-      type: 'TICKET_RESOLVED',
-      title: 'Ticket Resolved',
+      type: "TICKET_RESOLVED",
+      title: "Ticket Resolved",
       body: `Your ticket "${resolvedTicket.subject}" has been resolved`,
-      refType: 'Ticket',
+      refType: "Ticket",
       refId: ticketId,
     });
   } catch (err) {
-    console.error('Error sending resolution notification:', err);
+    console.error("Error sending resolution notification:", err);
   }
 
   await resolvedTicket.populate([
-    { path: 'raisedBy', select: 'name email' },
-    { path: 'assignedTo', select: 'name email' },
-    { path: 'resolvedBy', select: 'name email' },
+    { path: "raisedBy", select: "name email" },
+    { path: "assignedTo", select: "name email" },
+    { path: "resolvedBy", select: "name email" },
   ]);
 
-  res.status(200).json(
-    new ApiResponse(200, { ticket: resolvedTicket }, 'Ticket resolved successfully')
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { ticket: resolvedTicket },
+        "Ticket resolved successfully",
+      ),
+    );
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -812,11 +926,11 @@ exports.closeTicket = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId || !userId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   if (!mongoose.Types.ObjectId.isValid(ticketId)) {
-    return next(new AppError('Invalid ticket ID format', 400));
+    return next(new AppError("Invalid ticket ID format", 400));
   }
 
   const ticket = await Ticket.findOne({
@@ -825,7 +939,7 @@ exports.closeTicket = catchAsync(async (req, res, next) => {
   });
 
   if (!ticket) {
-    return next(new AppError('Ticket not found', 404));
+    return next(new AppError("Ticket not found", 404));
   }
 
   const user = await getRequesterUser(req);
@@ -835,7 +949,7 @@ exports.closeTicket = catchAsync(async (req, res, next) => {
       ticket,
       closureNotes,
       user,
-      req.admin
+      req.admin,
     );
 
     // Notify raiser of closure
@@ -843,24 +957,30 @@ exports.closeTicket = catchAsync(async (req, res, next) => {
       await notificationService.createNotification({
         admin: adminId,
         recipient: closedTicket.raisedBy,
-        type: 'TICKET_CLOSED',
-        title: 'Ticket Closed',
+        type: "TICKET_CLOSED",
+        title: "Ticket Closed",
         body: `Your ticket "${closedTicket.subject}" has been closed`,
-        refType: 'Ticket',
+        refType: "Ticket",
         refId: ticketId,
       });
     } catch (err) {
-      console.error('Error sending closure notification:', err);
+      console.error("Error sending closure notification:", err);
     }
 
     await closedTicket.populate([
-      { path: 'raisedBy', select: 'name email' },
-      { path: 'resolvedBy', select: 'name email' },
+      { path: "raisedBy", select: "name email" },
+      { path: "resolvedBy", select: "name email" },
     ]);
 
-    res.status(200).json(
-      new ApiResponse(200, { ticket: closedTicket }, 'Ticket closed successfully')
-    );
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { ticket: closedTicket },
+          "Ticket closed successfully",
+        ),
+      );
   } catch (error) {
     return next(new AppError(error.message, 400));
   }
@@ -877,11 +997,11 @@ exports.reassignTicket = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId || !userId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   if (!mongoose.Types.ObjectId.isValid(ticketId)) {
-    return next(new AppError('Invalid ticket ID format', 400));
+    return next(new AppError("Invalid ticket ID format", 400));
   }
 
   const ticket = await Ticket.findOne({
@@ -890,55 +1010,58 @@ exports.reassignTicket = catchAsync(async (req, res, next) => {
   });
 
   if (!ticket) {
-    return next(new AppError('Ticket not found', 404));
+    return next(new AppError("Ticket not found", 404));
   }
 
   // Authorization: Only admin or manager can reassign
   const user = await getRequesterUser(req);
-  if (!['ADMIN'].includes(user?.role)) {
+  if (!["ADMIN"].includes(user?.role)) {
     const isSub = await isSubordinate(user, ticket.raisedBy, adminId);
     if (!isSub) {
-      return next(new AppError('Only admin can reassign tickets', 403));
+      return next(new AppError("Only admin can reassign tickets", 403));
     }
   }
 
   try {
-    const { ticket: updatedTicket, newAssignee } = await ticketService.reassignTicket(
-      ticket,
-      assignedTo,
-      user,
-      req.admin,
-      reason
-    );
+    const { ticket: updatedTicket, newAssignee } =
+      await ticketService.reassignTicket(
+        ticket,
+        assignedTo,
+        user,
+        req.admin,
+        reason,
+      );
 
     // Notify new assignee
     try {
       await notificationService.createNotification({
         admin: adminId,
         recipient: newAssignee._id,
-        type: 'TICKET_CREATED',
-        title: 'Ticket Assigned',
+        type: "TICKET_CREATED",
+        title: "Ticket Assigned",
         body: `Ticket assigned to you: "${updatedTicket.subject}"`,
-        refType: 'Ticket',
+        refType: "Ticket",
         refId: ticketId,
         priority: updatedTicket.priority,
       });
     } catch (err) {
-      console.error('Error sending reassignment notification:', err);
+      console.error("Error sending reassignment notification:", err);
     }
 
     await updatedTicket.populate([
-      { path: 'raisedBy', select: 'name email' },
-      { path: 'assignedTo', select: 'name email' },
+      { path: "raisedBy", select: "name email" },
+      { path: "assignedTo", select: "name email" },
     ]);
 
-    res.status(200).json(
-      new ApiResponse(
-        200,
-        { ticket: updatedTicket, assignedTo: newAssignee },
-        'Ticket reassigned successfully'
-      )
-    );
+    res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { ticket: updatedTicket, assignedTo: newAssignee },
+          "Ticket reassigned successfully",
+        ),
+      );
   } catch (error) {
     return next(new AppError(error.message, 400));
   }
@@ -954,11 +1077,11 @@ exports.updateTicketStatus = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId || !userId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   if (!mongoose.Types.ObjectId.isValid(ticketId)) {
-    return next(new AppError('Invalid ticket ID format', 400));
+    return next(new AppError("Invalid ticket ID format", 400));
   }
 
   const ticket = await Ticket.findOne({
@@ -967,7 +1090,7 @@ exports.updateTicketStatus = catchAsync(async (req, res, next) => {
   });
 
   if (!ticket) {
-    return next(new AppError('Ticket not found', 404));
+    return next(new AppError("Ticket not found", 404));
   }
 
   const user = await getRequesterUser(req);
@@ -975,53 +1098,84 @@ exports.updateTicketStatus = catchAsync(async (req, res, next) => {
   let updatedTicket = ticket;
   const targetStatus = status.toUpperCase();
 
-  if (targetStatus === 'OPEN') {
-    ticket.status = 'OPEN';
+  if (targetStatus === "OPEN") {
+    ticket.status = "OPEN";
     await ticket.save();
-  } else if (targetStatus === 'IN_PROGRESS') {
-    ticket.status = 'IN_PROGRESS';
+  } else if (targetStatus === "IN_PROGRESS") {
+    ticket.status = "IN_PROGRESS";
     await ticket.save();
-  } else if (targetStatus === 'RESOLVED') {
-    updatedTicket = await ticketService.resolveTicket(ticket, resolutionMessage || message || "Resolved by Admin", user, req.admin);
-  } else if (targetStatus === 'CLOSED') {
-    if (ticket.status !== 'RESOLVED' && ticket.status !== 'CLOSED') {
-      await ticketService.resolveTicket(ticket, 'Resolved prior to closing', user, req.admin);
+  } else if (targetStatus === "RESOLVED") {
+    updatedTicket = await ticketService.resolveTicket(
+      ticket,
+      resolutionMessage || message || "Resolved by Admin",
+      user,
+      req.admin,
+    );
+  } else if (targetStatus === "CLOSED") {
+    if (ticket.status !== "RESOLVED" && ticket.status !== "CLOSED") {
+      await ticketService.resolveTicket(
+        ticket,
+        "Resolved prior to closing",
+        user,
+        req.admin,
+      );
     }
-    updatedTicket = await ticketService.closeTicket(ticket, closureNotes || message || "Closed by Admin", user, req.admin);
-  } else if (targetStatus === 'ESCALATED') {
+    updatedTicket = await ticketService.closeTicket(
+      ticket,
+      closureNotes || message || "Closed by Admin",
+      user,
+      req.admin,
+    );
+  } else if (targetStatus === "ESCALATED") {
     try {
-      const { ticket: escTicket } = await ticketService.escalateTicket(ticket, user, req.admin);
+      const { ticket: escTicket } = await ticketService.escalateTicket(
+        ticket,
+        user,
+        req.admin,
+      );
       if (reason || message) {
-        await ticketService.addReplyToTicket(escTicket, `ESCALATION: ${reason || message}`, user);
+        await ticketService.addReplyToTicket(
+          escTicket,
+          `ESCALATION: ${reason || message}`,
+          user,
+        );
       }
       updatedTicket = escTicket;
     } catch (error) {
-      return next(new AppError(error.message || 'Cannot escalate ticket further', 400));
+      return next(
+        new AppError(error.message || "Cannot escalate ticket further", 400),
+      );
     }
   } else {
-    return next(new AppError('Invalid status value', 400));
+    return next(new AppError("Invalid status value", 400));
   }
 
   // Create audit log
   await AuditLog.create({
     admin: adminId,
     performedBy: userId,
-    performerType: 'USER',
-    action: 'TICKET_UPDATED',
-    targetModel: 'Ticket',
+    performerType: "USER",
+    action: "TICKET_UPDATED",
+    targetModel: "Ticket",
     targetId: ticketId,
     changes: { status: targetStatus },
   });
 
   await updatedTicket.populate([
-    { path: 'raisedBy', select: 'name email role' },
-    { path: 'assignedTo', select: 'name email role' },
-    { path: 'resolvedBy', select: 'name email' },
+    { path: "raisedBy", select: "name email role" },
+    { path: "assignedTo", select: "name email role" },
+    { path: "resolvedBy", select: "name email" },
   ]);
 
-  res.status(200).json(
-    new ApiResponse(200, { ticket: updatedTicket }, `Ticket status updated to ${status}`)
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { ticket: updatedTicket },
+        `Ticket status updated to ${status}`,
+      ),
+    );
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -1033,7 +1187,7 @@ exports.getTicketStats = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   const user = await getRequesterUser(req);
@@ -1041,12 +1195,14 @@ exports.getTicketStats = catchAsync(async (req, res, next) => {
   // Get stats for the user or entire organization
   const stats = await ticketService.getTicketStats(
     req.admin,
-    ['ADMIN'].includes(user?.role) ? null : userId
+    ["ADMIN"].includes(user?.role) ? null : userId,
   );
 
-  res.status(200).json(
-    new ApiResponse(200, { stats }, 'Ticket statistics fetched successfully')
-  );
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, { stats }, "Ticket statistics fetched successfully"),
+    );
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -1057,16 +1213,30 @@ exports.getAssigneeOptions = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id;
 
   if (!adminId) {
-    return next(new AppError('Authentication required', 401));
+    return next(new AppError("Authentication required", 401));
   }
 
   // Get all active team leaders and managers
-  const managerRoles = ['SALES_TL', 'SALES_MANAGER', 'MANAGEMENT_TL', 'MANAGEMENT_MANAGER'];
-  const assignees = await ticketService.getAssigneesByRole(req.admin, managerRoles);
-
-  res.status(200).json(
-    new ApiResponse(200, { assignees }, 'Assignee options fetched successfully')
+  const managerRoles = [
+    "SALES_TL",
+    "SALES_MANAGER",
+    "MANAGEMENT_TL",
+    "MANAGEMENT_MANAGER",
+  ];
+  const assignees = await ticketService.getAssigneesByRole(
+    req.admin,
+    managerRoles,
   );
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { assignees },
+        "Assignee options fetched successfully",
+      ),
+    );
 });
 
 module.exports = exports;

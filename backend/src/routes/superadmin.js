@@ -2,6 +2,9 @@ const express = require('express');
 const superAdminController = require('../controllers/superadmin.controller');
 const { requireAuth, requireSuperAdmin } = require('../middleware/auth');
 
+const { updateProfileSchema } = require('../validators/user.validator');
+const validate = require('../middleware/validate');
+
 const router = express.Router();
 
 // Public route
@@ -11,6 +14,10 @@ router.post('/login', superAdminController.login);
 router.use(requireSuperAdmin);
 
 router.get('/admin-login-logs', superAdminController.getAdminLoginLogs);
+
+// Profile
+router.get('/me', superAdminController.getProfile);
+router.patch('/me', validate(updateProfileSchema, 'body'), superAdminController.updateProfile);
 
 // Admin Management
 router.get('/admins', superAdminController.getAllAdmins);

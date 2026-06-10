@@ -1,15 +1,13 @@
 import { useOutletContext } from "react-router-dom";
 import AllAssigned from "./AllAssigned";
 
-// Thin wrapper for the index route — passes the lifted projects/mutator from
-// ManagementEmployeeMyProjects layout through `useOutletContext()` so all three
-// tabs share the same state.
 export default function AllAssignedRoute() {
-  const { projects, updateProject } = useOutletContext();
+  const { tasks, loading, onRefresh } = useOutletContext();
   return (
     <AllAssigned
-      projects={projects}
-      updateProject={updateProject}
+      tasks={tasks}
+      loading={loading}
+      onRefresh={onRefresh}
       title="My Projects"
     />
   );

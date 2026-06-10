@@ -45,7 +45,6 @@ const SalesManagerProfile = () => {
       name={profileData.name || ""}
       email={profileData.email || ""}
       phone={profileData.phone || ""}
-      employeeId={profileData.employeeId || ""}
       role={profileData.role || "Sales Manager"}
       department={
         profileData.department?.name || profileData.department || "Sales"

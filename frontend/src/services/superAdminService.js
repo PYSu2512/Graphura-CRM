@@ -1,9 +1,9 @@
 /**
  * SUPER ADMIN SERVICE — API layer for Super Admin operations
  */
-import apiClient from './apiClient';
+import apiClient from "./apiClient";
 
-const BASE = '/superadmin';
+const BASE = "/superadmin";
 
 export const getAllAdmins = async (params = {}) => {
   const { data } = await apiClient.get(`${BASE}/admins`, { params });
@@ -21,7 +21,9 @@ export const getAdminById = async (id) => {
 };
 
 export const toggleAdminStatus = async (id, isActive) => {
-  const { data } = await apiClient.patch(`${BASE}/admins/${id}/status`, { isActive });
+  const { data } = await apiClient.patch(`${BASE}/admins/${id}/status`, {
+    isActive,
+  });
   return data.data;
 };
 
@@ -31,15 +33,38 @@ export const getSupportTickets = async (params = {}) => {
   return data.data;
 };
 
-export const updateTicketStatus = async (id, status, resolutionMessage = '') => {
-  const { data } = await apiClient.patch(`${BASE}/support-tickets/${id}/status`, { 
-    status, 
-    resolutionMessage 
-  });
+export const updateTicketStatus = async (
+  id,
+  status,
+  resolutionMessage = "",
+) => {
+  const { data } = await apiClient.patch(
+    `${BASE}/support-tickets/${id}/status`,
+    {
+      status,
+      resolutionMessage,
+    },
+  );
   return data.data;
 };
 
 export const getAdminLoginLogs = async () => {
   const { data } = await apiClient.get(`${BASE}/admin-login-logs`);
+  return data.data;
+};
+
+// ─── Profile ────────────────────────────────────────────────────────────────
+export const getSuperAdminProfile = async () => {
+  const { data } = await apiClient.get(`${BASE}/me`);
+  return data.data;
+};
+
+export const updateSuperAdminProfile = async (profileData) => {
+  console.log("Updating super admin:", profileData);
+
+  const { data } = await apiClient.patch(`${BASE}/me`, profileData);
+
+  console.log("Response:", data);
+
   return data.data;
 };

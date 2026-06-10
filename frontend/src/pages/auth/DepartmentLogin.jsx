@@ -192,6 +192,8 @@ const DepartmentLogin = () => {
         longitude: location.longitude,
         rememberMe,
       });
+      console.log("LOGIN RESPONSE:", response);
+      console.log("NEXT ROUTE:", response?.nextRoute);
 
       sessionStorage.setItem("nextRoute", response?.nextRoute || "/department");
 

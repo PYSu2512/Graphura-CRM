@@ -32,6 +32,7 @@ const {
   User,
   PasswordReset,
   AuditLog,
+  SuperAdmin,
 } = require("../models/index");
 const logger = require("../utils/logger");
 const { generateResetToken } = require("../utils/tokenGenerator");
@@ -927,104 +928,137 @@ exports.changePassword = catchAsync(async (req, res, next) => {
   const { currentPassword, newPassword } = req.body;
   const ipAddress = getClientIp(req);
 
-  // 1. Fetch authenticated user
-  const user = await User.findOne({
-    _id: req.user._id,
-    isDeleted: false,
-    isActive: true
-  });
+  // 1. Fetch authenticated account based on userType
+  let account;
+  if (req.userType === "USER") {
+    account = await User.findOne({
+      _id: req.user._id,
+      isDeleted: false,
+      isActive: true,
+    });
+  } else if (req.userType === "ADMIN") {
+    account = await Admin.findOne({
+      _id: req.user._id,
+      isDeleted: false,
+      isActive: true,
+    });
+  } else if (req.userType === "SUPER_ADMIN") {
+    account = await SuperAdmin.findOne({ _id: req.user._id, isActive: true });
+  }
 
-  if (!user) {
-    return next(new AppError('User not found or inactive', 404));
+  if (!account) {
+    return next(new AppError("Account not found or inactive", 404));
   }
 
   // 2. Verify current password
   const isCurrentPasswordValid = await comparePassword(
     currentPassword,
-    user.password
+    account.password,
   );
 
   if (!isCurrentPasswordValid) {
-    return next(new AppError('Current password is incorrect', 401));
+    return next(new AppError("Current password is incorrect", 422));
   }
 
   // 3. Prevent password reuse
-  const isSameAsCurrent = await comparePassword(newPassword, user.password);
+  const isSameAsCurrent = await comparePassword(newPassword, account.password);
   if (isSameAsCurrent) {
-    return next(new AppError('New password cannot be the same as your current password', 422));
-  }
-
-  if (user.passwordHistory && user.passwordHistory.length > 0) {
-    for (const past of user.passwordHistory) {
-      const isReused = await bcrypt.compare(newPassword, past.hash);
-      if (isReused) {
-        return next(new AppError('Cannot reuse a recently used password', 422));
-      }
-    }
+    return next(
+      new AppError(
+        "New password cannot be the same as your current password",
+        422,
+      ),
+    );
   }
 
   // 4. Hash new password
   const newHashedPassword = await hashPassword(newPassword);
 
-  // 5. Update user
-  user.password = newHashedPassword;
-  user.mustChangePassword = false;
-  user.isFirstLogin = false;
-  user.lastPasswordResetAt = new Date();
-  user.passwordResetCount = (user.passwordResetCount || 0) + 1;
+  // 5. User-Specific Logic (Password History, etc)
+  if (req.userType === "USER") {
+    if (account.passwordHistory && account.passwordHistory.length > 0) {
+      for (const past of account.passwordHistory) {
+        const isReused = await bcrypt.compare(newPassword, past.hash);
+        if (isReused) {
+          return next(
+            new AppError("Cannot reuse a recently used password", 422),
+          );
+        }
+      }
+    }
 
-  // 6. Password History Maintenance
-  if (!user.passwordHistory) {
-    user.passwordHistory = [];
+    account.mustChangePassword = false;
+    account.isFirstLogin = false;
+    account.lastPasswordResetAt = new Date();
+    account.passwordResetCount = (account.passwordResetCount || 0) + 1;
+
+    if (!account.passwordHistory) {
+      account.passwordHistory = [];
+    }
+    account.passwordHistory.unshift({
+      hash: newHashedPassword,
+      changedAt: new Date(),
+    });
+    if (account.passwordHistory.length > 5) {
+      account.passwordHistory = account.passwordHistory.slice(0, 5);
+    }
   }
-  user.passwordHistory.unshift({
-    hash: newHashedPassword,
-    changedAt: new Date()
-  });
-  if (user.passwordHistory.length > 5) {
-    user.passwordHistory = user.passwordHistory.slice(0, 5);
-  }
 
-  // 7. Save user
-  await user.save();
+  // 6. Update password
+  account.password = newHashedPassword;
+  await account.save();
 
-  // 8. Revoke Refresh Tokens
+  // 7. Revoke Refresh Tokens dynamically
   await RefreshToken.updateMany(
     {
-      holderId: user._id,
-      holderType: 'USER',
-      isRevoked: false
+      holderId: account._id,
+      holderType: req.userType,
+      isRevoked: false,
     },
     {
       $set: {
         isRevoked: true,
         revokedAt: new Date(),
-        revokedReason: 'PASSWORD_CHANGED'
-      }
-    }
+        revokedReason: "PASSWORD_CHANGED",
+      },
+    },
   );
 
-  // 9. Audit Log
+  // 8. Audit Log dynamically
+  let targetModel;
+  let adminRef = null;
+
+  if (req.userType === "USER") {
+    targetModel = "User";
+    adminRef = account.admin;
+  } else if (req.userType === "ADMIN") {
+    targetModel = "Admin";
+    adminRef = account._id;
+  } else if (req.userType === "SUPER_ADMIN") {
+    targetModel = "SuperAdmin";
+    adminRef = null;
+  }
+
   await AuditLog.create({
-    admin: user.admin,
-    performedBy: user._id,
-    performerType: 'USER',
-    action: 'PASSWORD_CHANGED',
-    targetModel: 'User',
-    targetId: user._id,
+    admin: adminRef,
+    performedBy: account._id,
+    performerType: req.userType,
+    action: "PASSWORD_CHANGED",
+    targetModel: targetModel,
+    targetId: account._id,
     ipAddress: req.ip || ipAddress,
-    note: 'Password changed from profile settings'
+    note: "Password changed from profile settings",
   });
 
-  // 10. Response
+  // 9. Response
   return res.status(200).json(
     new ApiResponse(
       200,
       {
-        forceLogout: true
+        forceLogout: true,
       },
-      'Password changed successfully. Please login again.'
-    )
+      "Password changed successfully. Please login again.",
+    ),
   );
 });
 

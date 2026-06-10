@@ -45,7 +45,6 @@ const ManagementTeamLeaderProfile = () => {
       name={profileData.name || ""}
       email={profileData.email || ""}
       phone={profileData.phone || ""}
-      employeeId={profileData.employeeId || ""}
       role={profileData.role || "Management Team Leader"}
       department={
         profileData.department?.name || profileData.department || "Management"
@@ -61,5 +60,5 @@ const ManagementTeamLeaderProfile = () => {
     />
   );
 };
-
+console.log("MANAGEMENT TL PROFILE MOUNTED");
 export default ManagementTeamLeaderProfile;

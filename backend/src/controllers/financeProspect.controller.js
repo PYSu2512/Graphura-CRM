@@ -323,7 +323,7 @@ exports.sendToClient = catchAsync(async (req, res, next) => {
       paymentStatus,
       termsAndConditions,
       pdfPath: prospect.termsAndConditionsPdf,
-      pdfUrl,
+      pdfUrl: prospect.termsAndConditionsPdf?.startsWith('http') ? prospect.termsAndConditionsPdf : null,
     });
 
     prospect.clientEmailStatus = 'SENT';

@@ -705,3 +705,78 @@ exports.updateBankDetails = catchAsync(async (req, res, next) => {
     }, 'Bank details updated. Onboarding complete!')
   );
 });
+
+/**
+ * Handle profile update for department users
+ */
+exports.updateProfile = catchAsync(async (req, res, next) => {
+  const userId = req.user?._id;
+
+  if (!userId) {
+    return next(new AppError('Authentication required', 401));
+  }
+
+  const { name, phone, address, email } = req.body;
+
+  const user = await User.findById(userId);
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
+
+  const updates = {};
+  const previousValues = {};
+
+  if (name && name !== user.name) {
+    previousValues.name = user.name;
+    user.name = name;
+    updates.name = name;
+  }
+
+  if (phone && phone !== user.phone) {
+    previousValues.phone = user.phone;
+    user.phone = phone;
+    updates.phone = phone;
+  }
+
+  if (address !== undefined && address !== user.address) {
+    previousValues.address = user.address;
+    user.address = address;
+    updates.address = address;
+  }
+
+  if (email && email.toLowerCase() !== user.email.toLowerCase()) {
+    // Check for email uniqueness within the same tenant
+    const existingUser = await User.findOne({
+      email: email.toLowerCase(),
+      admin: user.admin,
+      _id: { $ne: userId }
+    });
+    if (existingUser) {
+      return next(new AppError("Email is already registered in your organization", 409));
+    }
+    previousValues.email = user.email;
+    user.email = email.toLowerCase();
+    updates.email = email.toLowerCase();
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await user.save();
+
+    // Log the activity
+    await AuditLog.create({
+      admin: user.admin,
+      performedBy: user._id,
+      performerType: 'USER',
+      action: 'PROFILE_UPDATED',
+      targetModel: 'User',
+      targetId: user._id,
+      before: previousValues,
+      after: updates,
+      note: 'User updated personal profile information'
+    });
+  }
+
+  res.status(200).json(
+    new ApiResponse(200, { user }, 'Profile updated successfully.')
+  );
+});

@@ -2,12 +2,14 @@ import { useOutletContext } from "react-router-dom";
 import AllAssigned from "./AllAssigned";
 
 export default function ActiveProjects() {
-  const { projects, updateProject } = useOutletContext();
-  const active = projects.filter((p) => p.status === "In Progress");
+  const { tasks, loading, onRefresh } = useOutletContext();
+  // Active = In Progress + Review (employee is actively working)
+  const active = tasks.filter((t) => ["In Progress", "Review"].includes(t.status));
   return (
     <AllAssigned
-      projects={active}
-      updateProject={updateProject}
+      tasks={active}
+      loading={loading}
+      onRefresh={onRefresh}
       title="Active Projects"
     />
   );

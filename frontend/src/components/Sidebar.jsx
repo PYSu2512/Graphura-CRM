@@ -463,11 +463,6 @@ const MENUS = {
             path: "/management-employee/my-projects",
             icon: FolderOpen,
           },
-          {
-            name: "Activity",
-            path: "/management-employee/activity",
-            icon: Activity,
-          },
         ],
       },
       {
