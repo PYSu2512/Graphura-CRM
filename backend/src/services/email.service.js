@@ -619,3 +619,91 @@ module.exports = {
   sendInvoiceEmail,
   sendWorkOrderEmail,
 };
+
+/**
+ * Send Client Project Tracking Link Email
+ * @param {object} payload
+ * @param {string} payload.email       - Client email
+ * @param {string} payload.clientName  - Client full name
+ * @param {string} payload.companyName - Client company
+ * @param {string} payload.trackingUrl - Full magic link URL
+ * @param {string} payload.senderName  - Admin company name
+ * @param {number} payload.projectCount - How many projects the client has
+ */
+const sendClientTrackingLinkEmail = async (payload) => {
+  try {
+    if (!process.env.BREVO_API_KEY) throw new Error('BREVO_API_KEY is not configured');
+    if (!isValidEmail(payload.email))  throw new Error('Client email is missing or invalid');
+
+    const { email, clientName, companyName, trackingUrl, senderName, projectCount = 1 } = payload;
+
+    const response = await axios.post(
+      'https://api.brevo.com/v3/smtp/email',
+      {
+        sender: getSender(),
+        to: [{ email, name: clientName || 'Valued Client' }],
+        subject: `Your project tracking link — ${senderName || 'Graphura CRM'}`,
+        htmlContent: `<!DOCTYPE html><html><head><meta charset="UTF-8"/></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+<div style="max-width:600px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+  <div style="background:linear-gradient(135deg,#1e293b 0%,#2a465a 100%);padding:32px;color:#fff;text-align:center;">
+    <h1 style="margin:0 0 8px;font-size:24px;font-weight:900;">${senderName || 'Graphura CRM'}</h1>
+    <p style="margin:0;color:#94a3b8;font-size:14px;">Your project tracking link is ready</p>
+  </div>
+  <div style="padding:32px;">
+    <p style="margin:0 0 16px;font-size:16px;color:#1e293b;">Hi ${clientName || 'there'},</p>
+    <p style="margin:0 0 24px;line-height:1.7;color:#475569;">
+      You have <strong>${projectCount} active project${projectCount !== 1 ? 's' : ''}</strong> with ${companyName ? `<strong>${companyName}</strong>` : 'us'}.
+      Use the button below to view your real-time project progress, milestones, payment status, and updates — no login required.
+    </p>
+    <div style="text-align:center;margin:32px 0;">
+      <a href="${trackingUrl}"
+         style="background:linear-gradient(135deg,#2a465a,#1e3a52);color:#fff;padding:16px 40px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;box-shadow:0 4px 14px rgba(42,70,90,0.4);">
+        Track My Projects →
+      </a>
+    </div>
+    <p style="margin:0 0 8px;font-size:13px;color:#94a3b8;text-align:center;">Or copy this link:</p>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;text-align:center;">
+      <a href="${trackingUrl}" style="color:#2563eb;font-size:12px;word-break:break-all;text-decoration:none;">${trackingUrl}</a>
+    </div>
+    <div style="margin:28px 0 0;padding:16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;">
+      <p style="margin:0;font-size:13px;color:#15803d;line-height:1.6;">
+        ✅ <strong>No login required</strong> — the link is unique to you.<br/>
+        🔒 <strong>Secure</strong> — this link is tied to your account only.<br/>
+        📱 <strong>Works on any device</strong> — mobile, tablet, or desktop.
+      </p>
+    </div>
+  </div>
+  <div style="padding:20px 32px;border-top:1px solid #e2e8f0;text-align:center;">
+    <p style="margin:0;font-size:12px;color:#94a3b8;">${senderName || 'Graphura CRM'} · Powered by Graphura</p>
+  </div>
+</div>
+</body></html>`,
+      },
+      {
+        headers: { 'api-key': process.env.BREVO_API_KEY.trim(), 'Content-Type': 'application/json' },
+        timeout: 10000,
+      },
+    );
+
+    const messageId = response.data.messageId || response.data.id || null;
+    logger.info(`Client tracking link email sent to ${email} (${messageId})`);
+    return { success: true, messageId };
+  } catch (error) {
+    const details = error.response?.data?.message || error.response?.data || error.message;
+    logger.error('Failed to send client tracking link email', details);
+    throw new Error(typeof details === 'string' ? details : 'Unable to send tracking link email.');
+  }
+};
+
+module.exports = {
+  sendOTPEmail,
+  sendRegistrationConfirmationEmail,
+  sendPasswordResetEmail,
+  sendPasswordResetConfirmationEmail,
+  sendProspectQuotationEmail,
+  sendRazorpayLinkEmail,
+  sendInvoiceEmail,
+  sendWorkOrderEmail,
+  sendClientTrackingLinkEmail,
+};

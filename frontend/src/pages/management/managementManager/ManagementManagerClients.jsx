@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Eye, Users, Briefcase, FolderOpen, FileCheck2, Loader2, Link as LinkIcon } from "lucide-react";
+import { Eye, Users, Briefcase, FolderOpen, FileCheck2, Loader2, Link as LinkIcon, Send } from "lucide-react";
 import {
   Heading,
   DashGrid,
@@ -43,6 +43,7 @@ export default function ManagementManagerClients() {
   const [stats,          setStats]          = useState(BLANK_STATS);
   const [selectedClient, setSelectedClient] = useState(null);
   const [loading,        setLoading]        = useState(true);
+  const [sendingLink,    setSendingLink]    = useState(null); // clientId being sent
 
   const loadClients = useCallback(async () => {
     setLoading(true);
@@ -63,6 +64,19 @@ export default function ManagementManagerClients() {
     const full = clients.find((c) => c.id === row.id);
     setSelectedClient(full ?? row);
     openModal("mm-client-view");
+  };
+
+  const handleSendTrackingLink = async (row) => {
+    setSendingLink(row.id);
+    try {
+      const res = await apiClient.post(`/management/clients/${row.id}/send-tracking-link`);
+      const { clientEmail, trackingUrl } = res.data?.data || {};
+      toast.success(`Tracking link sent to ${clientEmail}`);
+    } catch (err) {
+      toast.error(err?.message || "Failed to send tracking link");
+    } finally {
+      setSendingLink(null);
+    }
   };
 
   const kpis = [
@@ -108,6 +122,13 @@ export default function ManagementManagerClients() {
               tooltip: "View Projects",
               variant: "ghost",
               onClick: handleView,
+            },
+            {
+              icon:    <Send size={15} />,
+              tooltip: "Send Tracking Link",
+              variant: "primary",
+              onClick: handleSendTrackingLink,
+              disabled: (row) => sendingLink === row.id,
             },
           ]}
         />

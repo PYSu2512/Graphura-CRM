@@ -17,6 +17,7 @@ import ClientRoutes from "./clientRoutes";
 import ClientLogin from "../pages/auth/ClientLogin";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import PaymentResult from "../pages/public/PaymentResult";
+import ClientTrackingPage from "../pages/public/ClientTrackingPage";
 
 function AppRoutes() {
   return (
@@ -27,6 +28,8 @@ function AppRoutes() {
         {/* ── Public pages (no auth) ── */}
         {/* Razorpay redirects the client here after payment */}
         <Route path="/payment-success" element={<PaymentResult />} />
+        {/* Magic link client tracking — no login required */}
+        <Route path="/track/:token" element={<ClientTrackingPage />} />
 
         {/* Authentication Pages */}
         <Route path="/super-admin-login" element={<SuperAdminLogin />} />
