@@ -66,26 +66,26 @@ const revenueChartDataWeekly = [
 // Lead Conversion Data
 const leadConversionMonthly = [
   { name: "Jan", leads: 280, converted: 112, conversionRate: 40 },
-  { name: "Feb", revenue: 320, converted: 140, conversionRate: 44 },
-  { name: "Mar", revenue: 350, converted: 155, conversionRate: 44 },
-  { name: "Apr", revenue: 420, converted: 174, conversionRate: 41 },
-  { name: "May", revenue: 380, converted: 152, conversionRate: 40 },
-  { name: "Jun", revenue: 450, converted: 189, conversionRate: 42 },
+  { name: "Feb", leads: 320, converted: 140, conversionRate: 44 },
+  { name: "Mar", leads: 350, converted: 155, conversionRate: 44 },
+  { name: "Apr", leads: 420, converted: 174, conversionRate: 41 },
+  { name: "May", leads: 380, converted: 152, conversionRate: 40 },
+  { name: "Jun", leads: 450, converted: 189, conversionRate: 42 },
 ];
 
 const leadConversionYearly = [
   { name: "2022", leads: 2800, converted: 1120, conversionRate: 40 },
-  { name: "2023", revenue: 3600, converted: 1584, conversionRate: 44 },
-  { name: "2024", revenue: 4200, converted: 1848, conversionRate: 44 },
-  { name: "2025", revenue: 5100, converted: 2091, conversionRate: 41 },
-  { name: "2026", revenue: 5600, converted: 2352, conversionRate: 42 },
+  { name: "2023", leads: 3600, converted: 1584, conversionRate: 44 },
+  { name: "2024", leads: 4200, converted: 1848, conversionRate: 44 },
+  { name: "2025", leads: 5100, converted: 2091, conversionRate: 41 },
+  { name: "2026", leads: 5600, converted: 2352, conversionRate: 42 },
 ];
 
 const leadConversionWeekly = [
   { name: "Week 1", leads: 95, converted: 38, conversionRate: 40 },
-  { name: "Week 2", revenue: 110, converted: 48, conversionRate: 44 },
-  { name: "Week 3", revenue: 115, converted: 51, conversionRate: 44 },
-  { name: "Week 4", revenue: 135, converted: 55, conversionRate: 41 },
+  { name: "Week 2", leads: 110, converted: 48, conversionRate: 44 },
+  { name: "Week 3", leads: 115, converted: 51, conversionRate: 44 },
+  { name: "Week 4", leads: 135, converted: 55, conversionRate: 41 },
 ];
 
 // Project Completion Data
@@ -134,7 +134,7 @@ const paymentCollectionYearly = [
 const paymentCollectionWeekly = [
   { name: "Week 1", total: 1000000, collected: 850000, pending: 150000 },
   { name: "Week 2", total: 1100000, collected: 935000, pending: 165000 },
-  { name: "Week 3", total: 1150000, revenue: 977500, pending: 172500 },
+  { name: "Week 3", total: 1150000, collected: 977500, pending: 172500 },
   { name: "Week 4", total: 1350000, collected: 1147500, pending: 202500 },
 ];
 

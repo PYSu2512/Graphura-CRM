@@ -1,14 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import {
   Trash2,
   RefreshCw,
-  Download,
   AlertCircle,
   PhoneOff,
-  UserX,
-  CreditCard,
-  Ban,
-  Search,
   History
 } from "lucide-react";
 import {
@@ -26,28 +21,11 @@ const mockDumped = [
   { id: 5, name: "Anil Kapoor", mobile: "9876543220", email: "anil@kapoor.in", reason: "3x Not Talk", dumped: "1 month ago", source: "Facebook", avatar: "AK" },
 ];
 
-const reasonOptions = ["All reasons", "3x Not Talk", "Not interested", "Out of budget", "Wrong number"];
-
-const reasonColors = {
-  "3x Not Talk": "bg-orange-100 text-orange-700",
-  "Not interested": "bg-rose-100 text-rose-700",
-  "Out of budget": "bg-slate-100 text-slate-700",
-  "Wrong number": "bg-zinc-100 text-zinc-700",
-};
-
 export default function DumpData() {
-  const [reasonFilter, setReasonFilter] = useState("All reasons");
   const [leads, setLeads] = useState(mockDumped);
 
   const totalDumped = leads.length;
   const notTalk = leads.filter(l => l.reason === "3x Not Talk").length;
-
-  const filtered = useMemo(() => {
-    return leads.filter((lead) => {
-      const matchReason = reasonFilter === "All reasons" || lead.reason === reasonFilter;
-      return matchReason;
-    });
-  }, [leads, reasonFilter]);
 
   const columns = [
     { key: "name", label: "Lead" },
@@ -59,7 +37,22 @@ export default function DumpData() {
   ];
 
   const actions = [
-    { label: "Restore", icon: <RefreshCw size={14} />, variant: "primary", onClick: (row) => alert(`Restoring ${row.name}`) },
+    {
+      tooltip: "Restore",
+      icon: <RefreshCw size={14} />,
+      variant: "primary",
+      onClick: (row) => alert(`Restoring ${row.name}`)
+    },
+    {
+      tooltip: "Delete",
+      icon: <Trash2 size={14} />,
+      variant: "danger",
+      onClick: (row) => {
+        if (window.confirm(`Are you sure you want to permanently delete lead ${row.name}?`)) {
+          setLeads((prev) => prev.filter((lead) => lead.id !== row.id));
+        }
+      }
+    }
   ];
 
   return (
@@ -86,10 +79,6 @@ export default function DumpData() {
              <Trash2 className="text-slate-400" size={18} />
            </div>
         </div>
-
-        <button onClick={() => alert("Export dump list")} className="relative z-10 flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black text-slate-600 transition hover:bg-slate-50 active:scale-95 shadow-sm">
-          <Download size={14} strokeWidth={3} /> Export Vault
-        </button>
       </div>
 
       <div className="bg-amber-50/50 border border-amber-200/60 rounded-2xl p-5 flex gap-4 shadow-sm">
@@ -109,25 +98,43 @@ export default function DumpData() {
         <EnhancedDashCard title="Archived Index" value="48" icon={<History size={22} />} accentColor="#38bdf8" size={3} />
       </DashGrid>
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200/60 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between">
-           <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest">Filter by Reason</h3>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {reasonOptions.map((r) => (
-            <button key={r} onClick={() => setReasonFilter(r)} className={`rounded-full px-4 py-2 text-[11px] font-black tracking-wider transition-all duration-300 ${reasonFilter === r ? "bg-[#2a465a] text-white shadow-lg shadow-[#2a465a]/20" : "bg-slate-100 text-slate-500 hover:bg-slate-200"}`}>{r.toUpperCase()}</button>
-          ))}
-        </div>
-      </div>
-
       <DataTable 
         title="Dumped Lead Records"
         columns={columns} 
-        rows={filtered} 
+        rows={leads} 
         actions={actions} 
         pageSize={5} 
         searchable
         size={12}
+        bulkAction={true}
+        bulkActions={[
+          {
+            title: "Delete Selected",
+            icon: <Trash2 size={14} />,
+            onClick: (selectedRows) => {
+              if (window.confirm(`Are you sure you want to permanently delete the ${selectedRows.length} selected leads?`)) {
+                const selectedIds = new Set(selectedRows.map((r) => r.id));
+                setLeads((prev) => prev.filter((lead) => !selectedIds.has(lead.id)));
+              }
+            }
+          }
+        ]}
+        filters={[
+          {
+            title: "Reason",
+            key: "reason",
+            type: "toggle",
+            options: ["3x Not Talk", "Not interested", "Out of budget", "Wrong number"],
+          },
+          {
+            title: "Source",
+            key: "source",
+            type: "toggle",
+            options: ["Facebook", "Cold Call", "Website", "Referral"],
+          },
+        ]}
+        exportable={true}
+        exportFileName="dumped_leads"
       />
     </div>
   );

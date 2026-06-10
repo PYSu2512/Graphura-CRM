@@ -17,8 +17,6 @@ import Leads from "../pages/admin/Leads";
 import AllLeads from "../pages/admin/leads/AllLeads";
 import Prospects from "../pages/admin/leads/Prospects";
 import FollowUps from "../pages/admin/leads/FollowUps";
-import BulkUpload from "../pages/admin/leads/BulkUpload";
-import LeadDistribution from "../pages/admin/leads/LeadDistribution";
 import DumpData from "../pages/admin/leads/DumpData";
 
 // ── Sales ──
@@ -158,14 +156,12 @@ function AdminRoutes() {
           <Route path="logs" element={<LoginLogs />} />
         </Route>
 
-        {/* ── Leads (5 tabs) ── */}
+        {/* ── Leads ── */}
         <Route path="leads" element={<Leads />}>
           <Route index element={<Navigate to="all" replace />} />
           <Route path="all" element={<AllLeads />} />
           <Route path="prospects" element={<Prospects />} />
           <Route path="followups" element={<FollowUps />} />
-          <Route path="bulk" element={<BulkUpload />} />
-          <Route path="distribution" element={<LeadDistribution />} />
           <Route path="dump" element={<DumpData />} />
         </Route>
 

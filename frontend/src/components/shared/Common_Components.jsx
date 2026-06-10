@@ -2279,6 +2279,28 @@ const CHART_COLORS = [
   T.green,
 ];
 
+// Helper to format large axis ticks (e.g. Lakhs, Crores, Thousands)
+const formatAxisTick = (value) => {
+  if (typeof value !== "number") return value;
+  const absVal = Math.abs(value);
+  let suffix = "";
+  let formatted = absVal;
+  
+  if (absVal >= 10000000) {
+    formatted = absVal / 10000000;
+    suffix = "Cr";
+  } else if (absVal >= 100000) {
+    formatted = absVal / 100000;
+    suffix = "L";
+  } else if (absVal >= 1000) {
+    formatted = absVal / 1000;
+    suffix = "k";
+  }
+  
+  const valStr = formatted.toFixed(1).replace(/\.0$/, '');
+  return `${value < 0 ? '-' : ''}${valStr}${suffix}`;
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GRID HELPER
 // ─────────────────────────────────────────────────────────────────────────────
@@ -2651,6 +2673,7 @@ export const GLineChart = ({
         tick={{ fill: T.textMuted, fontSize: 11 }}
         axisLine={false}
         tickLine={false}
+        tickFormatter={formatAxisTick}
       />
       <Tooltip {...tooltipStyle} />
       <Legend wrapperStyle={{ fontSize: 12, color: T.textSecondary }} />
@@ -2741,6 +2764,7 @@ export const GBarChart = ({
         tick={{ fill: T.textMuted, fontSize: 11 }}
         axisLine={false}
         tickLine={false}
+        tickFormatter={formatAxisTick}
       />
       <YAxis
         dataKey="name"
@@ -2827,6 +2851,7 @@ export const GColumnChart = ({
         tick={{ fill: T.textMuted, fontSize: 11 }}
         axisLine={false}
         tickLine={false}
+        tickFormatter={formatAxisTick}
       />
       <Tooltip {...tooltipStyle} />
       <Legend wrapperStyle={{ fontSize: 12, color: T.textSecondary }} />
@@ -2925,6 +2950,7 @@ export const GAreaChart = ({
         tick={{ fill: T.textMuted, fontSize: 11 }}
         axisLine={false}
         tickLine={false}
+        tickFormatter={formatAxisTick}
       />
       <Tooltip {...tooltipStyle} />
       <Legend wrapperStyle={{ fontSize: 12, color: T.textSecondary }} />

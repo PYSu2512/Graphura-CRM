@@ -4,8 +4,6 @@ import {
   Users,
   UserCheck,
   CalendarClock,
-  Upload,
-  GitBranch,
   Trash2,
 } from "lucide-react";
 
@@ -13,8 +11,6 @@ const tabs = [
   { name: "All Leads", path: "all", icon: Users },
   { name: "Prospects", path: "prospects", icon: UserCheck },
   { name: "Follow-ups", path: "followups", icon: CalendarClock },
-  { name: "Bulk Upload", path: "bulk", icon: Upload },
-  { name: "Lead Distribution", path: "distribution", icon: GitBranch },
   { name: "Dump Data", path: "dump", icon: Trash2 },
 ];
 
