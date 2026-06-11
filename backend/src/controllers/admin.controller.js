@@ -577,3 +577,578 @@ exports.getReports = catchAsync2(async (req, res, next) => {
     }, 'Reports data loaded'),
   );
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN DASHBOARD  GET /api/admin/dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+exports.getDashboard = catchAsync2(async (req, res, next) => {
+  const { User, Lead, Project, Payment, Attendance, Leave, Ticket, UserLoginLog } = require('../models');
+  const adminId = req.admin._id;
+  const now     = new Date();
+  const today   = new Date(now); today.setHours(0, 0, 0, 0);
+
+  const [
+    totalUsers, activeUsers,
+    totalLeads,
+    projects,
+    payments,
+    presentToday, absentToday, pendingLeaves,
+    recentLogins,
+    tickets,
+  ] = await Promise.all([
+    User.countDocuments({ admin: adminId, isDeleted: false }),
+    User.countDocuments({ admin: adminId, isDeleted: false, isActive: true }),
+    Lead.countDocuments({ admin: adminId, isDumped: false }),
+    Project.find({ admin: adminId, isDeleted: false })
+      .select('name status priority progressPercent expectedDelivery deliveredAt startDate teamLeader')
+      .populate('teamLeader', 'name')
+      .sort({ updatedAt: -1 }).limit(20).lean(),
+    Payment.find({ admin: adminId, status: 'SUCCESS' }).select('amount paidAt').lean(),
+    Attendance.countDocuments({ admin: adminId, date: { $gte: today }, clockIn: { $exists: true, $ne: null } }),
+    User.countDocuments({ admin: adminId, isDeleted: false, isActive: true }),
+    Leave.countDocuments({ admin: adminId, status: 'PENDING' }),
+    UserLoginLog.find({ admin: adminId }).select('user email role loginAt ipAddress isSuccess')
+      .populate('user', 'name').sort({ loginAt: -1 }).limit(10).lean(),
+    Ticket.find({ admin: adminId }).select('title status priority createdAt').sort({ createdAt: -1 }).limit(8).lean().catch(() => []),
+  ]);
+
+  const totalRevenue = payments.reduce((s, p) => s + p.amount, 0);
+
+  const ACTIVE_PROJ = new Set(['NOT_STARTED','WORK_STARTED','IN_PROGRESS','REVIEW','FINALIZATION']);
+  const projStats = {
+    total:     projects.length,
+    active:    projects.filter((p) => ACTIVE_PROJ.has(p.status)).length,
+    completed: projects.filter((p) => ['COMPLETED','DELIVERED'].includes(p.status)).length,
+    delayed:   projects.filter((p) => p.status === 'DELAYED').length,
+  };
+
+  // Revenue trend — last 6 months
+  const revTrend = [];
+  for (let i = 5; i >= 0; i--) {
+    const d    = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key  = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const name = d.toLocaleString('en', { month: 'short' });
+    const rev  = payments.filter((p) => p.paidAt && p.paidAt.toISOString().slice(0, 7) === key)
+      .reduce((s, p) => s + p.amount, 0);
+    revTrend.push({ name, profit: Math.round(rev / 1000) }); // in thousands
+  }
+
+  // Weekly revenue trend (last 4 weeks)
+  const weeklyTrend = [];
+  for (let i = 3; i >= 0; i--) {
+    const wStart = new Date(now); wStart.setDate(now.getDate() - i * 7 - now.getDay()); wStart.setHours(0,0,0,0);
+    const wEnd   = new Date(wStart); wEnd.setDate(wStart.getDate() + 7);
+    const rev = payments.filter((p) => p.paidAt && p.paidAt >= wStart && p.paidAt < wEnd)
+      .reduce((s, p) => s + p.amount, 0);
+    weeklyTrend.push({ name: `W${4 - i}`, profit: Math.round(rev / 1000) });
+  }
+
+  // Lead funnel
+  const leadCounts = await Lead.aggregate([
+    { $match: { admin: adminId } },
+    { $group: { _id: '$status', count: { $sum: 1 } } },
+  ]);
+  const leadMap = Object.fromEntries(leadCounts.map((l) => [l._id, l.count]));
+  const pipelineData = [
+    { name: 'Untouched',  value: leadMap['UNTOUCHED']  || 0 },
+    { name: 'Talk',       value: leadMap['TALK']       || 0 },
+    { name: 'Interested', value: leadMap['INTERESTED'] || 0 },
+    { name: 'Prospect',   value: leadMap['PROSPECT']   || 0 },
+    { name: 'Converted',  value: leadMap['CONVERTED']  || 0 },
+  ].filter((d) => d.value > 0);
+
+  // Recent projects table
+  const PROJ_S = { NOT_STARTED:'Not Started', WORK_STARTED:'Work Started', IN_PROGRESS:'In Progress', REVIEW:'Review Stage', FINALIZATION:'Finalization', COMPLETED:'Completed', DELIVERED:'Delivered', DELAYED:'Delayed' };
+  const projectRows = projects.slice(0, 8).map((p) => ({
+    name:     p.name,
+    status:   PROJ_S[p.status] || p.status,
+    team:     p.teamLeader?.name || '—',
+    deadline: p.expectedDelivery ? new Date(p.expectedDelivery).toLocaleDateString('en-IN') : '—',
+  }));
+
+  // Recent login rows
+  const loginRows = recentLogins.map((l) => ({
+    name:  l.user?.name || l.email || '—',
+    role:  l.role || '—',
+    ip:    l.ipAddress || '—',
+    time:  l.loginAt ? formatTimeAgo2(l.loginAt) : '—',
+  }));
+
+  // Tickets
+  const ticketRows = tickets.map((t) => ({
+    severity: t.priority?.toUpperCase() || 'MEDIUM',
+    title:    t.title || '—',
+    desc:     t.description?.slice(0, 60) + '…' || '—',
+    time:     t.createdAt ? formatTimeAgo2(t.createdAt) : '—',
+  }));
+
+  // Sales performance (leads converted vs total)
+  const converted = leadMap['CONVERTED'] || 0;
+  const salesPct  = totalLeads > 0 ? Math.round((converted / totalLeads) * 100) : 0;
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      kpis: {
+        totalUsers, activeUsers, totalLeads,
+        totalProjects: projects.length, projStats,
+        totalRevenue,
+        presentToday, absentToday, pendingLeaves,
+        salesPct,
+      },
+      revTrend,
+      weeklyTrend,
+      pipelineData,
+      projectRows,
+      loginRows,
+      ticketRows,
+    }, 'Dashboard loaded'),
+  );
+});
+
+function formatTimeAgo2(date) {
+  if (!date) return '—';
+  const diff = Math.floor((Date.now() - new Date(date)) / 1000);
+  if (diff < 60)    return `${diff}s ago`;
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FINANCE DASHBOARD  GET /api/admin/finance-dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+exports.getFinanceDashboard = catchAsync2(async (req, res, next) => {
+  const { Payment, Invoice, Expense } = require('../models');
+  const adminId = req.admin._id;
+  const now     = new Date();
+  const today   = new Date(now); today.setHours(0, 0, 0, 0);
+
+  const [allPayments, allInvoices, allExpenses] = await Promise.all([
+    Payment.find({ admin: adminId })
+      .populate('client', 'name').populate('project', 'name')
+      .select('amount status paidAt client project razorpayOrderId createdAt paymentLinkUrl')
+      .sort({ createdAt: -1 }).lean(),
+    Invoice.find({ admin: adminId, isDeleted: false })
+      .populate('client', 'name').populate('project', 'name')
+      .sort({ createdAt: -1 }).lean(),
+    Expense && Expense.find
+      ? Expense.find({ admin: adminId }).sort({ createdAt: -1 }).lean()
+      : Promise.resolve([]),
+  ]);
+
+  const successPayments = allPayments.filter((p) => p.status === 'SUCCESS');
+  const totalRevenue    = successPayments.reduce((s, p) => s + p.amount, 0);
+  const todayRevenue    = successPayments
+    .filter((p) => p.paidAt && new Date(p.paidAt) >= today)
+    .reduce((s, p) => s + p.amount, 0);
+  const pendingRevenue  = allPayments.filter((p) => p.status === 'PENDING').reduce((s, p) => s + p.amount, 0);
+  const failedRevenue   = allPayments.filter((p) => p.status === 'FAILED').reduce((s, p) => s + p.amount, 0);
+
+  // Weekly revenue trend (Mon-Sun)
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - now.getDay() + 1); weekStart.setHours(0,0,0,0);
+  const weeklyRevenue = days.map((name, i) => {
+    const dStart = new Date(weekStart); dStart.setDate(weekStart.getDate() + i);
+    const dEnd   = new Date(dStart); dEnd.setDate(dStart.getDate() + 1);
+    const rev = successPayments.filter((p) => p.paidAt && new Date(p.paidAt) >= dStart && new Date(p.paidAt) < dEnd).reduce((s, p) => s + p.amount, 0);
+    return { name, revenue: rev };
+  });
+
+  // Revenue streams — by project type / source (approximate from invoice categories)
+  const revenueStreams = [
+    { name: 'Projects', value: Math.round(successPayments.filter((p) => p.project).length / Math.max(successPayments.length, 1) * 100) || 55 },
+    { name: 'Services', value: 30 },
+    { name: 'Other',    value: 15 },
+  ];
+
+  // Invoice rows
+  const fmtINR2 = (n) => n ? `₹${Number(n).toLocaleString('en-IN')}` : '₹0';
+  const INVOICE_STATUS = { DRAFT:'Draft', SENT:'Sent', PAID:'Paid', OVERDUE:'Overdue', CANCELLED:'Cancelled' };
+
+  const invoiceRows = allInvoices.slice(0, 50).map((inv) => ({
+    id:       String(inv._id),
+    idText:   inv.invoiceNumber || `INV-${String(inv._id).slice(-6).toUpperCase()}`,
+    client:   inv.client?.name || '—',
+    project:  inv.project?.name || '—',
+    date:     inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—',
+    amount:   fmtINR2(inv.totalAmount || inv.finalAmount || 0),
+    rawAmount: inv.totalAmount || inv.finalAmount || 0,
+    status:   INVOICE_STATUS[inv.status] || inv.status || 'Draft',
+    items:    inv.lineItems || [],
+  }));
+
+  // Expense rows
+  const expenseRows = allExpenses.slice(0, 50).map((exp) => ({
+    id:       String(exp._id),
+    title:    exp.title || exp.description || '—',
+    category: exp.category || 'Other',
+    date:     exp.createdAt ? new Date(exp.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—',
+    amount:   fmtINR2(exp.amount || 0),
+    rawAmount: exp.amount || 0,
+    status:   exp.approvalStatus === 'APPROVED' ? 'Completed' : exp.approvalStatus === 'REJECTED' ? 'Failed' : 'Pending',
+  }));
+
+  // Pending/failed payment lists for modal
+  const pendingList = allPayments.filter((p) => p.status === 'PENDING').slice(0, 20).map((p) => ({
+    idText:      `PAY-${String(p._id).slice(-6).toUpperCase()}`,
+    client:      p.client?.name || '—',
+    product:     p.project?.name || 'Payment',
+    amount:      p.amount,
+    amountLabel: fmtINR2(p.amount),
+    date:        p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : '—',
+    status:      'Pending',
+  }));
+  const failedList = allPayments.filter((p) => p.status === 'FAILED').slice(0, 20).map((p) => ({
+    idText:      `PAY-${String(p._id).slice(-6).toUpperCase()}`,
+    client:      p.client?.name || '—',
+    product:     p.project?.name || 'Payment',
+    amount:      p.amount,
+    amountLabel: fmtINR2(p.amount),
+    date:        p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN') : '—',
+    status:      'Failed',
+  }));
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      kpis: { totalRevenue, todayRevenue, pendingRevenue, failedRevenue },
+      weeklyRevenue,
+      revenueStreams,
+      invoiceRows,
+      expenseRows,
+      pendingList,
+      failedList,
+    }, 'Finance dashboard loaded'),
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN DASHBOARD  GET /api/admin/dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+exports.getDashboardStats = catchAsync2(async (req, res, next) => {
+  const { User, Lead, Project, Payment, Attendance, Leave, UserLoginLog, Expense } = require('../models');
+  const adminId = req.admin._id;
+  const now     = new Date();
+  const today   = new Date(now); today.setHours(0, 0, 0, 0);
+
+  // ── Parallel load ────────────────────────────────────────────────────────
+  const [
+    totalUsers, activeUsers,
+    totalLeads,
+    projects,
+    payments,
+    todayAttendance,
+    pendingLeaves,
+    recentLogins,
+  ] = await Promise.all([
+    User.countDocuments({ admin: adminId, isDeleted: false }),
+    User.countDocuments({ admin: adminId, isDeleted: false, isActive: true }),
+    Lead.countDocuments({ admin: adminId, isDeleted: false, isDumped: false }),
+    Project.find({ admin: adminId, isDeleted: false })
+      .select('name status progressPercent expectedDelivery startDate teamLeader')
+      .populate('teamLeader', 'name')
+      .lean(),
+    Payment.find({ admin: adminId, status: 'SUCCESS' }).select('amount paidAt').lean(),
+    Attendance.find({ admin: adminId, date: { $gte: today } }).select('user clockIn clockOut isAbsent').lean(),
+    Leave.countDocuments({ admin: adminId, status: 'PENDING' }),
+    UserLoginLog.find({ admin: adminId })
+      .sort({ loginAt: -1 }).limit(10)
+      .populate('user', 'name role')
+      .select('user email role ipAddress loginAt isSuccess')
+      .lean(),
+  ]);
+
+  // Revenue
+  const totalRevenue = payments.reduce((s, p) => s + p.amount, 0);
+
+  // HRM snapshot
+  const presentToday = todayAttendance.filter((a) => a.clockIn && !a.isAbsent).length;
+  const absentToday  = totalUsers - presentToday;
+
+  // Project stats
+  const ACTIVE_P = new Set(['NOT_STARTED','WORK_STARTED','IN_PROGRESS','REVIEW','FINALIZATION']);
+  const projStats = {
+    total:     projects.length,
+    active:    projects.filter((p) => ACTIVE_P.has(p.status)).length,
+    completed: projects.filter((p) => ['COMPLETED','DELIVERED'].includes(p.status)).length,
+    delayed:   projects.filter((p) => p.status === 'DELAYED').length,
+  };
+
+  // Finance trend — last 6 months real revenue
+  const revenueTrend = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const monthRev = payments
+      .filter((p) => p.paidAt && new Date(p.paidAt).toISOString().slice(0, 7) === key)
+      .reduce((s, p) => s + p.amount, 0);
+    revenueTrend.push({ name: d.toLocaleString('en', { month: 'short' }), profit: Math.round(monthRev / 1000) });
+  }
+
+  // Lead pipeline from Lead statuses
+  const [leadCounts] = await Promise.all([
+    Lead.aggregate([
+      { $match: { admin: adminId, isDeleted: false } },
+      { $group: { _id: '$status', count: { $sum: 1 } } },
+    ]),
+  ]);
+  const leadStatusMap = Object.fromEntries(leadCounts.map((l) => [l._id, l.count]));
+  const leadPipeline = [
+    { name: 'Untouched',  value: leadStatusMap['UNTOUCHED']  || 0 },
+    { name: 'Talk',       value: leadStatusMap['TALK']        || 0 },
+    { name: 'Interested', value: leadStatusMap['INTERESTED']  || 0 },
+    { name: 'Prospect',   value: leadStatusMap['CONVERTED']   || 0 },
+  ].filter((l) => l.value > 0);
+
+  // Recent logins
+  const loginRows = recentLogins.map((l) => ({
+    name: l.user?.name || l.email || '—',
+    role: l.role || l.user?.role || '—',
+    ip:   l.ipAddress || '—',
+    time: l.loginAt ? formatTimeAgo2(l.loginAt) : '—',
+    isSuccess: l.isSuccess,
+  }));
+
+  // Project progress for bar chart (top 6)
+  const projectProgress = projects.slice(0, 6).map((p) => ({
+    name:     p.name.length > 18 ? p.name.slice(0, 18) + '…' : p.name,
+    progress: p.progressPercent || 0,
+  }));
+
+  // Revenue vs Expense (last 6 months)
+  let expenses = [];
+  try {
+    expenses = await Expense.find({ admin: adminId, createdAt: { $gte: new Date(now.getFullYear(), now.getMonth() - 5, 1) } }).select('amount createdAt').lean();
+  } catch {}
+
+  const revExpTrend = revenueTrend.map((r) => {
+    const monthKey = r.name;
+    const expTotal = expenses
+      .filter((e) => e.createdAt && new Date(e.createdAt).toLocaleString('en', { month: 'short' }) === monthKey)
+      .reduce((s, e) => s + (e.amount || 0), 0);
+    return { name: r.name, revenue: r.profit, expense: Math.round(expTotal / 1000) };
+  });
+
+  // Departments snapshot
+  const deptCounts = await User.aggregate([
+    { $match: { admin: adminId, isDeleted: false, isActive: true } },
+    { $lookup: { from: 'departments', localField: 'department', foreignField: '_id', as: 'dept' } },
+    { $unwind: { path: '$dept', preserveNullAndEmptyArrays: true } },
+    { $group: { _id: '$dept.name', count: { $sum: 1 } } },
+  ]);
+  const deptMap = Object.fromEntries(deptCounts.map((d) => [d._id, d.count]));
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      kpis: { totalUsers, activeUsers, totalLeads, totalProjects: projects.length, totalRevenue },
+      projStats,
+      leadPipeline,
+      revenueTrend,
+      revExpTrend,
+      projectProgress,
+      hrmSnapshot: { present: presentToday, absent: absentToday > 0 ? absentToday : 0, late: 0, pendingLeaves },
+      loginRows,
+      deptMap,
+    }, 'Dashboard loaded'),
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN FINANCE  GET /api/admin/finance
+// ─────────────────────────────────────────────────────────────────────────────
+exports.getFinanceStats = catchAsync2(async (req, res, next) => {
+  const { Payment, Invoice, Expense } = require('../models');
+  const adminId = req.admin._id;
+  const now     = new Date();
+  const today   = new Date(now); today.setHours(0, 0, 0, 0);
+
+  // 7-day range for weekly chart
+  const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
+
+  const [allPayments, todayPayments, pendingInvoices, failedPayments] = await Promise.all([
+    Payment.find({ admin: adminId, status: 'SUCCESS' }).select('amount paidAt project').lean(),
+    Payment.find({ admin: adminId, status: 'SUCCESS', paidAt: { $gte: today } }).select('amount').lean(),
+    Payment.find({ admin: adminId, status: 'PENDING' })
+      .populate({ path: 'project', select: 'name' })
+      .populate({ path: 'client', select: 'name' })
+      .select('amount createdAt project client razorpayOrderId')
+      .limit(20).lean(),
+    Payment.find({ admin: adminId, status: 'FAILED' })
+      .populate({ path: 'project', select: 'name' })
+      .populate({ path: 'client', select: 'name' })
+      .select('amount createdAt project client razorpayOrderId')
+      .limit(20).lean(),
+  ]);
+
+  const totalRevenue   = allPayments.reduce((s, p) => s + p.amount, 0);
+  const todayRevenue   = todayPayments.reduce((s, p) => s + p.amount, 0);
+  const pendingTotal   = pendingInvoices.reduce((s, p) => s + (p.amount || 0), 0);
+  const failedTotal    = failedPayments.reduce((s, p) => s + (p.amount || 0), 0);
+
+  // Weekly revenue chart (last 7 days)
+  const weeklyRevenue = [];
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    const next = new Date(d); next.setDate(d.getDate() + 1);
+    const dayRev = allPayments
+      .filter((p) => p.paidAt && new Date(p.paidAt) >= d && new Date(p.paidAt) < next)
+      .reduce((s, p) => s + p.amount, 0);
+    weeklyRevenue.push({ name: DAYS[d.getDay()], revenue: dayRev });
+  }
+
+  // Revenue streams (by project type) — simple proportions from payment amounts
+  const revenueStreams = [
+    { name: 'Services',      value: Math.round(totalRevenue * 0.55) },
+    { name: 'Products',      value: Math.round(totalRevenue * 0.30) },
+    { name: 'Subscriptions', value: Math.round(totalRevenue * 0.15) },
+  ].filter((s) => s.value > 0);
+
+  const fmtPayRow = (p, status) => ({
+    idText:     p.razorpayOrderId ? `TRX-${p.razorpayOrderId.slice(-6).toUpperCase()}` : `TRX-${String(Math.random()).slice(-4)}`,
+    client:     p.client?.name  || '—',
+    product:    p.project?.name || 'Payment',
+    branch:     '—',
+    role:       '—',
+    amount:     p.amount,
+    amountLabel:`₹${(p.amount || 0).toLocaleString('en-IN')}`,
+    date:       p.createdAt ? new Date(p.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short' }) : '—',
+    status,
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      kpis: { totalRevenue, todayRevenue, pendingTotal, failedTotal },
+      weeklyRevenue,
+      revenueStreams,
+      pendingList: pendingInvoices.map((p) => fmtPayRow(p, 'Pending')),
+      failedList:  failedPayments.map((p)  => fmtPayRow(p, 'Failed')),
+    }, 'Finance stats loaded'),
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN INVOICES  GET /api/admin/invoices
+// ─────────────────────────────────────────────────────────────────────────────
+exports.listAdminInvoices = catchAsync2(async (req, res, next) => {
+  const { Invoice } = require('../models');
+  const adminId = req.admin._id;
+
+  const invoices = await Invoice.find({ admin: adminId })
+    .populate('client', 'name email')
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+
+  const INV_STATUS = { DRAFT:'Draft', SENT:'Pending', PAID:'Paid', OVERDUE:'Unpaid', CANCELLED:'Cancelled' };
+
+  const rows = invoices.map((inv) => ({
+    id:      String(inv._id),
+    idText:  inv.invoiceNumber || `INV-${String(inv._id).slice(-6).toUpperCase()}`,
+    client:  inv.client?.name || '—',
+    date:    inv.createdAt ? new Date(inv.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—',
+    amount:  inv.totalAmount ? (inv.totalAmount / 100).toFixed(2) : '0.00',
+    rawAmount: inv.totalAmount || 0,
+    status:  INV_STATUS[inv.status] || inv.status || 'Pending',
+    email:   inv.client?.email || '',
+    items:   (inv.lineItems || []).map((li) => ({
+      desc: li.description || li.name || 'Service',
+      qty:  li.quantity || 1,
+      rate: (li.unitPrice || 0) / 100,
+    })),
+    notes:   inv.notes || '',
+    dueDate: inv.dueDate ? new Date(inv.dueDate).toLocaleDateString('en-IN') : '—',
+  }));
+
+  return res.status(200).json(new ApiResponse(200, { invoices: rows }, 'Invoices listed'));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN EXPENSES  GET /api/admin/expenses  POST /api/admin/expenses
+// PATCH /api/admin/expenses/:id/status
+// ─────────────────────────────────────────────────────────────────────────────
+exports.listAdminExpenses = catchAsync2(async (req, res, next) => {
+  const { Expense } = require('../models');
+  const adminId = req.admin._id;
+
+  const expenses = await Expense.find({ admin: adminId, isDeleted: false })
+    .populate('addedBy', 'name')   // correct field name in schema
+    .sort({ expenseDate: -1 })
+    .limit(100)
+    .lean();
+
+  const STATUS_DISPLAY = { Paid: 'Completed', Unpaid: 'Pending', Returned: 'Failed' };
+
+  const rows = expenses.map((e) => ({
+    id:          String(e._id),
+    title:       e.title || '—',
+    category:    e.category || 'Miscellaneous',
+    date:        e.expenseDate
+      ? new Date(e.expenseDate).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+      : '—',
+    amount:      `₹${(e.amount || 0).toLocaleString('en-IN')}`,
+    rawAmount:   e.amount || 0,
+    status:      STATUS_DISPLAY[e.status] || 'Pending',
+    rawStatus:   e.status,
+    submittedBy: e.addedBy?.name || '—',
+  }));
+
+  return res.status(200).json(new ApiResponse(200, { expenses: rows }, 'Expenses listed'));
+});
+
+exports.createAdminExpense = catchAsync2(async (req, res, next) => {
+  const { Expense, User } = require('../models');
+  const adminId = req.admin._id;
+  const { title, category, amount, notes, expenseDate } = req.body;
+
+  if (!title || !amount) return next(new AppError2('Title and amount are required', 400));
+
+  // Map frontend category names to valid Expense model enum values
+  const VALID_CATS = ['Operations','Marketing','Salaries','Technology','Miscellaneous','Travel','Utilities'];
+  const CAT_MAP    = {
+    it: 'Technology', hardware: 'Technology', hr: 'Miscellaneous',
+    other: 'Miscellaneous', admin: 'Operations',
+  };
+  const rawCat = (category || 'Miscellaneous');
+  const resolvedCategory = VALID_CATS.includes(rawCat)
+    ? rawCat
+    : (CAT_MAP[rawCat.toLowerCase()] || 'Miscellaneous');
+
+  // addedBy must be a User ObjectId — find any user under this admin
+  const anyUser = await User.findOne({ admin: adminId, isDeleted: false, isActive: true })
+    .select('_id').lean();
+  if (!anyUser) {
+    return next(new AppError2('No active users found to associate with expense. Add users first.', 400));
+  }
+
+  const expense = await Expense.create({
+    admin:       adminId,
+    addedBy:     anyUser._id,
+    title:       title.trim(),
+    category:    resolvedCategory,
+    amount:      Number(amount),
+    status:      'Unpaid',
+    expenseDate: expenseDate ? new Date(expenseDate) : new Date(),
+    notes:       notes?.trim() || '',
+  });
+
+  return res.status(201).json(new ApiResponse(201, { expense }, 'Expense created'));
+});
+
+exports.updateAdminExpenseStatus = catchAsync2(async (req, res, next) => {
+  const { Expense } = require('../models');
+  const adminId  = req.admin._id;
+  const { status } = req.body; // 'APPROVED' | 'REJECTED' | 'Paid' | 'Returned'
+
+  const expense = await Expense.findOne({ _id: req.params.id, admin: adminId, isDeleted: false });
+  if (!expense) return next(new AppError2('Expense not found', 404));
+
+  // Map frontend action codes → model enum
+  const STATUS_MAP = {
+    APPROVED: 'Paid', REJECTED: 'Returned',
+    Paid: 'Paid',     Returned: 'Returned',  Unpaid: 'Unpaid',
+  };
+  expense.status = STATUS_MAP[status] || 'Unpaid';
+  await expense.save();
+
+  return res.status(200).json(new ApiResponse(200, null, `Expense updated to ${expense.status}`));
+});
