@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Users, UserCheck, UserX, Calendar, Download, BadgeCheck, Ban, Eye } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Users, UserCheck, UserX, Calendar, Download, BadgeCheck, Ban, Eye, RefreshCw } from 'lucide-react';
 import {
   Heading,
   P,
@@ -18,10 +18,11 @@ import {
 } from '../../components/shared/Common_Components';
 import { hrmService } from '../../services/hrmService';
 import { userService } from '../../services/userService';
+import apiClient from '../../services/apiClient';
 import { toast } from 'react-hot-toast';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 
-// -- Dummy Data for Charts & Overview (Static) --
+// -- Static data only for charts that have no real endpoint --
 const attendanceTrendData = [
   { name: 'Mon', present: 120, absent: 5, leave: 10 },
   { name: 'Tue', present: 125, absent: 2, leave: 8 },
@@ -30,22 +31,7 @@ const attendanceTrendData = [
   { name: 'Fri', present: 115, absent: 8, leave: 12 },
 ];
 
-const departmentData = [
-  { name: 'Sales', attendance: 95 },
-  { name: 'Finance', attendance: 98 },
-  { name: 'Management', attendance: 100 },
-  { name: 'Engineering', attendance: 92 },
-  { name: 'Support', attendance: 88 },
-];
-
-const employeeCompositionData = [
-  { name: 'Sales', value: 45 },
-  { name: 'Finance', value: 20 },
-  { name: 'Management', value: 10 },
-  { name: 'Engineering', value: 35 },
-  { name: 'Support', value: 25 },
-];
-
+// Static data kept for overview chart only
 const LEAVE_TYPES = [
   "Sick Leave",
   "Casual Leave",
@@ -81,20 +67,12 @@ const formatRole = (str) => {
 // -- Columns for Tables --
 
 const employeesColumns = [
-  { key: "name", label: "EMPLOYEE NAME", width: "20%" },
-  { key: "department", label: "DEPARTMENT", width: "16%" },
-  { key: "attendance", label: "ATTENDANCE %", width: "16%" },
-  { key: "totalLeaves", label: "TOTAL LEAVES", width: "16%" },
-  { key: "workingDays", label: "WORKING DAYS", width: "16%" },
-  { key: "empStatus", label: "CURRENT STATUS", width: "16%" },
-];
-
-const employeesRows = [
-  { name: "Alice Smith", department: "Sales", date: "2024-01-15", attendance: "98%", totalLeaves: "2", workingDays: "22", status: "Active" },
-  { name: "Bob Johnson", department: "Engineering", date: "2023-11-01", attendance: "95%", totalLeaves: "5", workingDays: "20", status: "Active" },
-  { name: "Charlie Brown", department: "Finance", date: "2022-05-20", attendance: "88%", totalLeaves: "10", workingDays: "18", status: "Inactive" },
-  { name: "David Clark", department: "Support", date: "2024-03-10", attendance: "92%", totalLeaves: "1", workingDays: "21", status: "Active" },
-  { name: "Emma Wilson", department: "Marketing", date: "2023-08-05", attendance: "100%", totalLeaves: "0", workingDays: "22", status: "Active" },
+  { key: "name",        label: "EMPLOYEE NAME",   width: "20%" },
+  { key: "department",  label: "DEPARTMENT",      width: "16%" },
+  { key: "attendance",  label: "ATTENDANCE %",    width: "16%" },
+  { key: "totalLeaves", label: "TOTAL LEAVES",    width: "16%" },
+  { key: "workingDays", label: "WORKING DAYS",    width: "16%" },
+  { key: "empStatus",   label: "CURRENT STATUS",  width: "16%" },
 ];
 
 const attendanceColumns = [
@@ -147,6 +125,33 @@ export default function HRM() {
   const [allLeaves, setAllLeaves] = useState([]);
   const [selectedLeave, setSelectedLeave] = useState(null);
   const [selectedApproval, setSelectedApproval] = useState(null);
+
+  // ── Employee state (real API) ──────────────────────────────────────────────
+  const [employees,    setEmployees]    = useState([]);
+  const [empLoading,   setEmpLoading]   = useState(false);
+  const [empStats,     setEmpStats]     = useState({ total: 0, active: 0, inactive: 0 });
+
+  const fetchEmployees = useCallback(async () => {
+    setEmpLoading(true);
+    try {
+      const res = await apiClient.get('/admin/hrm/employees');
+      const data = res.data?.data || {};
+      const empArr = data.employees || [];
+      setEmpStats(data.stats || {});
+      setEmployees(empArr.map((e) => ({
+        ...e,
+        empStatus: (
+          <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
+            e.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+          }`}>{e.status}</span>
+        ),
+      })));
+    } catch (err) {
+      toast.error('Failed to load employees.');
+    } finally {
+      setEmpLoading(false);
+    }
+  }, []);
 
   const fetchLeaves = async () => {
     setLoading(true);
@@ -317,7 +322,8 @@ export default function HRM() {
   useEffect(() => {
     fetchLeaves();
     fetchStats();
-  }, []);
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   useEffect(() => {
     fetchAttendance(attDateRange);
@@ -433,34 +439,7 @@ export default function HRM() {
     document.body.removeChild(link);
   };
 
-  const styledEmployeesRows = employeesRows.map(row => ({
-    ...row,
-    empStatus: (
-      <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${row.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-        {row.status}
-      </span>
-    )
-  }));
-
-  const getAttendanceStatusStyle = (status) => {
-    switch(status) {
-      case 'Present': return 'bg-emerald-100 text-emerald-700';
-      case 'Late': return 'bg-amber-100 text-amber-700';
-      case 'Absent': return 'bg-rose-100 text-rose-700';
-      case 'Half Day': return 'bg-blue-100 text-blue-700';
-      case 'On Leave': return 'bg-purple-100 text-purple-700';
-      default: return 'bg-slate-100 text-slate-700';
-    }
-  };
-
-  const styledFilteredAttendanceRows = attendanceRows.map(row => ({
-    ...row,
-    attStatus: (
-      <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${getAttendanceStatusStyle(row.status)}`}>
-        {row.status}
-      </span>
-    )
-  }));
+  // styledFilteredAttendanceRows removed — attendance tab uses live `attendance` state directly
 
   return (
     <div className="space-y-6">
@@ -520,12 +499,40 @@ export default function HRM() {
 
       {activeTab === 'Employees' && (
         <div className="flex-col gap-3 w-full">
-          <div className="flex justify-end mb-4">
-            <button onClick={() => handleExportCSV(employeesColumns, styledEmployeesRows, 'employees_export.csv')} className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm w-full sm:w-auto justify-center">
-               <Download size={16} /> Export CSV
-            </button>
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <span className="font-bold text-[#2a465a]">{empStats.total || 0}</span> total ·
+              <span className="text-emerald-600 font-bold">{empStats.active || 0}</span> active ·
+              <span className="text-rose-500 font-bold">{empStats.inactive || 0}</span> inactive
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={fetchEmployees}
+                className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
+                <RefreshCw size={14} /> Refresh
+              </button>
+              <button
+                onClick={() => handleExportCSV(
+                  employeesColumns.map((c) => ({ ...c, key: c.key === 'empStatus' ? 'status' : c.key })),
+                  employees.map((e) => ({ ...e, empStatus: e.status })),
+                  'employees_export.csv',
+                )}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-[#355872] rounded-xl text-sm font-semibold hover:bg-slate-50 transition shadow-sm">
+                <Download size={16} /> Export CSV
+              </button>
+            </div>
           </div>
-          <DataTable columns={employeesColumns} rows={styledEmployeesRows} size={12} pageSize={10} searchable={true} />
+          <DataTable
+            columns={employeesColumns}
+            rows={employees}
+            loading={empLoading}
+            size={12}
+            pageSize={10}
+            searchable
+            filters={[
+              { title: "Status",     type: "toggle", key: "status",     options: ["Active", "Inactive"] },
+              { title: "Department", type: "toggle", key: "department", options: [...new Set(employees.map((e) => e.department).filter(Boolean))] },
+            ]}
+          />
         </div>
       )}
 

@@ -780,3 +780,123 @@ exports.updateProfile = catchAsync(async (req, res, next) => {
     new ApiResponse(200, { user }, 'Profile updated successfully.')
   );
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN: UPDATE USER  PUT /api/users/:id
+// Admin can update: name, phone, role, isActive (status)
+// ─────────────────────────────────────────────────────────────────────────────
+exports.adminUpdateUser = catchAsync(async (req, res, next) => {
+  const adminId = req.admin?._id;
+  if (!adminId) return next(new AppError('Admin authentication required', 401));
+
+  const { id } = req.params;
+  const { name, phone, isActive, role } = req.body;
+
+  const user = await User.findOne({ _id: id, admin: adminId, isDeleted: false });
+  if (!user) return next(new AppError('User not found', 404));
+
+  const before = { name: user.name, phone: user.phone, isActive: user.isActive, role: user.role };
+
+  if (name     !== undefined) user.name     = name.trim();
+  if (phone    !== undefined) user.phone    = phone.trim();
+  if (isActive !== undefined) user.isActive = Boolean(isActive);
+
+  // Role change: validate role belongs to user's department
+  if (role !== undefined && role !== user.role) {
+    const dept = await Department.findById(user.department);
+    const allowedRoles = ROLE_DEPARTMENT_MAP[dept?.name] || [];
+    if (!allowedRoles.includes(role)) {
+      return next(new AppError(`Role ${role} is not valid for department ${dept?.name}`, 400));
+    }
+    user.role = role;
+  }
+
+  await user.save();
+
+  await AuditLog.create({
+    admin: adminId, performedBy: adminId, performerType: 'ADMIN',
+    action: 'USER_UPDATED', targetModel: 'User', targetId: user._id,
+    before, after: { name: user.name, phone: user.phone, isActive: user.isActive, role: user.role },
+  }).catch(() => {});
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      user: {
+        id: user._id, name: user.name, email: user.email,
+        phone: user.phone, role: user.role, isActive: user.isActive,
+        status: user.isActive ? 'Active' : 'Inactive',
+      },
+    }, 'User updated successfully'),
+  );
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN: DELETE USER (soft)  DELETE /api/users/:id
+// ─────────────────────────────────────────────────────────────────────────────
+exports.adminDeleteUser = catchAsync(async (req, res, next) => {
+  const adminId = req.admin?._id;
+  if (!adminId) return next(new AppError('Admin authentication required', 401));
+
+  const { id } = req.params;
+  const user = await User.findOne({ _id: id, admin: adminId, isDeleted: false });
+  if (!user) return next(new AppError('User not found', 404));
+
+  await user.softDelete(adminId);
+
+  await AuditLog.create({
+    admin: adminId, performedBy: adminId, performerType: 'ADMIN',
+    action: 'USER_DELETED', targetModel: 'User', targetId: user._id,
+    before: { name: user.name, email: user.email, role: user.role },
+  }).catch(() => {});
+
+  res.status(200).json(new ApiResponse(200, null, `User "${user.name}" deleted successfully`));
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN: GET LOGIN LOGS  GET /api/users/login-logs
+// All login records for users under this admin
+// ─────────────────────────────────────────────────────────────────────────────
+exports.getLoginLogs = catchAsync(async (req, res, next) => {
+  const adminId = req.admin?._id;
+  if (!adminId) return next(new AppError('Admin authentication required', 401));
+
+  const { limit = 200, page = 1 } = req.query;
+  const skip = (Number(page) - 1) * Number(limit);
+
+  const [logs, total] = await Promise.all([
+    UserLoginLog.find({ admin: adminId })
+      .populate('user', 'name email role')
+      .sort({ loginAt: -1 })
+      .skip(skip)
+      .limit(Number(limit))
+      .lean(),
+    UserLoginLog.countDocuments({ admin: adminId }),
+  ]);
+
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  const mapped = logs.map((l) => ({
+    id:        String(l._id),
+    username:  l.user?.name  || l.email || '—',
+    email:     l.email        || l.user?.email || '—',
+    role:      l.role         || l.user?.role  || '—',
+    dateTime:  l.loginAt ? new Date(l.loginAt).toISOString().slice(0, 19).replace('T', ' ') : '—',
+    ip:        l.ipAddress    || '—',
+    latitude:  l.latitude  != null ? String(l.latitude)  : '—',
+    longitude: l.longitude != null ? String(l.longitude) : '—',
+    device:    l.device       || l.userAgent?.slice(0, 40) || '—',
+    isSuccess: l.isSuccess !== false,
+  }));
+
+  const uniqueUsers  = new Set(logs.map((l) => String(l.user?._id || l.email))).size;
+  const uniqueIPs    = new Set(logs.map((l) => l.ipAddress)).size;
+  const todayLogins  = logs.filter((l) => l.loginAt && new Date(l.loginAt) >= today).length;
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      logs: mapped,
+      stats: { total, todayLogins, uniqueUsers, uniqueIPs },
+      pagination: { total, page: Number(page), limit: Number(limit) },
+    }, 'Login logs retrieved'),
+  );
+});

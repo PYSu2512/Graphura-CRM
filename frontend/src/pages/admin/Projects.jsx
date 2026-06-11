@@ -1,322 +1,408 @@
-import React, { useState } from "react";
+/**
+ * Admin Projects.jsx
+ * Fully dynamic: list, view detail, update status, delete.
+ * Right-side toast notifications auto-dismiss in 4s.
+ */
+
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
-  FolderKanban, CheckCircle, Clock, AlertCircle, AlertTriangle,
-  Plus, FileDown, LayoutGrid, List, Zap, Briefcase, Layers,
-  TrendingUp, TrendingDown, DollarSign, Eye, Pencil, ArrowRight,
-  Shield, BarChart3,
+  FolderKanban, CheckCircle, Shield, DollarSign,
+  TrendingUp, TrendingDown, AlertCircle,
+  FileDown, Eye, Pencil, Trash2, X, CheckCircle2, AlertTriangle, RefreshCw,
 } from "lucide-react";
 import {
   Heading, DashGrid, EnhancedDashCard, DataTable,
   GAreaChart, GBarChart, Button,
   PanelModal as Modal, openModal, closeModal,
+  SelectField, Option,
 } from "../../components/shared/Common_Components";
+import apiClient from "../../services/apiClient";
 
-// ── Mock Data ──────────────────────────────────────────────────────────────
+// ── Toast system ──────────────────────────────────────────────────────────────
+function ToastContainer({ toasts, onRemove }) {
+  return (
+    <div className="fixed top-4 right-4 z-[9999] flex flex-col gap-2.5 pointer-events-none" style={{ minWidth: 300 }}>
+      {toasts.map((t) => (
+        <div key={t.id}
+          className={`flex items-start gap-3 rounded-2xl px-4 py-3.5 shadow-xl border pointer-events-auto transition-all ${
+            t.type === "success" ? "bg-white border-emerald-200"
+            : t.type === "error"   ? "bg-white border-rose-200"
+            :                        "bg-white border-blue-200"
+          }`}
+          style={{ maxWidth: 360 }}>
+          <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            t.type === "success" ? "bg-emerald-100" : t.type === "error" ? "bg-rose-100" : "bg-blue-100"
+          }`}>
+            {t.type === "success"
+              ? <CheckCircle2 size={16} className="text-emerald-600" />
+              : <AlertTriangle size={16} className={t.type === "error" ? "text-rose-600" : "text-blue-600"} />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`text-sm font-bold ${
+              t.type === "success" ? "text-emerald-700" : t.type === "error" ? "text-rose-700" : "text-blue-700"
+            }`}>{t.title}</p>
+            {t.msg && <p className="text-xs text-slate-500 mt-0.5">{t.msg}</p>}
+          </div>
+          <button type="button" onClick={() => onRemove(t.id)} className="text-slate-400 hover:text-slate-600">
+            <X size={14} />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-const initialProjects = [
-  { id: "p1", name: "CRM Portal Revamp", client: "Acme Corp", team: "Engineering Alpha", leader: "Priya Mehta", manager: "Rahul Joshi", dealAmount: "₹12,50,000", requirements: "React, Node, Postgres", priority: "High", status: "In Progress", progress: "72%", payment: "Partial", deadline: "30 Apr 2026", risk: "Medium" },
-  { id: "p2", name: "ERP Integration", client: "Global Tech", team: "Engineering Beta", leader: "Karan Bhatia", manager: "Sneha Patel", dealAmount: "₹28,00,000", requirements: "SAP, Python, AWS", priority: "Critical", status: "In Progress", progress: "55%", payment: "Paid", deadline: "15 May 2026", risk: "High" },
-  { id: "p3", name: "Mobile App v2", client: "Nexus Labs", team: "Design Studio", leader: "Arjun Kapoor", manager: "Amit Verma", dealAmount: "₹8,50,000", requirements: "Flutter, Firebase", priority: "Medium", status: "In Progress", progress: "38%", payment: "Pending", deadline: "10 Jun 2026", risk: "Low" },
-  { id: "p4", name: "Data Migration", client: "Sunrise Retail", team: "Backend Team", leader: "Neha Gupta", manager: "Rahul Joshi", dealAmount: "₹15,00,000", requirements: "SQL, ETL, Azure", priority: "High", status: "Delayed", progress: "80%", payment: "Pending", deadline: "05 Mar 2026", risk: "High" },
-  { id: "p5", name: "Analytics Dashboard", client: "FinTech Ltd.", team: "Data Science", leader: "Priya Mehta", manager: "Sneha Patel", dealAmount: "₹18,20,000", requirements: "PowerBI, Snowflake", priority: "Low", status: "Completed", progress: "100%", payment: "Paid", deadline: "20 Apr 2026", risk: "None" },
-  { id: "p6", name: "API Gateway Setup", client: "CloudBase Inc.", team: "DevOps", leader: "Karan Bhatia", manager: "Amit Verma", dealAmount: "₹9,75,000", requirements: "Kong, Kubernetes", priority: "Medium", status: "In Progress", progress: "45%", payment: "Partial", deadline: "01 May 2026", risk: "Medium" },
-];
+function useToasts() {
+  const [toasts, setToasts] = useState([]);
+  const timers = useRef({});
+  const show = useCallback((title, msg, type = "success", ms = 4000) => {
+    const id = Date.now() + Math.random();
+    setToasts((p) => [...p, { id, title, msg, type }]);
+    timers.current[id] = setTimeout(() => {
+      setToasts((p) => p.filter((t) => t.id !== id));
+      delete timers.current[id];
+    }, ms);
+  }, []);
+  const remove = useCallback((id) => {
+    clearTimeout(timers.current[id]);
+    setToasts((p) => p.filter((t) => t.id !== id));
+  }, []);
+  return { toasts, show, remove };
+}
 
-const projectTrendData = [
-  { name: "Jan", completed: 2, inProgress: 3, delayed: 0 },
-  { name: "Feb", completed: 3, inProgress: 4, delayed: 1 },
-  { name: "Mar", completed: 4, inProgress: 5, delayed: 1 },
-  { name: "Apr", completed: 5, inProgress: 4, delayed: 1 },
-  { name: "May", completed: 6, inProgress: 3, delayed: 0 },
-  { name: "Jun", completed: 7, inProgress: 4, delayed: 1 },
-];
+// ── Status pill ───────────────────────────────────────────────────────────────
+const STATUS_CFG = {
+  "Completed":    { bg:"#dcfce7", color:"#16a34a" },
+  "Delivered":    { bg:"#d1fae5", color:"#059669" },
+  "In Progress":  { bg:"#dbeafe", color:"#2563eb" },
+  "Work Started": { bg:"#ede9fe", color:"#7c3aed" },
+  "Not Started":  { bg:"#f1f5f9", color:"#64748b" },
+  "Delayed":      { bg:"#fee2e2", color:"#dc2626" },
+  "Review Stage": { bg:"#fef3c7", color:"#d97706" },
+  "Finalization": { bg:"#fce7f3", color:"#db2777" },
+};
+function StatusPill({ status }) {
+  const s = STATUS_CFG[status] ?? { bg:"#f1f5f9", color:"#64748b" };
+  return (
+    <span className="inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-bold"
+      style={{ background: s.bg, color: s.color }}>{status}</span>
+  );
+}
 
-const teamProductivityData = [
-  { name: "Team Alpha", tasks: 42, completed: 38 },
-  { name: "Team Beta", tasks: 36, completed: 30 },
-  { name: "Design", tasks: 28, completed: 25 },
-  { name: "Backend", tasks: 32, completed: 22 },
-  { name: "Data Sci", tasks: 38, completed: 35 },
-];
-
-const lifecycleStages = [
-  { stage: "Planning", pct: 100, color: "#22c55e", team: "Strategy" },
-  { stage: "Development", pct: 72, color: "#3b82f6", team: "Engineering" },
-  { stage: "Review", pct: 45, color: "#f59e0b", team: "QA & Design" },
-  { stage: "Testing", pct: 20, color: "#8b5cf6", team: "QA" },
-  { stage: "Delivery", pct: 0, color: "#94a3b8", team: "DevOps" },
-];
-
-const activityFeed = [
-  { icon: "✅", text: "Analytics Dashboard marked as Completed", time: "2 hrs ago" },
-  { icon: "💰", text: "₹8,40,000 received from Acme Corp", time: "5 hrs ago" },
-  { icon: "⚠️", text: "Data Migration deadline extended to 15 Mar", time: "1 day ago" },
-  { icon: "🚀", text: "Mobile App v2 entered Development phase", time: "2 days ago" },
-  { icon: "💬", text: "Neha Gupta commented on ERP Integration", time: "3 days ago" },
-];
-
-const aiInsights = [
-  { type: "warning", Icon: AlertCircle, text: "2 projects may miss deadlines this month", color: "#f59e0b" },
-  { type: "danger", Icon: TrendingDown, text: "Team productivity dropped 12% vs last quarter", color: "#ef4444" },
-  { type: "success", Icon: TrendingUp, text: "Revenue from projects up 18% this quarter", color: "#22c55e" },
+const ALL_STATUSES = [
+  "Not Started","Work Started","In Progress",
+  "Review Stage","Finalization","Completed","Delivered","Delayed",
 ];
 
 const projectColumns = [
-  { key: "name", label: "Project" },
-  { key: "client", label: "Client" },
-  { key: "manager", label: "Project Manager" },
-  { key: "status", label: "Status" },
-  { key: "progress", label: "Progress" },
+  { key: "name",       label: "Project" },
+  { key: "client",     label: "Client" },
+  { key: "manager",    label: "Project Manager" },
+  { key: "status",     label: "Status",   render: (v) => <StatusPill status={v} /> },
+  { key: "progress",   label: "Progress" },
   { key: "dealAmount", label: "Deal Amount" },
-  { key: "deadline", label: "Deadline" },
+  { key: "deadline",   label: "Deadline" },
 ];
 
-const emptyForm = { name: "", client: "", team: "", leader: "", priority: "Medium", status: "In Progress", progress: "0%", payment: "Pending", deadline: "", risk: "Low" };
-
-// ── Professional 2D Illustrated Icon for KPI Cards ──
-const KPIIcon = ({ children, gradient, shadow }) => (
-  <div className="relative w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg"
-    style={{ background: gradient, boxShadow: shadow }}>
-    <div className="absolute inset-0 rounded-2xl opacity-30"
-      style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.4) 0%, transparent 60%)" }} />
-    <div className="relative text-white drop-shadow-sm">{children}</div>
-  </div>
-);
-
-// ── Styled button helper (Button component has no icon prop) ──
-const HeaderBtn = ({ icon, label, variant = "ghost", onClick }) => (
-  <button
-    onClick={onClick}
-    className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all duration-200 active:scale-95 ${variant === "primary"
-      ? "text-white shadow-lg bg-[#2a465a] hover:bg-gradient-to-r hover:from-[#1e3a52] hover:to-[#2b5a7a] hover:shadow-xl hover:-translate-y-0.5"
-      : "text-[#2a465a] bg-white border border-slate-200 hover:bg-slate-50 hover:-translate-y-0.5"
-      }`}
-  >
-    {icon} {label}
-  </button>
-);
-
-// ── Component ──────────────────────────────────────────────────────────────
+const fmtRevenue = (n) => {
+  if (!n) return "₹0";
+  if (n >= 10000000) return `₹${(n / 10000000).toFixed(2)}Cr`;
+  if (n >= 100000)   return `₹${(n / 100000).toFixed(2)}L`;
+  return `₹${n.toLocaleString("en-IN")}`;
+};
 
 export default function Projects() {
-  const [projects, setProjects] = useState(initialProjects);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [formProject, setFormProject] = useState(emptyForm);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toasts, show: toast, remove: removeToast } = useToasts();
 
-  // ── Computed KPIs ──
-  const activeCount = projects.filter(p => p.status === "In Progress").length;
-  const completedCount = projects.filter(p => p.status === "Completed").length;
-  const atRiskCount = projects.filter(p => p.risk === "High").length;
+  const [projects,  setProjects]  = useState([]);
+  const [stats,     setStats]     = useState({});
+  const [trend,     setTrend]     = useState([]);
+  const [loading,   setLoading]   = useState(true);
 
-  // ── CRUD Handlers ──
-  const handleSave = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      if (formProject.id) {
-        setProjects(prev => prev.map(p => p.id === formProject.id ? { ...formProject } : p));
-      } else {
-        setProjects(prev => [...prev, { ...formProject, id: `p-${Date.now()}` }]);
-      }
-      closeModal("project-form-modal");
-      setIsSubmitting(false);
-    }, 400);
+  const [viewProj,  setViewProj]  = useState(null);
+  const [editProj,  setEditProj]  = useState(null);   // for status update
+  const [delProj,   setDelProj]   = useState(null);
+  const [newStatus, setNewStatus] = useState("");
+  const [isSaving,  setIsSaving]  = useState(false);
+  const [isDeleting,setIsDeleting]= useState(false);
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  const fetchProjects = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.get("/admin/projects");
+      setProjects(res.data?.data?.projects || []);
+      setStats(res.data?.data?.stats       || {});
+      setTrend(res.data?.data?.trend       || []);
+    } catch (err) {
+      toast("Failed to load projects", err?.message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { fetchProjects(); }, [fetchProjects]);
+
+  // ── Status update ──────────────────────────────────────────────────────────
+  const openStatusModal = (row) => {
+    const full = projects.find((p) => p.id === row.id) || row;
+    setEditProj(full);
+    setNewStatus(full.status);
+    openModal("admin-proj-status-modal");
   };
 
-  const handleDelete = () => {
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setProjects(prev => prev.filter(p => p.id !== formProject.id));
-      closeModal("project-form-modal");
-      setIsSubmitting(false);
-    }, 400);
+  const handleStatusSave = async () => {
+    setIsSaving(true);
+    try {
+      await apiClient.patch(`/admin/projects/${editProj.id}/status`, { status: newStatus });
+      toast("Status updated", `${editProj.name} → ${newStatus}`, "success");
+      closeModal("admin-proj-status-modal");
+      fetchProjects();
+    } catch (err) {
+      toast("Update failed", err?.message, "error");
+    } finally { setIsSaving(false); }
   };
 
-  // ── CSV Export ──
+  // ── Delete ─────────────────────────────────────────────────────────────────
+  const openDeleteModal = (row) => {
+    setDelProj(projects.find((p) => p.id === row.id) || row);
+    openModal("admin-proj-delete-modal");
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await apiClient.delete(`/admin/projects/${delProj.id}`);
+      toast("Project deleted", `"${delProj.name}" has been removed.`, "success");
+      closeModal("admin-proj-delete-modal");
+      setDelProj(null);
+      fetchProjects();
+    } catch (err) {
+      toast("Delete failed", err?.message, "error");
+    } finally { setIsDeleting(false); }
+  };
+
+  // ── Export ─────────────────────────────────────────────────────────────────
   const handleExport = () => {
-    const headers = projectColumns.map(c => c.label).join(",");
-    const rows = projects.map(p => projectColumns.map(c => `"${p[c.key] || ""}"`).join(","));
-    const blob = new Blob([headers + "\n" + rows.join("\n")], { type: "text/csv" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "projects-report.csv"; a.click();
+    const hdr = "Project,Client,Manager,Status,Progress,Amount,Deadline\n";
+    const rows = projects.map((p) =>
+      `"${p.name}","${p.client}","${p.manager}","${p.status}","${p.progress}","${p.dealAmount}","${p.deadline}"`
+    ).join("\n");
+    const a = document.createElement("a");
+    a.href = encodeURI("data:text/csv;charset=utf-8," + hdr + rows);
+    a.download = "projects.csv"; a.click();
   };
 
-  // ── Table Actions ──
   const tableActions = [
-    { icon: <Eye size={14} />, tooltip: "View", variant: "ghost", onClick: (row) => { setSelectedProject(row); openModal("project-view-modal"); } },
-    { icon: <Pencil size={14} />, tooltip: "Edit", variant: "primary", onClick: (row) => { setFormProject({ ...row }); openModal("project-form-modal"); } },
+    {
+      icon: <Eye size={14} />, tooltip: "View", variant: "ghost",
+      onClick: (row) => { setViewProj(projects.find((p) => p.id === row.id) || row); openModal("admin-proj-view-modal"); },
+    },
+    {
+      icon: <Pencil size={14} />, tooltip: "Update Status", variant: "primary",
+      onClick: openStatusModal,
+    },
+    {
+      icon: <Trash2 size={14} />, tooltip: "Delete", variant: "danger",
+      onClick: openDeleteModal,
+    },
   ];
 
-  // ── Form Input Helper ──
-  const FormInput = ({ label, field, type = "text", disabled = false, options }) => (
-    <div className="space-y-1.5">
-      <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
-      {options ? (
-        <select value={formProject[field]} onChange={e => setFormProject({ ...formProject, [field]: e.target.value })}
-          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-[#2a465a] focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all">
-          {options.map(o => <option key={o} value={o}>{o}</option>)}
-        </select>
-      ) : (
-        <input type={type} value={formProject[field]} onChange={e => setFormProject({ ...formProject, [field]: e.target.value })}
-          disabled={disabled}
-          className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-[#2a465a] focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition-all disabled:opacity-50"
-          placeholder={`Enter ${label.toLowerCase()}`} />
-      )}
-    </div>
-  );
+  const aiInsights = [
+    stats.atRisk > 0
+      ? { Icon: AlertCircle,  text: `${stats.atRisk} project${stats.atRisk > 1 ? "s are" : " is"} past deadline`, color: "#f59e0b" }
+      : { Icon: CheckCircle,  text: "No projects are past deadline", color: "#22c55e" },
+    { Icon: TrendingUp, text: `${stats.completed || 0} project${stats.completed !== 1 ? "s" : ""} completed`, color: "#22c55e" },
+    { Icon: DollarSign, text: `Total revenue: ${fmtRevenue(stats.totalRevenue)}`, color: "#8b5cf6" },
+  ];
 
   return (
     <div className="flex flex-col gap-6">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      {/* ── 1. Header ── */}
       <Heading primaryText="Project" secondaryText="Dashboard" size={12} />
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 -mt-2">
-        <div className="hidden sm:block"></div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <HeaderBtn icon={<FileDown size={16} />} label="Export" onClick={handleExport} />
-          <HeaderBtn icon={<Plus size={16} />} label="New Project" variant="primary"
-            onClick={() => { setFormProject({ ...emptyForm }); openModal("project-form-modal"); }} />
-        </div>
+
+      {/* Header actions */}
+      <div className="flex items-center justify-end gap-2 -mt-2">
+        <button onClick={fetchProjects}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition active:scale-95">
+          <RefreshCw size={15} /> Refresh
+        </button>
+        <button onClick={handleExport}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-bold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition active:scale-95">
+          <FileDown size={15} /> Export
+        </button>
       </div>
 
-      {/* ── 2. KPI Cards ── */}
+      {/* KPI Cards */}
       <DashGrid cols={12} gap={4}>
-        <EnhancedDashCard title="Active Projects" value={String(activeCount)} icon={<Briefcase size={22} />} accentColor="#3b82f6" size={3} />
-        <EnhancedDashCard title="Completed" value={String(completedCount)} icon={<CheckCircle size={22} />} accentColor="#22c55e" size={3} />
-        <EnhancedDashCard title="At Risk" value={String(atRiskCount)} icon={<Shield size={22} />} accentColor="#ef4444" size={3} />
-        <EnhancedDashCard title="Revenue" value="₹1.84Cr" icon={<DollarSign size={22} />} accentColor="#8b5cf6" size={3} />
+        <EnhancedDashCard title="Active Projects" value={loading ? "—" : String(stats.active    ?? 0)} icon={<FolderKanban size={22}/>} accentColor="#3b82f6" size={3} />
+        <EnhancedDashCard title="Completed"        value={loading ? "—" : String(stats.completed ?? 0)} icon={<CheckCircle size={22}/>}  accentColor="#22c55e" size={3} />
+        <EnhancedDashCard title="At Risk"           value={loading ? "—" : String(stats.atRisk    ?? 0)} icon={<Shield size={22}/>}       accentColor="#ef4444" size={3} />
+        <EnhancedDashCard title="Revenue"           value={loading ? "—" : fmtRevenue(stats.totalRevenue)} icon={<DollarSign size={22}/>} accentColor="#8b5cf6" size={3} />
       </DashGrid>
 
-      {/* ── 3. AI Insights ── */}
+      {/* Insights */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {aiInsights.map((ins, i) => (
-          <div key={i} className="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: `${ins.color}15` }}>
+          <div key={i} className="flex items-center gap-3 p-4 rounded-2xl border border-slate-100 bg-white shadow-sm">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${ins.color}15` }}>
               <ins.Icon size={20} style={{ color: ins.color }} />
             </div>
-            <p className="text-sm font-semibold text-[#2a465a] leading-snug">{ins.text}</p>
+            <p className="text-sm font-semibold text-[#2a465a]">{ins.text}</p>
           </div>
         ))}
       </div>
 
-      {/* ── 4. Charts ── */}
+      {/* Charts */}
       <DashGrid cols={12} gap={4}>
-        <GAreaChart title="Project Completion Trends" subtitle="Monthly overview" data={projectTrendData}
+        <GAreaChart title="Project Completion Trends" subtitle="Monthly overview" data={trend}
           areas={[
-            { key: "completed", label: "Completed", color: "#22c55e" },
+            { key: "completed",  label: "Completed",   color: "#22c55e" },
             { key: "inProgress", label: "In Progress", color: "#3b82f6" },
-            { key: "delayed", label: "Delayed", color: "#ef4444" },
+            { key: "delayed",    label: "Delayed",     color: "#ef4444" },
           ]} size={8} height={280} />
-        <GBarChart title="Team Productivity" subtitle="Tasks assigned vs completed" data={teamProductivityData}
-          bars={[
-            { key: "tasks", label: "Assigned", color: "#94a3b8" },
-            { key: "completed", label: "Completed", color: "#2a465a" },
-          ]} size={4} height={280} />
+        <GBarChart title="Status Breakdown" subtitle="Projects by current status"
+          data={[
+            { name: "Active",    value: stats.active    || 0 },
+            { name: "Completed", value: stats.completed || 0 },
+            { name: "Delayed",   value: stats.delayed   || 0 },
+            { name: "At Risk",   value: stats.atRisk    || 0 },
+          ]}
+          bars={[{ key: "value", label: "Projects", color: "#2a465a" }]}
+          size={4} height={280} />
       </DashGrid>
 
+      {/* Table */}
+      <DataTable
+        title="Projects Directory"
+        columns={projectColumns}
+        rows={projects}
+        size={12} pageSize={10} searchable exportable exportFileName="projects"
+        loading={loading}
+        actions={tableActions}
+        filters={[
+          { title: "Status",   key: "status",   type: "toggle", options: ALL_STATUSES },
+          { title: "Priority", key: "priority", type: "toggle", options: ["Low","Medium","High","Urgent"] },
+        ]}
+      />
 
-
-      {/* ── 6. Table / Activity Feed ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mb-6">
-        <div className="lg:col-span-12">
-          <DataTable title="Projects Directory" columns={projectColumns} rows={projects}
-            size={12} pageSize={10} searchable date exportable exportFileName="projects-report"
-            actions={tableActions}
-            filters={[
-              { title: "Status", key: "status", type: "toggle", options: ["In Progress", "Completed", "Delayed"] },
-              { title: "Priority", key: "priority", type: "toggle", options: ["Low", "Medium", "High", "Critical"] },
-              { title: "Risk", key: "risk", type: "toggle", options: ["None", "Low", "Medium", "High"] },
-              { title: "Payment", key: "payment", type: "toggle", options: ["Paid", "Partial", "Pending"] },
-            ]}
-          />
-        </div>
-
-
-      </div>
-
-      {/* ══ PANEL MODALS ═══════════════════════════════════════════════════════ */}
-
-      {/* View Details Modal */}
-      <Modal id="project-view-modal" title="Project Details">
-        {selectedProject && (
+      {/* ── View Modal ── */}
+      <Modal id="admin-proj-view-modal" title="Project Details">
+        {viewProj && (
           <div className="space-y-5">
             <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <div className="w-14 h-14 rounded-2xl bg-[#2a465a] flex items-center justify-center text-white shadow-lg">
-                <FolderKanban size={24} />
+              <div className="w-12 h-12 rounded-2xl bg-[#2a465a] flex items-center justify-center text-white shadow-lg">
+                <FolderKanban size={22} />
               </div>
               <div>
-                <p className="text-lg font-black text-[#2a465a]">{selectedProject.name}</p>
-                <p className="text-sm font-bold text-slate-500">{selectedProject.client}</p>
+                <p className="text-lg font-black text-[#2a465a]">{viewProj.name}</p>
+                <p className="text-sm text-slate-500">{viewProj.client} · {viewProj.projectNumber}</p>
               </div>
+              <div className="ml-auto"><StatusPill status={viewProj.status} /></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Assigned Team", val: selectedProject.team },
-                { label: "Team Leader", val: selectedProject.leader },
-                { label: "Project Manager", val: selectedProject.manager },
-                { label: "Deal Amount", val: selectedProject.dealAmount },
-                { label: "Requirements", val: selectedProject.requirements },
-                { label: "Priority", val: selectedProject.priority },
-                { label: "Status", val: selectedProject.status },
-                { label: "Progress", val: selectedProject.progress },
-                { label: "Payment", val: selectedProject.payment },
-                { label: "Deadline", val: selectedProject.deadline },
-                { label: "Risk Level", val: selectedProject.risk },
-              ].map(({ label, val }) => (
+                ["Project Manager", viewProj.manager],
+                ["Deal Amount",     viewProj.dealAmount],
+                ["Progress",        viewProj.progress],
+                ["Priority",        viewProj.priority],
+                ["Start Date",      viewProj.startDate],
+                ["Deadline",        viewProj.deadline],
+                ["Delivered At",    viewProj.deliveredAt || "—"],
+                ["Drive Link",      viewProj.driveLink   || "—"],
+                ["Handover Link",   viewProj.handoverLink || "—"],
+                ["At Risk",         viewProj.isAtRisk ? "⚠ Yes" : "No"],
+              ].map(([label, val]) => (
                 <div key={label}>
-                  <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">{label}</span>
-                  <span className="text-[#2a465a] font-bold bg-white px-3 py-2.5 rounded-xl block border border-slate-100 text-sm">{val}</span>
+                  <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{label}</span>
+                  <span className="text-[#2a465a] font-bold bg-white px-3 py-2 rounded-xl block border border-slate-100 text-sm truncate">{val}</span>
                 </div>
               ))}
             </div>
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
-              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("project-view-modal")} />
-              <Button text="Edit Project" variant="primary" size={3} onClick={() => {
-                closeModal("project-view-modal");
-                setFormProject({ ...selectedProject });
-                openModal("project-form-modal");
+
+            {viewProj.description && (
+              <div>
+                <span className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Description</span>
+                <p className="text-sm text-slate-600 bg-slate-50 rounded-xl px-3 py-2.5 border border-slate-100">{viewProj.description}</p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("admin-proj-view-modal")} />
+              <Button text="Update Status" variant="primary" size={4} onClick={() => {
+                closeModal("admin-proj-view-modal");
+                openStatusModal(viewProj);
               }} />
             </div>
           </div>
         )}
       </Modal>
 
-      {/* Add/Edit Form Modal */}
-      <Modal id="project-form-modal" title={formProject.id ? "Edit Project" : "New Project"}>
-        <div className="space-y-4">
-          <FormInput label="Project Name" field="name" />
-          <FormInput label="Client" field="client" />
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Assigned Team" field="team" />
-            <FormInput label="Team Leader" field="leader" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Priority" field="priority" options={["Low", "Medium", "High", "Critical"]} />
-            <FormInput label="Status" field="status" options={["In Progress", "Completed", "Delayed"]} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Progress" field="progress" />
-            <FormInput label="Payment" field="payment" options={["Paid", "Partial", "Pending"]} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <FormInput label="Deadline" field="deadline" />
-            <FormInput label="Risk Level" field="risk" options={["None", "Low", "Medium", "High"]} />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
-            <Button text="Cancel" variant="ghost" size={3} onClick={() => closeModal("project-form-modal")} disabled={isSubmitting} />
-            <Button text={isSubmitting ? "Saving..." : formProject.id ? "Update" : "Create"} variant="primary" size={3}
-              onClick={handleSave} disabled={isSubmitting || !formProject.name || !formProject.client} />
-          </div>
-
-          {formProject.id && (
-            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 mt-2">
-              <span className="text-xs font-bold text-rose-400 uppercase tracking-widest mr-auto">Danger Zone</span>
-              <Button text="Delete Project" variant="danger" size={3} onClick={handleDelete} />
+      {/* ── Status Update Modal ── */}
+      <Modal id="admin-proj-status-modal" title="Update Project Status">
+        {editProj && (
+          <div className="space-y-5">
+            <div className="bg-slate-50 rounded-xl px-4 py-3 border border-slate-100">
+              <p className="font-bold text-[#2a465a] text-sm">{editProj.name}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{editProj.client} · Current: {editProj.status}</p>
             </div>
-          )}
-        </div>
+
+            <div className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-100 rounded-xl">
+              <AlertCircle size={15} className="text-blue-500 mt-0.5 flex-shrink-0" />
+              <p className="text-xs text-blue-700">As Admin you can only update the project status. Content changes must be made through the Management Manager panel.</p>
+            </div>
+
+            <SelectField label="New Status" id="admin-proj-status" value={newStatus} searchable={false}
+              onChange={(e) => setNewStatus(e.target.value)}>
+              {ALL_STATUSES.map((s) => <Option key={s} value={s} label={s} />)}
+            </SelectField>
+
+            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+              <button onClick={() => closeModal("admin-proj-status-modal")}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition">
+                Cancel
+              </button>
+              <button onClick={handleStatusSave} disabled={isSaving || newStatus === editProj.status}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-[#2a465a] shadow-lg hover:bg-[#1e3a52] transition active:scale-95 disabled:opacity-60">
+                {isSaving ? "Saving…" : "Update Status"}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
 
+      {/* ── Delete Confirmation Modal ── */}
+      <Modal id="admin-proj-delete-modal" title="Delete Project">
+        {delProj && (
+          <div className="space-y-4">
+            <div className="flex items-start gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
+              <AlertTriangle size={20} className="text-rose-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-bold text-rose-700">This action cannot be undone</p>
+                <p className="text-sm text-rose-600 mt-1">
+                  Delete <strong>"{delProj.name}"</strong>? All associated task assignments will remain but the project will be archived.
+                </p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div><span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Client</span><span className="font-semibold">{delProj.client}</span></div>
+              <div><span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-1">Status</span><StatusPill status={delProj.status} /></div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => closeModal("admin-proj-delete-modal")}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition">
+                Cancel
+              </button>
+              <button onClick={handleDelete} disabled={isDeleting}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-rose-500 shadow-lg hover:bg-rose-600 transition active:scale-95 disabled:opacity-60">
+                {isDeleting ? "Deleting…" : "Delete Project"}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
