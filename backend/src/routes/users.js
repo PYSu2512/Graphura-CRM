@@ -10,11 +10,14 @@ const router = express.Router();
 router.get('/meta/role-department-map', requireAdmin, userController.getRoleDepartmentMap);
 router.get('/departments', requireAdmin, userController.getDepartments);
 router.post('/login', validate(departmentLoginSchema, 'body'), userController.loginUser);
+router.get('/login-logs', requireAdmin, userController.getLoginLogs);
 router.get('/', requireAuth, userController.getUsers);
 router.get('/stats', requireAuth, userController.getUserStats);
 router.get('/profile', requireUser, userController.getCurrentUserProfile);
 router.get('/me', requireUser, userController.getCurrentUserProfile);
 router.post('/', requireAdmin, validate(createUserSchema, 'body'), userController.createUser);
+router.put('/:id', requireAdmin, userController.adminUpdateUser);
+router.delete('/:id', requireAdmin, userController.adminDeleteUser);
 
 // Account setup (password update) for department users
 router.patch('/setup-account', requireUser, validate(setupAccountSchema, 'body'), userController.setupAccount);
