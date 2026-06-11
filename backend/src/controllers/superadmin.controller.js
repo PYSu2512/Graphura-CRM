@@ -8,6 +8,11 @@ const {
   Admin,
   AuditLog,
   SuperAdminTicket,
+  Department,
+  User,
+  Project,
+  Payment,
+  Lead,
 } = require("../models/index");
 const {
   comparePassword,
@@ -242,14 +247,49 @@ exports.toggleAdminStatus = catchAsync(async (req, res, next) => {
 exports.getAdminById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
-  const admin = await Admin.findOne({ _id: id, isDeleted: false });
+  const admin = await Admin.findOne({ _id: id, isDeleted: false }).populate("plan");
   if (!admin) {
     return next(new AppError("Admin not found", 404));
   }
 
-  res
-    .status(200)
-    .json(new ApiResponse(200, { admin }, "Admin retrieved successfully"));
+  const departments = await Department.find({ admin: id, isDeleted: false });
+  const users = await User.find({ admin: id, isDeleted: false });
+  const projects = await Project.find({ admin: id, isDeleted: false })
+    .populate("client", "name")
+    .populate("assignedTo", "name");
+  const payments = await Payment.find({ admin: id })
+    .populate("client", "name")
+    .populate("project", "name");
+
+  const totalLeads = await Lead.countDocuments({ admin: id, isDeleted: { $ne: true } });
+  const activeLeads = await Lead.countDocuments({
+    admin: id,
+    isDeleted: { $ne: true },
+    isDumped: { $ne: true },
+    status: { $ne: "CONVERTED" },
+  });
+  const dumpLeads = await Lead.countDocuments({
+    admin: id,
+    isDeleted: { $ne: true },
+    isDumped: true,
+  });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        admin,
+        departments,
+        users,
+        projects,
+        payments,
+        totalLeads,
+        activeLeads,
+        dumpLeads,
+      },
+      "Admin details retrieved successfully",
+    ),
+  );
 });
 
 /**

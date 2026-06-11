@@ -43,7 +43,6 @@ function AppRoutes() {
         <Route path="/admin" element={<AdminRoutes />} />
         <Route path="/admin/*" element={<AdminRoutes />} />
         {/* Super_Admin Routes */}
-        <Route path="/super-admin" element={<SuperAdminRoutes />} />
         <Route path="/super-admin/*" element={<SuperAdminRoutes />} />
         {/* Sales Routes */}
         <Route path="/sales-manager" element={<SalesManagerRoutes />} />

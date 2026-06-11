@@ -1116,10 +1116,10 @@ export const DataTable = ({
     setPage(1);
   }, [pageSize]);
 
-  // Clear bulk selection whenever filters or search change
+  // Clear bulk selection whenever filters, search, or rows change
   useEffect(() => {
     setSelectedRows(new Set());
-  }, [search, appliedFilters, appliedDateFrom, appliedDateTo, singleDate]);
+  }, [search, appliedFilters, appliedDateFrom, appliedDateTo, singleDate, rows]);
 
   const handleSort = (key) => {
     let direction = "asc";
@@ -1811,6 +1811,10 @@ export const DataTable = ({
                           // ── Reminder type ──
                           Automatic: ["bg-amber-100",  "text-amber-700" ],
                           Scheduled: ["bg-indigo-100", "text-indigo-700"],
+                          // ── Announcement types ──
+                          Announcement: ["bg-blue-100",      "text-blue-700"   ],
+                          Warning:      ["bg-amber-100",     "text-amber-700"  ],
+                          Appreciation: ["bg-emerald-100",   "text-emerald-700"],
                         };
                         const [statusBg, statusText] = STATUS_MAP[val] ?? ["bg-slate-100", "text-slate-600"];
                         return (

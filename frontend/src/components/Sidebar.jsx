@@ -19,6 +19,7 @@ import {
   LifeBuoy,
   LogOut,
   MessageSquare,
+  Megaphone,
   PhoneCall,
   PieChart,
   Receipt,
@@ -58,11 +59,10 @@ const MENUS = {
         label: "Management",
         items: [
           { name: "Admins", path: "/super-admin/admins", icon: ShieldAlert },
-          { name: "Billing", path: "/super-admin/billing", icon: Receipt },
           {
-            name: "Communication",
-            path: "/super-admin/communication",
-            icon: MessageSquare,
+            name: "Announcement",
+            path: "/super-admin/announcements",
+            icon: Megaphone,
           },
         ],
       },
@@ -75,11 +75,6 @@ const MENUS = {
             icon: History,
           },
           { name: "Support", path: "/super-admin/support", icon: LifeBuoy },
-          {
-            name: "API Config",
-            path: "/super-admin/api-config",
-            icon: Webhook,
-          },
         ],
       },
     ],
@@ -435,7 +430,11 @@ const MENUS = {
             path: "/management-manager/login-logs",
             icon: History,
           },
-          { name: "Profile", path: "/management-manager/profile", icon: Settings },
+          {
+            name: "Profile",
+            path: "/management-manager/profile",
+            icon: Settings,
+          },
         ],
       },
     ],
@@ -508,7 +507,11 @@ const MENUS = {
             path: "/management-employee/login-logs",
             icon: History,
           },
-          { name: "Profile", path: "/management-employee/profile", icon: Settings },
+          {
+            name: "Profile",
+            path: "/management-employee/profile",
+            icon: Settings,
+          },
         ],
       },
     ],
@@ -573,7 +576,11 @@ const MENUS = {
       {
         label: "Personal",
         items: [
-          { name: "Profile", path: "/management-team-leader/profile", icon: Settings },
+          {
+            name: "Profile",
+            path: "/management-team-leader/profile",
+            icon: Settings,
+          },
         ],
       },
     ],
@@ -630,11 +637,17 @@ const NavItem = memo(function NavItem({
   onNavClick,
 }) {
   const Icon = item.icon;
+  const location = useLocation();
 
   const handleClick = useCallback(() => {
     if (!expanded && onExpand) onExpand();
     if (onNavClick) onNavClick();
   }, [expanded, onExpand, onNavClick]);
+
+  const isAdminsActive =
+    item.path === "/super-admin/admins" &&
+    (location.pathname === "/super-admin/departments" ||
+      location.pathname === "/super-admin/company");
 
   if (expanded) {
     return (
@@ -642,28 +655,34 @@ const NavItem = memo(function NavItem({
         to={item.path}
         end={item.end ?? false}
         onClick={handleClick}
-        className={({ isActive }) =>
-          `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-150 ${isActive
-            ? "bg-white/10 text-white shadow-sm"
-            : "text-slate-400 hover:bg-white/6 hover:text-slate-200"
-          }`
-        }
+        className={({ isActive }) => {
+          const active = isActive || isAdminsActive;
+          return `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-all duration-150 ${
+            active
+              ? "bg-white/10 text-white shadow-sm"
+              : "text-slate-400 hover:bg-white/6 hover:text-slate-200"
+          }`;
+        }}
       >
-        {({ isActive }) => (
-          <>
-            {/* Left accent bar */}
-            <span
-              className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-200 ${isActive ? "h-5 bg-[#38bdf8]" : "h-0 bg-transparent"
+        {({ isActive }) => {
+          const active = isActive || isAdminsActive;
+          return (
+            <>
+              {/* Left accent bar */}
+              <span
+                className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-200 ${
+                  active ? "h-5 bg-[#38bdf8]" : "h-0 bg-transparent"
                 }`}
-            />
-            <span
-              className={`flex-shrink-0 transition-colors duration-150 ${isActive ? "text-[#38bdf8]" : "text-slate-500 group-hover:text-slate-300"}`}
-            >
-              <Icon size={17} />
-            </span>
-            <span>{item.name}</span>
-          </>
-        )}
+              />
+              <span
+                className={`flex-shrink-0 transition-colors duration-150 ${active ? "text-[#38bdf8]" : "text-slate-500 group-hover:text-slate-300"}`}
+              >
+                <Icon size={17} />
+              </span>
+              <span>{item.name}</span>
+            </>
+          );
+        }}
       </NavLink>
     );
   }
@@ -674,21 +693,26 @@ const NavItem = memo(function NavItem({
         to={item.path}
         end={item.end ?? false}
         onClick={handleClick}
-        className={({ isActive }) =>
-          `relative flex items-center justify-center w-10 h-10 rounded-xl mx-auto transition-all duration-150 ${isActive
-            ? "bg-white/10 text-[#38bdf8]"
-            : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
-          }`
-        }
+        className={({ isActive }) => {
+          const active = isActive || isAdminsActive;
+          return `relative flex items-center justify-center w-10 h-10 rounded-xl mx-auto transition-all duration-150 ${
+            active
+              ? "bg-white/10 text-[#38bdf8]"
+              : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
+          }`;
+        }}
       >
-        {({ isActive }) => (
-          <>
-            <span
-              className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-200 ${isActive ? "h-5 bg-[#38bdf8]" : "h-0"}`}
-            />
-            <Icon size={17} />
-          </>
-        )}
+        {({ isActive }) => {
+          const active = isActive || isAdminsActive;
+          return (
+            <>
+              <span
+                className={`absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-r-full transition-all duration-200 ${active ? "h-5 bg-[#38bdf8]" : "h-0"}`}
+              />
+              <Icon size={17} />
+            </>
+          );
+        }}
       </NavLink>
     </Tooltip>
   );
@@ -770,9 +794,10 @@ const NavGroup = memo(function NavGroup({
                     to={child.path}
                     onClick={onNavClick ?? undefined}
                     className={({ isActive }) =>
-                      `flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ${isActive
-                        ? "bg-white/10 text-white"
-                        : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
+                      `flex items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-medium transition-all duration-150 ${
+                        isActive
+                          ? "bg-white/10 text-white"
+                          : "text-slate-500 hover:bg-white/6 hover:text-slate-300"
                       }`
                     }
                   >
