@@ -50,6 +50,54 @@ const ticketColumns = [
 ];
 
 
+function SupportSkeleton() {
+  return (
+    <div className="animate-pulse space-y-8 p-6 max-w-[1600px] mx-auto">
+      {/* Heading & cards layout */}
+      <div className="grid grid-cols-12 gap-6">
+        {/* Heading Skeleton */}
+        <div className="col-span-12 md:col-span-12 h-9 w-64 bg-slate-200 rounded-2xl" />
+
+        {/* 4 Cards Skeletons */}
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="col-span-12 md:col-span-3 bg-white rounded-2xl border border-slate-100 p-6 flex justify-between items-center h-28">
+            <div className="space-y-3">
+              <div className="h-3.5 w-24 bg-slate-200 rounded" />
+              <div className="h-7 w-16 bg-slate-200 rounded" />
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-slate-200" />
+          </div>
+        ))}
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="space-y-4 w-full">
+        <div className="flex justify-between items-center gap-3">
+          <div className="h-10 flex-1 bg-slate-200 rounded-2xl" />
+          <div className="h-10 w-24 bg-slate-200 rounded-2xl" />
+          <div className="h-10 w-24 bg-slate-200 rounded-2xl" />
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="h-12 bg-slate-100 flex items-center px-6 gap-4 border-b border-slate-200">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-4 bg-slate-200 rounded flex-1" />
+            ))}
+          </div>
+          <div className="divide-y divide-slate-100">
+            {[...Array(5)].map((_, rowIndex) => (
+              <div key={rowIndex} className="h-16 flex items-center px-6 gap-4">
+                {[...Array(6)].map((_, colIndex) => (
+                  <div key={colIndex} className="h-3 bg-slate-200/70 rounded flex-1" />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Support() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -105,6 +153,8 @@ export default function Support() {
       closed: closedTickets.length,
     };
   }, [tickets]);
+
+  if (loading) return <SupportSkeleton />;
 
   const handleViewTicket = (ticket) => {
     setSelectedTicket(ticket);
@@ -188,7 +238,6 @@ export default function Support() {
           exportable
           exportFileName="support-tickets"
           defaultSortKey={null}
-          loading={loading}
           filters={[
             { title: "Status",   type: "toggle", key: "status",   options: ["Opened", "Closed", "In Progress", "Resolved"] },
             { title: "Priority", type: "toggle", key: "priority", options: ["High", "Medium", "Low"] },

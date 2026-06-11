@@ -70,6 +70,52 @@ const adminCols = [
   { key: "plan", label: "Plan" },
 ];
 
+function AdminsSkeleton() {
+  return (
+    <div className="animate-pulse space-y-8 p-6 max-w-[1600px] mx-auto">
+      {/* Heading Skeleton */}
+      <div className="h-9 w-64 bg-slate-200 rounded-2xl mb-8" />
+
+      {/* KPI Cards Skeletons */}
+      <div className="grid grid-cols-12 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="col-span-12 md:col-span-3 bg-white rounded-2xl border border-slate-100 p-6 flex justify-between items-center h-28">
+            <div className="space-y-3">
+              <div className="h-3.5 w-24 bg-slate-200 rounded" />
+              <div className="h-7 w-16 bg-slate-200 rounded" />
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-slate-200" />
+          </div>
+        ))}
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="space-y-4 w-full bg-[#efefefb1] rounded-xl p-3">
+        <div className="flex justify-between items-center gap-3">
+          <div className="h-10 w-48 bg-slate-200 rounded-2xl" />
+          <div className="h-10 w-32 bg-slate-200 rounded-2xl" />
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="h-12 bg-slate-100 flex items-center px-6 gap-4 border-b border-slate-200">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-4 bg-slate-200 rounded flex-1" />
+            ))}
+          </div>
+          <div className="divide-y divide-slate-100">
+            {[...Array(5)].map((_, rowIndex) => (
+              <div key={rowIndex} className="h-16 flex items-center px-6 gap-4">
+                {[...Array(6)].map((_, colIndex) => (
+                  <div key={colIndex} className="h-3 bg-slate-200/70 rounded flex-1" />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Admins() {
   // ── Live admin data (stateful) ──
   const [admins, setAdmins] = useState([]);
@@ -244,6 +290,8 @@ export default function Admins() {
     }
   };
 
+  if (loading) return <AdminsSkeleton />;
+
   // ── KPI calculations ──
   const totalAdmins = admins.length;
   const activeAdmins = admins.filter((r) => r.status === "Active").length;
@@ -325,11 +373,7 @@ export default function Admins() {
             </button>
           </div>
 
-          {loading ? (
-            <div className="flex justify-center items-center py-12 text-slate-500 font-medium">
-              Loading admins...
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="flex justify-center items-center py-12 text-rose-500 font-medium">
               {error}
             </div>

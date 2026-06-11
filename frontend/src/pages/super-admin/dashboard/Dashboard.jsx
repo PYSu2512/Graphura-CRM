@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Grid,
   Heading,
@@ -38,6 +38,77 @@ import {
   Bell,
 } from "lucide-react";
 
+function DashboardSkeleton() {
+  return (
+    <div className="animate-pulse space-y-8 p-6 max-w-[1600px] mx-auto">
+      {/* Heading Skeleton */}
+      <div className="h-9 w-64 bg-slate-200 rounded-2xl mb-8" />
+
+      {/* 8 KPI Cards Skeletons */}
+      <div className="grid grid-cols-12 gap-6">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="col-span-12 sm:col-span-6 md:col-span-3 bg-white rounded-2xl border border-slate-100 p-6 flex justify-between items-center h-28">
+            <div className="space-y-3">
+              <div className="h-3.5 w-24 bg-slate-200 rounded" />
+              <div className="h-7 w-16 bg-slate-200 rounded" />
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-slate-200" />
+          </div>
+        ))}
+      </div>
+
+      {/* Row of 2 charts */}
+      <div className="grid grid-cols-12 gap-6">
+        <div className="col-span-12 md:col-span-5 bg-white rounded-2xl border border-slate-100 p-6 space-y-4 h-[300px]">
+          <div className="h-5 w-40 bg-slate-200 rounded" />
+          <div className="h-3.5 w-24 bg-slate-200 rounded" />
+          <div className="h-44 bg-slate-50 rounded-xl" />
+        </div>
+        <div className="col-span-12 md:col-span-7 bg-white rounded-2xl border border-slate-100 p-6 space-y-4 h-[300px]">
+          <div className="h-5 w-40 bg-slate-200 rounded" />
+          <div className="h-3.5 w-24 bg-slate-200 rounded" />
+          <div className="h-44 bg-slate-50 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Row of 2 more charts */}
+      <div className="grid grid-cols-12 gap-6">
+        <div className="col-span-12 md:col-span-8 bg-white rounded-2xl border border-slate-100 p-6 space-y-4 h-[300px]">
+          <div className="h-5 w-40 bg-slate-200 rounded" />
+          <div className="h-3.5 w-24 bg-slate-200 rounded" />
+          <div className="h-44 bg-slate-50 rounded-xl" />
+        </div>
+        <div className="col-span-12 md:col-span-4 bg-white rounded-2xl border border-slate-100 p-6 space-y-4 h-[300px]">
+          <div className="h-5 w-40 bg-slate-200 rounded" />
+          <div className="h-3.5 w-24 bg-slate-200 rounded" />
+          <div className="h-44 bg-slate-50 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Table Skeletons */}
+      <div className="space-y-4 w-full">
+        <div className="h-6 w-48 bg-slate-200 rounded" />
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="h-12 bg-slate-100 flex items-center px-6 gap-4 border-b border-slate-200">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-4 bg-slate-200 rounded flex-1" />
+            ))}
+          </div>
+          <div className="divide-y divide-slate-100">
+            {[...Array(3)].map((_, rowIndex) => (
+              <div key={rowIndex} className="h-16 flex items-center px-6 gap-4">
+                {[...Array(6)].map((_, colIndex) => (
+                  <div key={colIndex} className="h-3 bg-slate-200/70 rounded flex-1" />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   // ── Period filter states (only for charts that show the filter bar) ──────────
   const [growthPeriod,  setGrowthPeriod]  = useState("This Year");
@@ -60,6 +131,15 @@ export default function Dashboard() {
   const [editForm, setEditForm] = useState({
     company: "", admin: "", plan: "", users: "", revenue: "", renewal: "", status: "",
   });
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading) return <DashboardSkeleton />;
 
   const openEditModal = (row) => {
     setSelectedCompany(row);

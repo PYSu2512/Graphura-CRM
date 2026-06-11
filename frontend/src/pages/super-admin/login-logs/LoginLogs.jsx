@@ -95,6 +95,53 @@ const exportCSV = (data) => {
   window.URL.revokeObjectURL(url);
 };
 
+function LoginLogsSkeleton() {
+  return (
+    <div className="animate-pulse space-y-8 p-6 max-w-[1600px] mx-auto">
+      {/* Heading Skeleton */}
+      <div className="h-9 w-64 bg-slate-200 rounded-2xl mb-8" />
+
+      {/* KPI Cards Skeletons */}
+      <div className="grid grid-cols-12 gap-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="col-span-12 md:col-span-4 bg-white rounded-2xl border border-slate-100 p-6 flex justify-between items-center h-28">
+            <div className="space-y-3">
+              <div className="h-3.5 w-24 bg-slate-200 rounded" />
+              <div className="h-7 w-16 bg-slate-200 rounded" />
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-slate-200" />
+          </div>
+        ))}
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="space-y-4 w-full">
+        <div className="flex justify-between items-center gap-3">
+          <div className="h-10 flex-1 bg-slate-200 rounded-2xl" />
+          <div className="h-10 w-24 bg-slate-200 rounded-2xl" />
+          <div className="h-10 w-24 bg-slate-200 rounded-2xl" />
+        </div>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="h-12 bg-slate-100 flex items-center px-6 gap-4 border-b border-slate-200">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-4 bg-slate-200 rounded flex-1" />
+            ))}
+          </div>
+          <div className="divide-y divide-slate-100">
+            {[...Array(5)].map((_, rowIndex) => (
+              <div key={rowIndex} className="h-16 flex items-center px-6 gap-4">
+                {[...Array(6)].map((_, colIndex) => (
+                  <div key={colIndex} className="h-3 bg-slate-200/70 rounded flex-1" />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MAIN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
@@ -202,14 +249,7 @@ const LoginLogs = () => {
   ];
 
   if (loading) {
-    return (
-      <div className="flex h-96 items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-[#2a465a]" />
-          <p className="text-sm font-semibold text-slate-500">Loading admin login logs...</p>
-        </div>
-      </div>
-    );
+    return <LoginLogsSkeleton />;
   }
 
   return (
