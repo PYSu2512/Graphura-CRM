@@ -424,6 +424,11 @@ const MENUS = {
             path: "/management-manager/tickets",
             icon: Ticket,
           },
+          {
+            name: "Announcements",
+            path: "/management-manager/announcements",
+            icon: MessageSquare,
+          },
         ],
       },
       {
