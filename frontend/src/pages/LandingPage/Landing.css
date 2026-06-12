@@ -56,17 +56,17 @@
 html {
   scroll-behavior: smooth;
 }
-body {
-  font-family: "Inter", sans-serif;
-  background-color: var(--navy-950);
+body.landing-page-body {
+  font-family: "Inter", sans-serif !important;
+  background-color: var(--navy-950) !important;
   background-image: radial-gradient(
     rgba(59, 130, 246, 0.08) 1.5px,
     transparent 1.5px
-  );
-  background-size: 28px 28px;
-  color: var(--text-primary);
-  overflow-x: hidden;
-  line-height: 1.6;
+  ) !important;
+  background-size: 28px 28px !important;
+  color: var(--text-primary) !important;
+  overflow-x: hidden !important;
+  line-height: 1.6 !important;
 }
 .section-bg-900 {
   background-color: rgba(7, 20, 40, 0.7) !important;

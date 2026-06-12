@@ -2085,6 +2085,14 @@ function ScrollToTop() {
 export default function LandingPage() {
   const [showTutorial, setShowTutorial] = useState(false);
 
+  // Dynamic body class for Landing Page background and styling
+  useEffect(() => {
+    document.body.classList.add("landing-page-body");
+    return () => {
+      document.body.classList.remove("landing-page-body");
+    };
+  }, []);
+
   // Scroll reveal
   useEffect(() => {
     const observer = new IntersectionObserver(
