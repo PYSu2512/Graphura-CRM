@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 
 const announcementController = require('../controllers/announcement.controller');
-const { requireUser } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const {
   createAnnouncementSchema,
@@ -13,15 +13,22 @@ const {
 } = require('../validators/announcement.validator');
 
 // All routes require a logged-in User
-router.use(requireUser);
+router.use(requireAuth);
 
 // Role guard — allow SALES_MANAGER, SALES_TL, ADMIN, SUPER_ADMIN
 const requireSender = (req, res, next) => {
-  const allowed = ['SALES_MANAGER', 'SALES_TL', 'ADMIN', 'SUPER_ADMIN'];
-  if (!req.user || !allowed.includes(req.user.role)) {
+  const allowed = ['SALES_MANAGER', 'SALES_TL', 'MANAGEMENT_MANAGER', 'MANAGEMENT_TL', 'ADMIN', 'SUPER_ADMIN'];
+  const role = req.userType === 'ADMIN'
+    ? 'ADMIN'
+    : req.userType === 'SUPER_ADMIN'
+      ? 'SUPER_ADMIN'
+      : req.user?.role;
+
+  if (!req.user || !allowed.includes(role)) {
     const AppError = require('../utils/appError');
     return next(new AppError('You do not have permission to access announcements', 403));
   }
+  req.actorRole = role;
   next();
 };
 

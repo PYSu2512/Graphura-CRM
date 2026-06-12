@@ -113,6 +113,7 @@ const MENUS = {
           },
           { name: "Projects", path: "/admin/projects", icon: FolderOpen },
           { name: "HRM", path: "/admin/hrm", icon: UserCheck },
+          { name: "Announcements", path: "/admin/announcements", icon: Megaphone },
         ],
       },
       {
@@ -424,6 +425,11 @@ const MENUS = {
             path: "/management-manager/tickets",
             icon: Ticket,
           },
+          {
+            name: "Announcements",
+            path: "/management-manager/announcements",
+            icon: MessageSquare,
+          },
         ],
       },
       {
@@ -575,6 +581,11 @@ const MENUS = {
             name: "Notifications",
             path: "/management-team-leader/notifications",
             icon: Bell,
+          },
+          {
+            name: "Announcements",
+            path: "/management-team-leader/announcements",
+            icon: MessageSquare,
           },
         ],
       },

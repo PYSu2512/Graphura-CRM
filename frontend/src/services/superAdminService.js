@@ -53,6 +53,28 @@ export const getAdminLoginLogs = async () => {
   return data.data;
 };
 
+export const fetchSuperAdminAnnouncementMeta = async () => {
+  const { data } = await apiClient.get(`${BASE}/announcements/meta`);
+  return data.data;
+};
+
+export const fetchSuperAdminAnnouncementTargets = async (audience = "Admin") => {
+  const { data } = await apiClient.get(`${BASE}/announcements/targets`, {
+    params: { audience },
+  });
+  return data.data;
+};
+
+export const createSuperAdminAnnouncement = async (payload) => {
+  const { data } = await apiClient.post(`${BASE}/announcements`, payload);
+  return data.data.announcement;
+};
+
+export const fetchSuperAdminAnnouncements = async () => {
+  const { data } = await apiClient.get(`${BASE}/announcements`);
+  return data.data;
+};
+
 // ─── Profile ────────────────────────────────────────────────────────────────
 export const getSuperAdminProfile = async () => {
   const { data } = await apiClient.get(`${BASE}/me`);

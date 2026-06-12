@@ -4,10 +4,10 @@ const express = require('express');
 const router = express.Router();
 
 const notificationController = require('../controllers/notification.controller');
-const { requireUser } = require('../middleware/auth');
+const { requireAuth } = require('../middleware/auth');
 
-// All routes require a logged-in User (not Admin)
-router.use(requireUser);
+// All routes require a logged-in Admin or User
+router.use(requireAuth);
 
 // GET  /api/notifications/announcements        — paginated list for bell dropdown
 router.get('/announcements', notificationController.getMyAnnouncements);

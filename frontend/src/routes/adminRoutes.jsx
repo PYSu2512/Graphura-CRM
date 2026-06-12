@@ -6,6 +6,7 @@ import FinanceDashboard from "../pages/admin/FinanceDashboard";
 import HRM from "../pages/admin/HRM";
 import Support from "../pages/admin/Support";
 import Report from "../pages/admin/Report";
+import AdminAnnouncements from "../pages/admin/Announcements";
 
 // ── User Management ──
 import UserManagement from "../pages/admin/UserManagement";
@@ -178,6 +179,7 @@ function AdminRoutes() {
         <Route path="finance" element={<FinanceDashboard />} />
         <Route path="hrm" element={<HRM />} />
         <Route path="support" element={<Support />} />
+        <Route path="announcements" element={<AdminAnnouncements />} />
         <Route path="reports" element={<Report />} />
         <Route path="api-config" element={<AdminApiConfig />} />
         <Route path="profile" element={<AdminProfile />} />

@@ -12,6 +12,8 @@ import LoginLogs                  from "../../pages/management/managementManager
 import ManagementManagerTickets   from "../../pages/management/managementManager/ManagementManagerTickets";
 import ManagementManagerProfile   from "../../pages/management/managementManager/ManagementManagerProfile";
 
+import ManagementManagerAnnouncements from "../../pages/management/managementManager/ManagementManagerAnnouncements";
+
 function ManagementManagerRoutes() {
   return (
     <Routes>
@@ -23,6 +25,7 @@ function ManagementManagerRoutes() {
         <Route path="teams"       element={<ManagementManagerTeams />} />
         <Route path="clients"     element={<ManagementManagerClients />} />
         <Route path="reports"     element={<ManagementManagerReports />} />
+        <Route path="announcements" element={<ManagementManagerAnnouncements />} />
         <Route path="hrm"         element={<HRMPage                  />} />
         <Route path="login-logs"  element={<LoginLogs                />} />
         <Route path="tickets"     element={<ManagementManagerTickets />} />

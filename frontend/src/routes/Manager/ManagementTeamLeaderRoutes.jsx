@@ -9,6 +9,7 @@ import ProjectsPage from "../../pages/management/managementTeamLeader/projects/P
 import TeamsPage from "../../pages/management/managementTeamLeader/teams/TeamsPage";
 import ManagementTeamLeaderProfile from "../../pages/management/managementTeamLeader/ManagementTeamLeaderProfile";
 import LoginLogs from "../../pages/management/managementTeamLeader/loginLogs/LoginLogs";
+import ManagementTLAnnouncements from "../../pages/management/managementTeamLeader/notifications/ManagementTLAnnouncements";
 
 function ManagementTeamLeaderRoutes() {
   return (
@@ -19,6 +20,7 @@ function ManagementTeamLeaderRoutes() {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="support" element={<SupportPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="announcements" element={<ManagementTLAnnouncements />} />
         <Route path="projects" element={<ProjectsPage />} />
         <Route path="teams" element={<TeamsPage />} />
         <Route path="login-logs" element={<LoginLogs />} />

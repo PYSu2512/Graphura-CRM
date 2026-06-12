@@ -43,11 +43,13 @@ apiClient.interceptors.response.use(
 
     if (response?.status === 401 && !skipAuthRedirect) {
       // Unauthorized — clear storage and redirect to login
+      const hasSuperAdminSession = Boolean(sessionStorage.getItem('superAdmin'));
       sessionStorage.removeItem('accessToken');
       sessionStorage.removeItem('refreshToken');
       sessionStorage.removeItem('admin');
       sessionStorage.removeItem('user');
-      window.location.href = '/login';
+      sessionStorage.removeItem('superAdmin');
+      window.location.href = hasSuperAdminSession ? '/super-admin-login' : '/login';
     }
 
     return Promise.reject({

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const ApiResponse = require('../utils/apiResponse');
-const { Announcement, Team, User, Department, AuditLog, Notification } = require('../models/index');
+const { Announcement, Team, ManagementTeam, User, Department, AuditLog, Notification } = require('../models/index');
 
 const ANNOUNCEMENT_TYPE_MAP = {
   Announcement: 'ANNOUNCEMENT',
@@ -17,17 +17,41 @@ const ANNOUNCEMENT_TYPE_LABELS = {
   APPRECIATION: 'Appreciation',
 };
 
-// Audience options per role
-const SALES_MANAGER_AUDIENCE_OPTIONS = ['All', 'Team', 'Team Leaders', 'Executive'];
-const SALES_TL_AUDIENCE_OPTIONS      = ['Team', 'Executive'];
+// Audience options per sender role
+const AUDIENCE_OPTIONS_BY_ROLE = {
+  SALES_MANAGER: ['All', 'Team', 'Team Leaders', 'Executive'],
+  SALES_TL: ['Team', 'Executive'],
+  MANAGEMENT_MANAGER: ['All', 'Team', 'Team Leaders', 'Employee'],
+  MANAGEMENT_TL: ['Team', 'Employee'],
+  ADMIN: ['All', 'Department', 'Managers', 'Team Leaders', 'Employees'],
+  SUPER_ADMIN: ['All', 'Department', 'Managers', 'Team Leaders', 'Employees'],
+};
 
-const TARGET_ROLE_BY_AUDIENCE = {
-  'Team Leaders': 'SALES_TL',
-  Executive:      'SALES_EXECUTIVE',
+const ADMIN_AUDIENCE_ROLE_GROUPS = {
+  Managers: ['SALES_MANAGER', 'FINANCE_MANAGER', 'MANAGEMENT_MANAGER'],
+  'Team Leaders': ['SALES_TL', 'MANAGEMENT_TL'],
+  Employees: ['SALES_EXECUTIVE', 'FINANCE_EXECUTIVE', 'MANAGEMENT_EMPLOYEE'],
+};
+
+const TARGET_ROLE_BY_AUDIENCE_AND_SENDER = {
+  SALES_MANAGER: {
+    'Team Leaders': 'SALES_TL',
+    Executive: 'SALES_EXECUTIVE',
+  },
+  SALES_TL: {
+    Executive: 'SALES_EXECUTIVE',
+  },
+  MANAGEMENT_MANAGER: {
+    'Team Leaders': 'MANAGEMENT_TL',
+    Employee: 'MANAGEMENT_EMPLOYEE',
+  },
+  MANAGEMENT_TL: {
+    Employee: 'MANAGEMENT_EMPLOYEE',
+  },
 };
 
 // Roles that can create announcements
-const SENDER_ROLES = ['SALES_MANAGER', 'SALES_TL', 'ADMIN', 'SUPER_ADMIN'];
+const SENDER_ROLES = ['SALES_MANAGER', 'SALES_TL', 'MANAGEMENT_MANAGER', 'MANAGEMENT_TL', 'ADMIN', 'SUPER_ADMIN'];
 
 const BROADCAST_RECIPIENT_ROLES = [
   'SALES_TL',
@@ -40,6 +64,24 @@ const BROADCAST_RECIPIENT_ROLES = [
   'ADMIN',
   'SUPER_ADMIN',
 ];
+
+const isManagementRole = (role) => role === 'MANAGEMENT_MANAGER' || role === 'MANAGEMENT_TL';
+const getTeamModelName = (role) => isManagementRole(role) ? 'ManagementTeam' : 'Team';
+const getTeamModel = (modelName) => modelName === 'ManagementTeam' ? ManagementTeam : Team;
+const getAudienceOptions = (role) => AUDIENCE_OPTIONS_BY_ROLE[role] || [];
+const isAdminSender = (role) => role === 'ADMIN' || role === 'SUPER_ADMIN';
+const getTargetRole = (senderRole, audience) => {
+  if (isAdminSender(senderRole)) {
+    return null;
+  }
+  return TARGET_ROLE_BY_AUDIENCE_AND_SENDER[senderRole]?.[audience] || null;
+};
+
+const ROLE_GROUP_DETAIL_LABELS = {
+  Managers: 'All Managers',
+  'Team Leaders': 'All Team Leaders',
+  Employees: 'All Employees',
+};
 
 // ─────────────────────────────────────────────────────────────
 // INTERNAL: Fan-out notifications to all resolved recipients
@@ -62,7 +104,7 @@ async function fanOutNotifications(announcement, adminId) {
     } else if (announcement.targetType === 'ROLE') {
       const users = await User.find({
         admin: adminId,
-        role: announcement.targetRole,
+        role: announcement.targetRoles?.length ? { $in: announcement.targetRoles } : announcement.targetRole,
         isDeleted: false,
         isActive: true,
       }).select('_id').lean();
@@ -71,8 +113,19 @@ async function fanOutNotifications(announcement, adminId) {
     } else if (announcement.targetType === 'USER') {
       recipientIds = [announcement.targetUser];
 
+    } else if (announcement.targetType === 'DEPARTMENT') {
+      const users = await User.find({
+        admin: adminId,
+        department: announcement.targetDepartment,
+        role: { $in: BROADCAST_RECIPIENT_ROLES },
+        isDeleted: false,
+        isActive: true,
+      }).select('_id').lean();
+      recipientIds = users.map((u) => u._id);
+
     } else if (announcement.targetType === 'TEAM') {
-      const team = await Team.findById(announcement.targetTeam)
+      const TeamModel = getTeamModel(announcement.targetTeamModel);
+      const team = await TeamModel.findById(announcement.targetTeam)
         .select('leader members')
         .lean();
       if (team) {
@@ -109,6 +162,13 @@ async function fanOutNotifications(announcement, adminId) {
 const getContext = async (req) => {
   const adminId = req.admin?._id || req.admin?.id;
   const user = req.user;
+  const role = req.actorRole || (
+    req.userType === 'ADMIN'
+      ? 'ADMIN'
+      : req.userType === 'SUPER_ADMIN'
+        ? 'SUPER_ADMIN'
+        : user?.role
+  );
 
   if (!adminId) {
     throw new AppError('Admin scope is required', 401);
@@ -118,18 +178,20 @@ const getContext = async (req) => {
     throw new AppError('Authentication required', 401);
   }
 
-  const department = await Department.findOne({
-    _id: user.department,
-    admin: adminId,
-    isDeleted: false,
-    isActive: true,
-  }).select('_id name displayName');
+  const department = user.department
+    ? await Department.findOne({
+        _id: user.department,
+        admin: adminId,
+        isDeleted: false,
+        isActive: true,
+      }).select('_id name displayName')
+    : null;
 
-  if (!department) {
+  if (!department && !isAdminSender(role)) {
     throw new AppError('Department context not found for this user', 403);
   }
 
-  return { adminId, user, department };
+  return { adminId, user, role, department };
 };
 
 const toDisplayType = (type) => ANNOUNCEMENT_TYPE_LABELS[type] || type;
@@ -146,17 +208,53 @@ const formatDateOnly = (date) => {
   return resolvedDate.toISOString().slice(0, 10);
 };
 
+const hydrateTargetTeams = async (announcements) => {
+  const rows = Array.isArray(announcements) ? announcements : [announcements];
+  const salesIds = [];
+  const managementIds = [];
+
+  rows.forEach((announcement) => {
+    if (announcement?.targetType !== 'TEAM' || !announcement.targetTeam) return;
+    const id = announcement.targetTeam._id || announcement.targetTeam;
+    if ((announcement.targetTeamModel || 'Team') === 'ManagementTeam') {
+      managementIds.push(id);
+    } else {
+      salesIds.push(id);
+    }
+  });
+
+  const [salesTeams, managementTeams] = await Promise.all([
+    salesIds.length ? Team.find({ _id: { $in: salesIds } }).select('name department').lean() : [],
+    managementIds.length ? ManagementTeam.find({ _id: { $in: managementIds } }).select('name department').lean() : [],
+  ]);
+
+  const byId = new Map([...salesTeams, ...managementTeams].map((team) => [team._id.toString(), team]));
+  rows.forEach((announcement) => {
+    if (announcement?.targetType !== 'TEAM' || !announcement.targetTeam) return;
+    const id = (announcement.targetTeam._id || announcement.targetTeam).toString();
+    announcement.targetTeam = byId.get(id) || announcement.targetTeam;
+  });
+
+  return Array.isArray(announcements) ? rows : rows[0];
+};
+
 const formatAnnouncement = (announcement) => {
   const audience = (() => {
     if (announcement.targetType === 'ALL') return 'All';
+    if (announcement.targetType === 'DEPARTMENT') return 'Department';
     if (announcement.targetType === 'TEAM') return 'Team';
     if (announcement.targetType === 'ROLE' || announcement.targetType === 'USER') {
       const role = announcement.targetRole || announcement.targetUser?.role;
+      const roles = announcement.targetRoles || [];
+      if (roles.includes('SALES_MANAGER') || roles.includes('FINANCE_MANAGER') || roles.includes('MANAGEMENT_MANAGER')) return 'Managers';
+      if (roles.includes('SALES_TL') || roles.includes('MANAGEMENT_TL')) return 'Team Leaders';
+      if (roles.includes('SALES_EXECUTIVE') || roles.includes('FINANCE_EXECUTIVE') || roles.includes('MANAGEMENT_EMPLOYEE')) return 'Employees';
       if (role === 'SALES_TL') return 'Team Leaders';
       if (role === 'SALES_EXECUTIVE') return 'Executive';
+      if (role === 'MANAGEMENT_TL') return 'Team Leaders';
+      if (role === 'MANAGEMENT_EMPLOYEE') return 'Employee';
       return 'Role';
     }
-    if (announcement.targetType === 'DEPARTMENT') return 'Department';
     return 'All';
   })();
 
@@ -165,6 +263,12 @@ const formatAnnouncement = (announcement) => {
       return announcement.targetTeam?.name || '';
     }
     if (announcement.targetType === 'ROLE' || announcement.targetType === 'USER') {
+      const roles = announcement.targetRoles || [];
+      if (roles.length > 0) {
+        const groupName = Object.entries(ADMIN_AUDIENCE_ROLE_GROUPS)
+          .find(([, groupRoles]) => groupRoles.every((role) => roles.includes(role)))?.[0];
+        return ROLE_GROUP_DETAIL_LABELS[groupName] || roles.join(', ');
+      }
       return announcement.targetUser?.name || '';
     }
     if (announcement.targetType === 'DEPARTMENT') {
@@ -187,16 +291,13 @@ const formatAnnouncement = (announcement) => {
 };
 
 exports.getAnnouncementMeta = catchAsync(async (req, res, next) => {
-  const { user } = await getContext(req);
+  const { role } = await getContext(req);
 
-  if (!SENDER_ROLES.includes(user.role)) {
+  if (!SENDER_ROLES.includes(role)) {
     return next(new AppError('You do not have permission to access announcement metadata', 403));
   }
 
-  // TL gets a restricted audience set
-  const audienceOptions = user.role === 'SALES_TL'
-    ? SALES_TL_AUDIENCE_OPTIONS
-    : SALES_MANAGER_AUDIENCE_OPTIONS;
+  const audienceOptions = getAudienceOptions(role);
 
   res.status(200).json(
     new ApiResponse(200, {
@@ -210,17 +311,15 @@ exports.getAnnouncementMeta = catchAsync(async (req, res, next) => {
 });
 
 exports.getAnnouncementTargets = catchAsync(async (req, res, next) => {
-  const { adminId, user, department } = await getContext(req);
+  const { adminId, user, role, department } = await getContext(req);
   const { audience } = req.query;
 
-  if (!SENDER_ROLES.includes(user.role)) {
+  if (!SENDER_ROLES.includes(role)) {
     return next(new AppError('You do not have permission to fetch targets', 403));
   }
 
   // Validate audience against role-specific options
-  const allowedAudiences = user.role === 'SALES_TL'
-    ? SALES_TL_AUDIENCE_OPTIONS
-    : SALES_MANAGER_AUDIENCE_OPTIONS;
+  const allowedAudiences = getAudienceOptions(role);
 
   if (!allowedAudiences.includes(audience)) {
     return next(new AppError('Invalid audience selected', 400));
@@ -232,8 +331,43 @@ exports.getAnnouncementTargets = catchAsync(async (req, res, next) => {
     );
   }
 
+  if (audience === 'Department') {
+    const departments = await Department.find({
+      admin: adminId,
+      name: { $in: ['SALES', 'FINANCE', 'MANAGEMENT'] },
+      isDeleted: false,
+      isActive: true,
+    }).select('_id name displayName').sort({ name: 1 }).lean();
+
+    return res.status(200).json(
+      new ApiResponse(200, {
+        audience,
+        targets: departments.map((dept) => ({
+          id: dept._id,
+          label: dept.displayName || dept.name,
+          name: dept.name,
+        })),
+      }, 'Department targets retrieved successfully')
+    );
+  }
+
+  if (isAdminSender(role) && ADMIN_AUDIENCE_ROLE_GROUPS[audience]) {
+    return res.status(200).json(
+      new ApiResponse(200, {
+        audience,
+        targetRoles: ADMIN_AUDIENCE_ROLE_GROUPS[audience],
+        targets: [],
+      }, `${audience} role group resolved successfully`)
+    );
+  }
+
   if (audience === 'Team') {
+    if (!department?._id) {
+      return next(new AppError('Team targeting requires a department-scoped sender', 400));
+    }
+
     // For TL: only their own team. For Manager: all teams in department.
+    const TeamModel = getTeamModel(getTeamModelName(role));
     let teamFilter = {
       admin: adminId,
       department: department._id,
@@ -241,11 +375,11 @@ exports.getAnnouncementTargets = catchAsync(async (req, res, next) => {
       isActive: true,
     };
 
-    if (user.role === 'SALES_TL') {
+    if (role === 'SALES_TL' || role === 'MANAGEMENT_TL') {
       teamFilter.leader = user._id;
     }
 
-    const teams = await Team.find(teamFilter)
+    const teams = await TeamModel.find(teamFilter)
       .populate('leader', 'name email phone role')
       .sort({ name: 1 });
 
@@ -262,31 +396,39 @@ exports.getAnnouncementTargets = catchAsync(async (req, res, next) => {
   }
 
   // Role-based targets (Team Leaders / Executive)
-  const targetRole = TARGET_ROLE_BY_AUDIENCE[audience];
+  const targetRole = getTargetRole(role, audience);
+  if (!targetRole) {
+    return next(new AppError('Invalid audience selected for your role', 400));
+  }
   let userFilter = {
     admin: adminId,
-    department: department._id,
     role: targetRole,
     isDeleted: false,
     isActive: true,
   };
 
+  if (department?._id) {
+    userFilter.department = department._id;
+  }
+
   // TL can only target executives in their own team
-  if (user.role === 'SALES_TL' && audience === 'Executive') {
-    const myTeam = await Team.findOne({
+  if ((role === 'SALES_TL' && audience === 'Executive') ||
+      (role === 'MANAGEMENT_TL' && audience === 'Employee')) {
+    const TeamModel = getTeamModel(getTeamModelName(role));
+    const myTeams = await TeamModel.find({
       admin: adminId,
       leader: user._id,
       isDeleted: false,
       isActive: true,
     }).select('members').lean();
 
-    if (!myTeam || myTeam.members.length === 0) {
+    const memberIds = myTeams.flatMap((team) => (team.members || []).map((m) => m.user));
+    if (memberIds.length === 0) {
       return res.status(200).json(
-        new ApiResponse(200, { audience, targetRole, targets: [] }, 'No executives in your team')
+        new ApiResponse(200, { audience, targetRole, targets: [] }, `No ${audience.toLowerCase()} in your team`)
       );
     }
 
-    const memberIds = myTeam.members.map((m) => m.user);
     userFilter._id = { $in: memberIds };
   }
 
@@ -315,17 +457,15 @@ exports.getAnnouncementTargets = catchAsync(async (req, res, next) => {
 });
 
 exports.createAnnouncement = catchAsync(async (req, res, next) => {
-  const { adminId, user, department } = await getContext(req);
+  const { adminId, user, role, department } = await getContext(req);
   const { title, message, type, audience, targetId, expiryDate } = req.body;
 
-  if (!SENDER_ROLES.includes(user.role)) {
+  if (!SENDER_ROLES.includes(role)) {
     return next(new AppError('You do not have permission to create announcements', 403));
   }
 
   // Validate audience against role-specific options
-  const allowedAudiences = user.role === 'SALES_TL'
-    ? SALES_TL_AUDIENCE_OPTIONS
-    : SALES_MANAGER_AUDIENCE_OPTIONS;
+  const allowedAudiences = getAudienceOptions(role);
 
   if (!allowedAudiences.includes(audience)) {
     return next(new AppError('Invalid audience selected for your role', 400));
@@ -338,15 +478,23 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
 
   let targetType = 'ALL';
   let targetTeam = null;
+  let targetTeamModel = getTeamModelName(role);
   let targetRole = null;
+  let targetRoles = [];
   let targetUser = null;
   let targetDepartment = null;
 
   if (audience === 'Team') {
+    if (!department?._id) {
+      return next(new AppError('Team targeting requires a department-scoped sender', 400));
+    }
+
     if (!targetId) {
       return next(new AppError('A team must be selected for Team announcements', 400));
     }
 
+    const teamModelName = getTeamModelName(role);
+    const TeamModel = getTeamModel(teamModelName);
     let teamFilter = {
       _id: targetId,
       admin: adminId,
@@ -356,48 +504,80 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
     };
 
     // TL can only target their own team
-    if (user.role === 'SALES_TL') {
+    if (role === 'SALES_TL' || role === 'MANAGEMENT_TL') {
       teamFilter.leader = user._id;
     }
 
-    targetTeam = await Team.findOne(teamFilter);
+    targetTeam = await TeamModel.findOne(teamFilter);
     if (!targetTeam) {
       return next(new AppError('Team not found or not accessible', 404));
     }
 
     targetType = 'TEAM';
+    targetTeamModel = teamModelName;
 
-  } else if (audience === 'Team Leaders' || audience === 'Executive') {
+  } else if (audience === 'Department') {
+    if (!targetId) {
+      return next(new AppError('A department must be selected for Department announcements', 400));
+    }
+
+    targetDepartment = await Department.findOne({
+      _id: targetId,
+      admin: adminId,
+      name: { $in: ['SALES', 'FINANCE', 'MANAGEMENT'] },
+      isDeleted: false,
+      isActive: true,
+    });
+
+    if (!targetDepartment) {
+      return next(new AppError('Selected department was not found', 404));
+    }
+
+    targetType = 'DEPARTMENT';
+
+  } else if (isAdminSender(role) && ADMIN_AUDIENCE_ROLE_GROUPS[audience]) {
+    targetType = 'ROLE';
+    targetRoles = ADMIN_AUDIENCE_ROLE_GROUPS[audience];
+
+  } else if (audience === 'Team Leaders' || audience === 'Executive' || audience === 'Employee') {
     if (!targetId) {
       return next(new AppError(`A ${audience.toLowerCase()} member must be selected`, 400));
     }
 
-    const expectedRole = TARGET_ROLE_BY_AUDIENCE[audience];
+    const expectedRole = getTargetRole(role, audience);
+    if (!expectedRole) {
+      return next(new AppError('Invalid audience selected for your role', 400));
+    }
     let userFilter = {
       _id: targetId,
       admin: adminId,
-      department: department._id,
       role: expectedRole,
       isDeleted: false,
       isActive: true,
     };
 
+    if (department?._id) {
+      userFilter.department = department._id;
+    }
+
     // TL can only target executives in their own team
-    if (user.role === 'SALES_TL' && audience === 'Executive') {
-      const myTeam = await Team.findOne({
+    if ((role === 'SALES_TL' && audience === 'Executive') ||
+        (role === 'MANAGEMENT_TL' && audience === 'Employee')) {
+      const TeamModel = getTeamModel(getTeamModelName(role));
+      const myTeams = await TeamModel.find({
         admin: adminId,
         leader: user._id,
         isDeleted: false,
         isActive: true,
       }).select('members').lean();
 
-      if (!myTeam) {
+      if (myTeams.length === 0) {
         return next(new AppError('You do not have a team assigned', 404));
       }
 
-      const memberIds = myTeam.members.map((m) => m.user.toString());
+      const memberIds = myTeams.flatMap((team) => (team.members || []).map((m) => m.user.toString()));
       if (!memberIds.includes(targetId.toString())) {
-        return next(new AppError('Selected executive is not in your team', 403));
+        return next(new AppError(`Selected ${audience.toLowerCase()} is not in your team`, 403));
       }
     }
 
@@ -410,15 +590,20 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
     targetRole = expectedRole;
 
   } else if (audience === 'All') {
-    targetType = 'ALL';
+    if (isAdminSender(role)) {
+      targetType = 'ALL';
+    } else {
+      targetType = 'DEPARTMENT';
+      targetDepartment = department._id;
+    }
   } else {
     return next(new AppError('Invalid audience selected', 400));
   }
 
   const announcement = await Announcement.create({
     admin: adminId,
-    createdBy: user._id,
-    createdByAdmin: false,
+    createdBy: req.userType === 'USER' ? user._id : null,
+    createdByAdmin: req.userType !== 'USER',
     title: title.trim(),
     message: message.trim(),
     type: normalizedType,
@@ -426,14 +611,16 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
     targetType,
     targetDepartment,
     targetTeam: targetTeam?._id || null,
+    targetTeamModel,
     targetRole,
+    targetRoles,
     targetUser: targetUser?._id || null,
   });
 
   await AuditLog.create({
     admin: adminId,
     performedBy: user._id,
-    performerType: 'USER',
+    performerType: req.userType || 'USER',
     action: 'ANNOUNCEMENT_SENT',
     targetModel: 'Announcement',
     targetId: announcement._id,
@@ -442,6 +629,7 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
       type: announcement.type,
       targetType: announcement.targetType,
       targetTeam: announcement.targetTeam || null,
+      targetRoles: announcement.targetRoles || [],
       targetUser: announcement.targetUser || null,
     },
   });
@@ -450,9 +638,10 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
   fanOutNotifications(announcement, adminId);
 
   const populatedAnnouncement = await Announcement.findById(announcement._id)
-    .populate('targetTeam', 'name department')
     .populate('targetUser', 'name email phone role department')
-    .populate('targetDepartment', 'name displayName');
+    .populate('targetDepartment', 'name displayName')
+    .lean();
+  await hydrateTargetTeams(populatedAnnouncement);
 
   res.status(201).json(
     new ApiResponse(
@@ -464,9 +653,9 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
 });
 
 exports.getAnnouncements = catchAsync(async (req, res, next) => {
-  const { adminId, user } = await getContext(req);
+  const { adminId, user, role } = await getContext(req);
 
-  if (!SENDER_ROLES.includes(user.role)) {
+  if (!SENDER_ROLES.includes(role)) {
     return next(new AppError('You do not have permission to view announcements', 403));
   }
 
@@ -476,24 +665,24 @@ exports.getAnnouncements = catchAsync(async (req, res, next) => {
 
   // TL only sees their own announcements; Manager/Admin sees all in tenant
   const filter = { admin: adminId };
-  if (user.role === 'SALES_TL') {
+  if (role === 'SALES_TL' || role === 'MANAGEMENT_TL') {
     filter.createdBy = user._id;
   }
 
   const [announcements, total] = await Promise.all([
     Announcement.find(filter)
-      .populate('targetTeam', 'name department')
       .populate('targetUser', 'name email phone role department')
       .populate('targetDepartment', 'name displayName')
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit),
+      .limit(limit)
+      .lean(),
     Announcement.countDocuments(filter),
   ]);
 
   res.status(200).json(
     new ApiResponse(200, {
-      announcements: announcements.map(formatAnnouncement),
+      announcements: (await hydrateTargetTeams(announcements)).map(formatAnnouncement),
       total,
       page,
       pages: Math.ceil(total / limit),

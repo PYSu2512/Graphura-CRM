@@ -6,6 +6,8 @@ const {
   SuperAdminLoginLog,
   AdminLoginLog,
   Admin,
+  Announcement,
+  Notification,
   AuditLog,
   SuperAdminTicket,
   Department,
@@ -21,12 +23,100 @@ const {
   generateRefreshToken,
 } = require("../services/auth.service");
 
+const PLATFORM_ANNOUNCEMENT_TYPE_MAP = {
+  Announcement: "ANNOUNCEMENT",
+  Warning: "WARNING",
+  Appreciation: "APPRECIATION",
+};
+
+const PLATFORM_ANNOUNCEMENT_TYPE_LABELS = {
+  ANNOUNCEMENT: "Announcement",
+  WARNING: "Warning",
+  APPRECIATION: "Appreciation",
+  INFO: "Announcement",
+};
+
 const getClientIp = (req) => {
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.length > 0) {
     return forwarded.split(",")[0].trim();
   }
   return req.ip || req.socket?.remoteAddress || "unknown";
+};
+
+const formatDateOnly = (date) => {
+  if (!date) return null;
+  const resolved = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(resolved.getTime())) return null;
+  return resolved.toISOString().slice(0, 10);
+};
+
+const computeAnnouncementStatus = (expiryDate) => {
+  if (!expiryDate) return "Active";
+  return new Date(expiryDate) >= new Date() ? "Active" : "Expired";
+};
+
+const formatPlatformAnnouncement = (announcement) => {
+  const targetAdmin = announcement.platformTargetAdmin || announcement.admin;
+  const company = targetAdmin?.company?.name || targetAdmin?.company || "";
+  const adminName = targetAdmin?.name || "";
+
+  return {
+    id: announcement.platformAnnouncementKey || String(announcement._id),
+    title: announcement.title,
+    type: PLATFORM_ANNOUNCEMENT_TYPE_LABELS[announcement.type] || announcement.type,
+    audience: announcement.platformTargetAdmin ? "Admin" : "All",
+    audienceDetail: announcement.platformTargetAdmin
+      ? `${adminName}${company ? ` (${company})` : ""}`
+      : "All Admins and Users",
+    sentDate: formatDateOnly(announcement.createdAt),
+    expiryDate: formatDateOnly(announcement.expiryDate),
+    body: announcement.message,
+    status: computeAnnouncementStatus(announcement.expiryDate),
+  };
+};
+
+const createNotificationDocsForAnnouncement = async (
+  announcement,
+  adminId,
+  { includeAdmin = true, includeUsers = true } = {},
+) => {
+  const [admin, users] = await Promise.all([
+    includeAdmin
+      ? Admin.findOne({ _id: adminId, isDeleted: false, isActive: true }).select("_id").lean()
+      : null,
+    includeUsers
+      ? User.find({
+          admin: adminId,
+          isDeleted: false,
+          isActive: true,
+        }).select("_id").lean()
+      : [],
+  ]);
+
+  const recipientIds = [
+    ...(admin ? [admin._id] : []),
+    ...users.map((user) => user._id),
+  ];
+
+  if (recipientIds.length === 0) return 0;
+
+  const uniqueIds = [...new Set(recipientIds.map(String))];
+  await Notification.insertMany(
+    uniqueIds.map((userId) => ({
+      admin: adminId,
+      user: userId,
+      title: announcement.title,
+      body: announcement.message,
+      type: "ANNOUNCEMENT",
+      refId: announcement._id,
+      refType: "Announcement",
+      isRead: false,
+    })),
+    { ordered: false },
+  ).catch(() => {});
+
+  return uniqueIds.length;
 };
 
 /**
@@ -145,6 +235,181 @@ exports.getAllAdmins = catchAsync(async (req, res, next) => {
         pagination: { total, page, pages },
       },
       "Admins retrieved successfully",
+    ),
+  );
+});
+
+exports.getAnnouncementMeta = catchAsync(async (_req, res) => {
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        messageTypes: Object.keys(PLATFORM_ANNOUNCEMENT_TYPE_MAP).map((label) => ({
+          label,
+          value: PLATFORM_ANNOUNCEMENT_TYPE_MAP[label],
+        })),
+        audienceOptions: ["All", "Admin"],
+      },
+      "Platform announcement metadata retrieved successfully",
+    ),
+  );
+});
+
+exports.getAnnouncementTargets = catchAsync(async (req, res) => {
+  const admins = await Admin.find({
+    isDeleted: false,
+    isActive: true,
+  })
+    .select("_id name email phone company isActive")
+    .sort({ name: 1 })
+    .lean();
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        audience: req.query.audience || "Admin",
+        targets: admins.map((admin) => ({
+          id: admin._id,
+          label: `${admin.name}${admin.company?.name ? ` (${admin.company.name})` : ""}`,
+          email: admin.email,
+          phone: admin.phone,
+          company: admin.company?.name || "",
+        })),
+      },
+      "Platform announcement targets retrieved successfully",
+    ),
+  );
+});
+
+exports.createAnnouncement = catchAsync(async (req, res, next) => {
+  const { title, message, type, audience, targetId, expiryDate } = req.body;
+
+  if (!title?.trim()) return next(new AppError("Title is required", 400));
+  if (!message?.trim()) return next(new AppError("Message is required", 400));
+  if (!PLATFORM_ANNOUNCEMENT_TYPE_MAP[type]) {
+    return next(new AppError("Invalid announcement type", 400));
+  }
+  if (!["All", "Admin"].includes(audience)) {
+    return next(new AppError("Invalid audience selected", 400));
+  }
+
+  const normalizedType = PLATFORM_ANNOUNCEMENT_TYPE_MAP[type];
+  const platformAnnouncementKey = `platform-ann-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  let targetAdmins = [];
+  if (audience === "Admin") {
+    if (!targetId) return next(new AppError("Please select a target admin", 400));
+    const admin = await Admin.findOne({
+      _id: targetId,
+      isDeleted: false,
+      isActive: true,
+    });
+    if (!admin) return next(new AppError("Selected admin was not found or is inactive", 404));
+    targetAdmins = [admin];
+  } else {
+    targetAdmins = await Admin.find({
+      isDeleted: false,
+      isActive: true,
+    }).select("_id name email company");
+  }
+
+  if (targetAdmins.length === 0) {
+    return next(new AppError("No active admins found for this announcement", 404));
+  }
+
+  const announcementDocs = await Announcement.insertMany(
+    targetAdmins.map((admin) => ({
+      admin: admin._id,
+      platformAnnouncementKey,
+      platformTargetAdmin: audience === "Admin" ? admin._id : null,
+      createdBy: null,
+      createdByAdmin: true,
+      title: title.trim(),
+      message: message.trim(),
+      type: normalizedType,
+      expiryDate: expiryDate || null,
+      targetType: audience === "Admin" ? "ROLE" : "ALL",
+      targetRole: audience === "Admin" ? "ADMIN" : null,
+      targetRoles: [],
+    })),
+    { ordered: false },
+  );
+
+  await Promise.all(
+    announcementDocs.map((announcement) =>
+      createNotificationDocsForAnnouncement(
+        announcement,
+        announcement.admin,
+        {
+          includeAdmin: true,
+          includeUsers: audience === "All",
+        },
+      ),
+    ),
+  );
+
+  await AuditLog.create({
+    performedBy: req.user._id,
+    performerType: "SUPER_ADMIN",
+    action: "ANNOUNCEMENT_SENT",
+    targetModel: "Announcement",
+    targetId: announcementDocs[0]._id,
+    ipAddress: getClientIp(req),
+    note: `Super Admin sent platform announcement to ${audience}`,
+    after: {
+      title: title.trim(),
+      audience,
+      targetAdmin: targetId || null,
+      tenantCount: targetAdmins.length,
+    },
+  }).catch(() => {});
+
+  const created = await Announcement.findById(announcementDocs[0]._id)
+    .populate("platformTargetAdmin", "name email company")
+    .populate("admin", "name email company")
+    .lean();
+
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        announcement: formatPlatformAnnouncement(created),
+        tenantCount: targetAdmins.length,
+      },
+      "Announcement sent successfully",
+    ),
+  );
+});
+
+exports.getAnnouncements = catchAsync(async (_req, res) => {
+  const announcements = await Announcement.find({
+    createdByAdmin: true,
+    platformAnnouncementKey: { $ne: null },
+  })
+    .populate("platformTargetAdmin", "name email company")
+    .populate("admin", "name email company")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const grouped = new Map();
+  announcements.forEach((announcement) => {
+    const key = announcement.platformAnnouncementKey || String(announcement._id);
+    if (!grouped.has(key)) grouped.set(key, announcement);
+  });
+
+  const rows = [...grouped.values()].map(formatPlatformAnnouncement);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        announcements: rows,
+        total: rows.length,
+        page: 1,
+        pages: 1,
+      },
+      "Platform announcements retrieved successfully",
     ),
   );
 });

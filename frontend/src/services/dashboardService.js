@@ -1,10 +1,14 @@
 import apiClient from './apiClient';
 
 export const dashboardService = {
-  getStats: async () => {
-    // For now, we reuse the users endpoint to get total users
-    // In a real app, you'd have a dedicated /dashboard/stats endpoint
-    const response = await apiClient.get('/users');
+  // Real admin dashboard stats endpoint
+  getDashboard: async () => {
+    const response = await apiClient.get('/admin/dashboard');
     return response.data;
-  }
+  },
+  // Legacy alias kept for backwards compatibility
+  getStats: async () => {
+    const response = await apiClient.get('/admin/dashboard');
+    return response.data;
+  },
 };

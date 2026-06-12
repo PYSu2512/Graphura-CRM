@@ -4,25 +4,24 @@ import {
   DashGrid,
   Grid,
   DataField,
+  Button,
   SelectField,
   Option,
   DataTable,
-  Button,
-  Modal,
   openModal,
   closeModal,
+  Modal,
   ModalData,
   ModalGrid,
-} from "../../../components/shared/Common_Components.jsx";
-import DatePicker from "../../../components/shared/DatePicker.jsx";
+} from "../../components/shared/Common_Components";
+import DatePicker from "../../components/shared/DatePicker";
 import { Eye, Loader2 } from "lucide-react";
 import {
-  createSuperAdminAnnouncement,
-  fetchSuperAdminAnnouncementMeta,
-  fetchSuperAdminAnnouncementTargets,
-  fetchSuperAdminAnnouncements,
-} from "../../../services/superAdminService.js";
-import { toast } from "react-hot-toast";
+  fetchAnnouncementMeta,
+  fetchAnnouncementTargets,
+  createAnnouncement,
+  fetchAnnouncements,
+} from "../../services/announcementService";
 
 const ANN_COLS = [
   { key: "title", label: "Title" },
@@ -42,6 +41,8 @@ const blank = {
   body: "",
   expiryDate: "",
 };
+
+const TARGETED_AUDIENCES = new Set(["Department", "Team", "Executive", "Employee"]);
 
 const TYPE_STYLE = {
   Warning: "bg-amber-50 border-amber-200",
@@ -67,30 +68,30 @@ const TYPE_DIVIDER = {
   Announcement: "bg-blue-200",
 };
 
-export default function Announcement() {
+export default function AdminAnnouncements() {
   const [form, setForm] = useState(blank);
   const [formErr, setFormErr] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState("");
-  const [successDetail, setSuccessDetail] = useState("");
 
   const [messageTypes, setMessageTypes] = useState([]);
   const [audienceOptions, setAudienceOptions] = useState([]);
   const [metaLoading, setMetaLoading] = useState(true);
 
-  const [adminsList, setAdminsList] = useState([]);
-  const [loadingAdmins, setLoadingAdmins] = useState(false);
-  const [announcements, setAnnouncements] = useState([]);
+  const [targets, setTargets] = useState([]);
+  const [targetsLoading, setTargetsLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [announcements, setAnnouncements] = useState([]);
   const [viewRow, setViewRow] = useState(null);
 
-  const selectedAdmin = useMemo(
-    () => adminsList.find((admin) => String(admin.id) === String(form.targetId)),
-    [adminsList, form.targetId],
+  const needsTarget = TARGETED_AUDIENCES.has(form.audience);
+  const selectedTarget = useMemo(
+    () => targets.find((target) => String(target.id) === String(form.targetId)),
+    [targets, form.targetId],
   );
 
   useEffect(() => {
-    fetchSuperAdminAnnouncementMeta()
+    fetchAnnouncementMeta()
       .then(({ messageTypes: types, audienceOptions: audiences }) => {
         setMessageTypes((types || []).map((type) => type.label));
         setAudienceOptions(audiences || []);
@@ -102,49 +103,45 @@ export default function Announcement() {
       })
       .catch(() => {
         setMessageTypes(["Announcement", "Warning", "Appreciation"]);
-        setAudienceOptions(["All", "Admin"]);
+        setAudienceOptions(["All", "Department", "Managers", "Team Leaders", "Employees"]);
         setForm((current) => ({ ...current, type: "Announcement", audience: "All" }));
       })
       .finally(() => setMetaLoading(false));
   }, []);
 
   useEffect(() => {
-    fetchSuperAdminAnnouncements()
+    fetchAnnouncements({ page: 1, limit: 50 })
       .then(({ announcements: list }) => setAnnouncements(list || []))
       .catch(() => {})
       .finally(() => setHistoryLoading(false));
   }, []);
 
   useEffect(() => {
-    if (form.audience !== "Admin") {
-      setAdminsList([]);
+    if (!form.audience || !needsTarget) {
+      setTargets([]);
       return;
     }
 
-    setLoadingAdmins(true);
-    fetchSuperAdminAnnouncementTargets("Admin")
-      .then(({ targets }) => setAdminsList(targets || []))
-      .catch(() => setAdminsList([]))
-      .finally(() => setLoadingAdmins(false));
-  }, [form.audience]);
+    setTargetsLoading(true);
+    fetchAnnouncementTargets(form.audience)
+      .then(({ targets: list }) => setTargets(list || []))
+      .catch(() => setTargets([]))
+      .finally(() => setTargetsLoading(false));
+  }, [form.audience, needsTarget]);
 
   const setField = (key, value) => {
     setForm((current) => ({ ...current, [key]: value }));
     if (formErr[key]) setFormErr((current) => ({ ...current, [key]: "" }));
     setSubmitErr("");
-    setSuccessDetail("");
   };
 
   const handleSubmit = async () => {
     const errs = {};
     if (!form.type.trim()) errs.type = "Type is required.";
     if (!form.audience.trim()) errs.audience = "Audience is required.";
-    if (form.audience === "Admin" && !form.targetId) {
-      errs.targetId = "Please select an existing admin.";
-    }
+    if (needsTarget && !form.targetId) errs.targetId = `Please select a ${form.audience.toLowerCase()}.`;
     if (!form.title.trim()) errs.title = "Title is required.";
     if (!form.body.trim()) errs.body = "Message is required.";
-
     if (Object.keys(errs).length) {
       setFormErr(errs);
       return;
@@ -152,9 +149,8 @@ export default function Announcement() {
 
     setSubmitting(true);
     setSubmitErr("");
-
     try {
-      const created = await createSuperAdminAnnouncement({
+      const created = await createAnnouncement({
         title: form.title.trim(),
         message: form.body.trim(),
         type: form.type,
@@ -169,9 +165,8 @@ export default function Announcement() {
         type: current.type || "Announcement",
         audience: current.audience || "All",
       }));
+      setTargets([]);
       setFormErr({});
-      setSuccessDetail(created.audienceDetail);
-      toast.success("Announcement sent successfully");
     } catch (err) {
       setSubmitErr(err?.message || "Failed to send announcement. Please try again.");
     } finally {
@@ -186,7 +181,7 @@ export default function Announcement() {
       variant: "ghost",
       onClick: (row) => {
         setViewRow(row);
-        openModal("superadmin-ann-view");
+        openModal("admin-ann-view");
       },
     },
   ];
@@ -200,38 +195,19 @@ export default function Announcement() {
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto">
+    <div className="flex flex-col gap-6">
       <DashGrid cols={12} gap={4}>
-        <Heading
-          primaryText="Announcement"
-          secondaryText="Management"
-          size={12}
-          fontSize="3xl"
-          showAnimation
-        />
+        <Heading primaryText="Announcements" secondaryText="Admin" size={12} />
       </DashGrid>
-
-      {successDetail && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-5 py-4 rounded-2xl text-sm font-semibold flex items-center gap-3 shadow-sm">
-          <span className="w-5 h-5 bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-            ✓
-          </span>
-          <div>
-            <p className="font-bold">Announcement sent successfully</p>
-            <p className="text-xs text-emerald-600 font-medium mt-0.5">
-              Audience: {successDetail}
-            </p>
-          </div>
-        </div>
-      )}
 
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
         <p className="text-sm font-black text-[#2a465a] mb-5">Create New Announcement</p>
+
         <Grid cols={12} gap={4}>
           <div className="col-span-12 sm:col-span-6">
             <SelectField
               label="Message Type *"
-              id="super-ann-type"
+              id="admin-ann-type"
               size={12}
               placeholder="Select type..."
               value={form.type}
@@ -247,13 +223,14 @@ export default function Announcement() {
           <div className="col-span-12 sm:col-span-6">
             <SelectField
               label="Send To *"
-              id="super-ann-audience"
+              id="admin-ann-audience"
               size={12}
               placeholder="Select audience..."
               value={form.audience}
               onChange={(event) => {
                 setField("audience", event.target.value);
                 setField("targetId", "");
+                setTargets([]);
               }}
             >
               {audienceOptions.map((audience) => (
@@ -263,28 +240,30 @@ export default function Announcement() {
             {formErr.audience && <p className="text-xs text-rose-600 mt-1 px-1">{formErr.audience}</p>}
           </div>
 
-          {form.audience === "Admin" && (
+          {needsTarget && (
             <div className="col-span-12 sm:col-span-6">
-              {loadingAdmins ? (
+              {targetsLoading ? (
                 <div className="flex items-center gap-2 py-3 text-xs text-slate-400">
-                  <Loader2 size={14} className="animate-spin" /> Loading admins...
+                  <Loader2 size={14} className="animate-spin" /> Loading targets...
                 </div>
               ) : (
                 <>
                   <SelectField
-                    label="Select Admin *"
-                    id="super-ann-target-admin"
+                    label={`Select ${form.audience} *`}
+                    id="admin-ann-target"
                     size={12}
-                    placeholder="Select company admin..."
+                    placeholder={`Select ${form.audience.toLowerCase()}...`}
                     value={form.targetId}
                     onChange={(event) => setField("targetId", event.target.value)}
                   >
-                    {adminsList.map((admin) => (
-                      <Option key={admin.id} value={admin.id} label={admin.label} />
+                    {targets.map((target) => (
+                      <Option key={target.id} value={target.id} label={target.label} />
                     ))}
                   </SelectField>
-                  {adminsList.length === 0 && (
-                    <p className="text-xs text-slate-400 mt-1 px-1">No active admins found.</p>
+                  {targets.length === 0 && (
+                    <p className="text-xs text-slate-400 mt-1 px-1">
+                      No {form.audience.toLowerCase()} found.
+                    </p>
                   )}
                 </>
               )}
@@ -295,7 +274,7 @@ export default function Announcement() {
           <div className="col-span-12 sm:col-span-6">
             <DatePicker
               label="Expiry Date (optional)"
-              id="super-ann-expiry"
+              id="admin-ann-expiry"
               value={form.expiryDate}
               onChange={(value) => setField("expiryDate", value)}
               placeholder="Select expiry date"
@@ -305,7 +284,7 @@ export default function Announcement() {
           <div className="col-span-12">
             <DataField
               label="Title *"
-              id="super-ann-title"
+              id="admin-ann-title"
               size={12}
               value={form.title}
               onChange={(event) => setField("title", event.target.value)}
@@ -317,7 +296,7 @@ export default function Announcement() {
           <div className="col-span-12">
             <DataField
               label="Message *"
-              id="super-ann-body"
+              id="admin-ann-body"
               type="textarea"
               rows={4}
               size={12}
@@ -330,17 +309,20 @@ export default function Announcement() {
 
           {(form.title.trim() || form.body.trim()) && (
             <div className="col-span-12">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">
-                Preview
-              </p>
-              <div className={`rounded-2xl border p-5 space-y-3 transition-all ${TYPE_STYLE[form.type] || TYPE_STYLE.Announcement}`}>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.3em] mb-2">Preview</p>
+              <div className={`rounded-2xl border p-5 space-y-3 ${TYPE_STYLE[form.type] || TYPE_STYLE.Announcement}`}>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${TYPE_BADGE_STYLE[form.type] || TYPE_BADGE_STYLE.Announcement}`}>
-                    {form.type || "Announcement"}
-                  </span>
-                  <span className="text-[10px] font-semibold text-slate-400">
-                    to {form.audience === "Admin" ? selectedAdmin?.label || "Selected Admin" : "All Admins and Users"}
-                  </span>
+                  {form.type && (
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest ${TYPE_BADGE_STYLE[form.type] || TYPE_BADGE_STYLE.Announcement}`}>
+                      {form.type}
+                    </span>
+                  )}
+                  {form.audience && (
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      to {form.audience}
+                      {selectedTarget ? `: ${selectedTarget.label}` : ""}
+                    </span>
+                  )}
                   {form.expiryDate && (
                     <span className="text-[10px] font-semibold text-slate-400 ml-auto">
                       Expires: {form.expiryDate}
@@ -354,7 +336,9 @@ export default function Announcement() {
                 <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
                   {form.body || "Message body will appear here"}
                 </p>
-                <p className="text-[10px] text-slate-400 pt-1">From: Super Admin</p>
+                <p className="text-[10px] text-slate-400 pt-1">
+                  From: Admin
+                </p>
               </div>
             </div>
           )}
@@ -379,7 +363,7 @@ export default function Announcement() {
                 }));
                 setFormErr({});
                 setSubmitErr("");
-                setSuccessDetail("");
+                setTargets([]);
               }}
             />
           </div>
@@ -404,21 +388,21 @@ export default function Announcement() {
         pageSize={10}
         searchable
         exportable
-        exportFileName="platform_announcements"
+        exportFileName="admin_announcements"
         filters={[
           { title: "Type", type: "toggle", key: "type", options: ["Announcement", "Warning", "Appreciation"] },
-          { title: "Audience", type: "toggle", key: "audience", options: ["All", "Admin"] },
+          { title: "Audience", type: "toggle", key: "audience", options: audienceOptions },
           { title: "Status", type: "toggle", key: "status", options: ["Active", "Expired"] },
         ]}
       />
 
-      <Modal id="superadmin-ann-view" title="Announcement Details" size="xl">
+      <Modal id="admin-ann-view" title="Announcement Details" size="xl">
         {viewRow && (
           <div className="flex flex-col gap-4">
             <ModalGrid title="Details" cols={2}>
               <ModalData label="Type" value={viewRow.type} />
               <ModalData label="Audience" value={viewRow.audience} />
-              <ModalData label="Target" value={viewRow.audienceDetail || "All Admins and Users"} />
+              <ModalData label="Target" value={viewRow.audienceDetail || "All"} />
               <ModalData label="Sent Date" value={viewRow.sentDate} />
               <ModalData label="Expiry Date" value={viewRow.expiryDate || "-"} />
               <ModalData label="Status" value={viewRow.status} />
@@ -428,7 +412,7 @@ export default function Announcement() {
               <ModalData label="Content" value={viewRow.body} />
             </ModalGrid>
             <div className="flex justify-end pt-2 border-t border-slate-100">
-              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("superadmin-ann-view")} />
+              <Button text="Close" variant="ghost" size={3} onClick={() => closeModal("admin-ann-view")} />
             </div>
           </div>
         )}

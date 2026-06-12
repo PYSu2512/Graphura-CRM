@@ -9,7 +9,7 @@ const mongoose = require('mongoose');
 const catchAsync = require('../utils/catchAsync');
 const AppError = require('../utils/appError');
 const ApiResponse = require('../utils/apiResponse');
-const { Announcement, Team, Notification, User } = require('../models/index');
+const { Announcement, Team, ManagementTeam, Notification, User } = require('../models/index');
 
 const RECEIVER_ROLES = [
   'SALES_TL',
@@ -20,8 +20,13 @@ const RECEIVER_ROLES = [
   'MANAGEMENT_TL',
   'MANAGEMENT_EMPLOYEE',
   'ADMIN',
-  'SUPER_ADMIN',
 ];
+
+const getActorRole = (req) => {
+  if (req.userType === 'ADMIN') return 'ADMIN';
+  if (req.userType === 'SUPER_ADMIN') return 'SUPER_ADMIN';
+  return req.user?.role;
+};
 
 // ─────────────────────────────────────────────────────────────
 // HELPERS
@@ -39,29 +44,50 @@ const RECEIVER_ROLES = [
  */
 const buildVisibilityFilter = async (adminId, user) => {
   const now = new Date();
+  const role = user.role || 'ADMIN';
 
-  // Find all teams this user belongs to (as member or leader)
-  const userTeams = await Team.find({
-    admin: adminId,
-    isDeleted: false,
-    isActive: true,
-    $or: [
-      { leader: user._id },
-      { 'members.user': user._id },
-    ],
-  }).select('_id');
+  // Find all sales and management teams this user belongs to (as member or leader)
+  const membershipFilter = role === 'ADMIN'
+    ? null
+    : {
+        admin: adminId,
+        isDeleted: false,
+        isActive: true,
+        $or: [
+          { leader: user._id },
+          { 'members.user': user._id },
+        ],
+      };
+  const [salesTeams, managementTeams] = await Promise.all([
+    membershipFilter ? Team.find(membershipFilter).select('_id').lean() : [],
+    membershipFilter ? ManagementTeam.find(membershipFilter).select('_id').lean() : [],
+  ]);
 
-  const teamIds = userTeams.map((t) => t._id);
+  const salesTeamIds = salesTeams.map((t) => t._id);
+  const managementTeamIds = managementTeams.map((t) => t._id);
 
   const visibilityOr = [
     // Broadcast to everyone in the tenant
     { targetType: 'ALL' },
+    { platformTargetAdmin: user._id },
     // Role-based
-    { targetType: 'ROLE', targetRole: user.role },
+    { targetType: 'ROLE', targetRole: role },
+    { targetType: 'ROLE', targetRoles: role },
     // Direct user
     { targetType: 'USER', targetUser: user._id },
+    // Department-wide
+    ...(user.department ? [{ targetType: 'DEPARTMENT', targetDepartment: user.department }] : []),
     // Team-based (user is in the team)
-    ...(teamIds.length > 0 ? [{ targetType: 'TEAM', targetTeam: { $in: teamIds } }] : []),
+    ...(salesTeamIds.length > 0 ? [{
+      targetType: 'TEAM',
+      targetTeam: { $in: salesTeamIds },
+      $or: [{ targetTeamModel: 'Team' }, { targetTeamModel: { $exists: false } }],
+    }] : []),
+    ...(managementTeamIds.length > 0 ? [{
+      targetType: 'TEAM',
+      targetTeam: { $in: managementTeamIds },
+      targetTeamModel: 'ManagementTeam',
+    }] : []),
   ];
 
   return {
@@ -87,6 +113,19 @@ const buildVisibilityFilter = async (adminId, user) => {
 exports.getMyAnnouncements = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id || req.admin?.id;
   const user = req.user;
+  const role = getActorRole(req);
+
+  if (req.userType === 'SUPER_ADMIN') {
+    return res.status(200).json(
+      new ApiResponse(200, {
+        announcements: [],
+        unreadCount: 0,
+        total: 0,
+        page: 1,
+        pages: 0,
+      }, 'No announcements for super admin')
+    );
+  }
 
   if (!adminId || !user?._id) {
     return next(new AppError('Authentication required', 401));
@@ -94,7 +133,7 @@ exports.getMyAnnouncements = catchAsync(async (req, res, next) => {
 
   // Only TL and Executive receive announcement notifications
   const allowedRoles = RECEIVER_ROLES;
-  if (!allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(role)) {
     return next(new AppError('This endpoint is for Sales TL and Sales Executive only', 403));
   }
 
@@ -102,7 +141,7 @@ exports.getMyAnnouncements = catchAsync(async (req, res, next) => {
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
   const skip  = (page - 1) * limit;
 
-  const filter = await buildVisibilityFilter(adminId, user);
+  const filter = await buildVisibilityFilter(adminId, { ...user.toObject?.() || user, role });
 
   const [announcements, total] = await Promise.all([
     Announcement.find(filter)
@@ -132,7 +171,7 @@ exports.getMyAnnouncements = catchAsync(async (req, res, next) => {
     title:        ann.title,
     message:      ann.message,
     type:         ann.type,
-    sentBy:       ann.createdBy?.name || 'Manager',
+    sentBy:       ann.createdByAdmin ? 'Super Admin' : (ann.createdBy?.name || 'Manager'),
     sentByRole:   ann.createdBy?.role || null,
     targetLabel:  ann.targetTeam?.name || null,
     expiryDate:   ann.expiryDate ? ann.expiryDate.toISOString().slice(0, 10) : null,
@@ -140,8 +179,15 @@ exports.getMyAnnouncements = catchAsync(async (req, res, next) => {
     isRead:       readSet.has(ann._id.toString()),
   }));
 
-  // Unread count
-  const unreadCount = formatted.filter((a) => !a.isRead).length;
+  const visibleIds = await Announcement.find(filter).distinct('_id');
+  const readVisibleCount = await Notification.countDocuments({
+    admin: adminId,
+    user: user._id,
+    type: 'ANNOUNCEMENT',
+    refId: { $in: visibleIds },
+    isRead: true,
+  });
+  const unreadCount = Math.max(0, total - readVisibleCount);
 
   res.status(200).json(
     new ApiResponse(200, {
@@ -163,6 +209,12 @@ exports.markAnnouncementRead = catchAsync(async (req, res, next) => {
   const user = req.user;
   const { announcementId } = req.params;
 
+  if (req.userType === 'SUPER_ADMIN') {
+    return res.status(200).json(
+      new ApiResponse(200, { announcementId }, 'No announcements for super admin')
+    );
+  }
+
   if (!adminId || !user?._id) {
     return next(new AppError('Authentication required', 401));
   }
@@ -172,7 +224,8 @@ exports.markAnnouncementRead = catchAsync(async (req, res, next) => {
   }
 
   // Verify the announcement exists and is visible to this user
-  const filter = await buildVisibilityFilter(adminId, user);
+  const role = getActorRole(req);
+  const filter = await buildVisibilityFilter(adminId, { ...user.toObject?.() || user, role });
   const announcement = await Announcement.findOne({
     ...filter,
     _id: announcementId,
@@ -221,11 +274,18 @@ exports.markAllAnnouncementsRead = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id || req.admin?.id;
   const user = req.user;
 
+  if (req.userType === 'SUPER_ADMIN') {
+    return res.status(200).json(
+      new ApiResponse(200, { count: 0 }, 'No announcements for super admin')
+    );
+  }
+
   if (!adminId || !user?._id) {
     return next(new AppError('Authentication required', 401));
   }
 
-  const filter = await buildVisibilityFilter(adminId, user);
+  const role = getActorRole(req);
+  const filter = await buildVisibilityFilter(adminId, { ...user.toObject?.() || user, role });
   const announcements = await Announcement.find(filter).select('_id title message').lean();
 
   if (announcements.length === 0) {
@@ -274,23 +334,31 @@ exports.markAllAnnouncementsRead = catchAsync(async (req, res, next) => {
 exports.getUnreadCount = catchAsync(async (req, res, next) => {
   const adminId = req.admin?._id || req.admin?.id;
   const user = req.user;
+  const role = getActorRole(req);
+
+  if (req.userType === 'SUPER_ADMIN') {
+    return res.status(200).json(new ApiResponse(200, { unreadCount: 0 }, 'OK'));
+  }
 
   if (!adminId || !user?._id) {
     return next(new AppError('Authentication required', 401));
   }
 
   const allowedRoles = RECEIVER_ROLES;
-  if (!allowedRoles.includes(user.role)) {
+  if (!allowedRoles.includes(role)) {
     return res.status(200).json(new ApiResponse(200, { unreadCount: 0 }, 'OK'));
   }
 
-  const filter = await buildVisibilityFilter(adminId, user);
+  const filter = await buildVisibilityFilter(adminId, { ...user.toObject?.() || user, role });
   const totalVisible = await Announcement.countDocuments(filter);
+
+  const visibleIds = await Announcement.find(filter).distinct('_id');
 
   const readCount = await Notification.countDocuments({
     admin:   adminId,
     user:    user._id,
     type:    'ANNOUNCEMENT',
+    refId:   { $in: visibleIds },
     isRead:  true,
   });
 

@@ -1,6 +1,6 @@
 /**
  * NOTIFICATION BELL — Production
- * Shows announcement notifications for Sales TL and Sales Executive.
+ * Shows announcement notifications for CRM member roles.
  * - Polls unread count every 60 s
  * - Dropdown is scrollable, matches the app's design system
  * - Click on item marks it read; "Mark all read" button at top
@@ -135,6 +135,9 @@ function NotificationBell({ userRole }) {
 
   const triggerRef  = useRef(null);
   const pollRef     = useRef(null);
+  const normalizedRole = typeof userRole === 'string'
+    ? userRole.trim().toUpperCase().replace(/-/g, '_')
+    : '';
 
   // Roles that receive announcement notifications
   const isReceiver = [
@@ -142,10 +145,14 @@ function NotificationBell({ userRole }) {
     'SALES_EXECUTIVE',
     'FINANCE_MANAGER',
     'FINANCE_EXECUTIVE',
-    'sales-team-leader',
-    'sales-executive',
-    'finance',
-  ].includes(userRole);
+    'MANAGEMENT_MANAGER',
+    'MANAGEMENT_TL',
+    'MANAGEMENT_EMPLOYEE',
+    'ADMIN',
+    'SALES_TEAM_LEADER',
+    'FINANCE',
+    'MANAGEMENT_TEAM_LEADER',
+  ].includes(normalizedRole);
 
   // ── Fetch unread count (for badge) ──
   const refreshBadge = useCallback(async () => {

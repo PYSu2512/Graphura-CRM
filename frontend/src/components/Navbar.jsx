@@ -34,9 +34,29 @@ const PATH_TO_BACKEND_ROLE = {
   "sales-team-leader": "SALES_TL",
   "sales-executive": "SALES_EXECUTIVE",
   "sales-manager": "SALES_MANAGER",
+  "management-manager": "MANAGEMENT_MANAGER",
+  "management-team-leader": "MANAGEMENT_TL",
+  "management-employee": "MANAGEMENT_EMPLOYEE",
   finance: "FINANCE_MANAGER",
   admin: "ADMIN",
   "super-admin": "SUPER_ADMIN",
+};
+
+const normalizeBackendRole = (value) => {
+  if (!value || typeof value !== "string") return null;
+  const role = value.trim();
+  const direct = {
+    "sales-team-leader": "SALES_TL",
+    "sales-executive": "SALES_EXECUTIVE",
+    "sales-manager": "SALES_MANAGER",
+    "management-manager": "MANAGEMENT_MANAGER",
+    "management-team-leader": "MANAGEMENT_TL",
+    "management-employee": "MANAGEMENT_EMPLOYEE",
+    finance: "FINANCE_MANAGER",
+    admin: "ADMIN",
+    "super-admin": "SUPER_ADMIN",
+  };
+  return direct[role.toLowerCase()] || role.toUpperCase().replace(/-/g, "_");
 };
 
 function useRole() {
@@ -354,12 +374,12 @@ function Navbar({ onToggleDesktop, onToggleMobile }) {
       const stored = sessionStorage.getItem("user");
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (parsed?.role) return parsed.role;
+        if (parsed?.role) return normalizeBackendRole(parsed.role);
       }
     } catch {
       // ignore
     }
-    return PATH_TO_BACKEND_ROLE[role] || null;
+    return PATH_TO_BACKEND_ROLE[role] || normalizeBackendRole(role);
   }, [role]);
 
   return (
