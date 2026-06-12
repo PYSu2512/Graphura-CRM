@@ -372,6 +372,7 @@ async function processWebhookEvent(payload, event, Payment, ProspectForm, Projec
 
 /**
  * Mark a Payment as SUCCESS and mirror the status to ProspectForm + Project.
+ * Also syncs Lead → CONVERTED and Client → CLOSED_WON.
  * Also auto-generates an invoice if one doesn't exist yet.
  */
 async function markPaymentSuccess(payment, { razorpayPaymentId, paidAt }, ProspectForm, Project) {
@@ -397,6 +398,19 @@ async function markPaymentSuccess(payment, { razorpayPaymentId, paidAt }, Prospe
       if (razorpayPaymentId) prospect.razorpayPaymentId = razorpayPaymentId;
       prospect.updatedBy = null;
       await prospect.save();
+
+      // ── Sync Lead → CONVERTED + Client → CLOSED_WON ──────────────────
+      setImmediate(async () => {
+        try {
+          await syncLeadConversionOnPayment({
+            adminId:    payment.admin,
+            prospectId: String(prospect._id),
+            paidAt:     payment.paidAt,
+          });
+        } catch (err) {
+          logger.error('markPaymentSuccess: syncLeadConversion failed', { error: err.message });
+        }
+      });
 
       // Update Project paidAmount atomically
       await Project.updateOne(
@@ -432,9 +446,89 @@ async function markPaymentSuccess(payment, { razorpayPaymentId, paidAt }, Prospe
   });
 }
 
+/**
+ * syncLeadConversionOnPayment
+ *
+ * When a payment is confirmed (SUCCESS), this ensures:
+ *  1. Lead.status  → CONVERTED  (if not already)
+ *  2. Client.prospectStatus → CLOSED_WON
+ *  3. Lead.convertedAt is stamped
+ *  4. AuditLog entry is written
+ *
+ * This is idempotent — running it twice has no effect.
+ */
+async function syncLeadConversionOnPayment({ adminId, prospectId, paidAt }) {
+  const { ProspectForm, Lead, Client, AuditLog } = require('../models');
+
+  const prospect = await ProspectForm.findById(prospectId).lean();
+  if (!prospect) {
+    logger.warn('syncLeadConversion: ProspectForm not found', { prospectId });
+    return;
+  }
+
+  // ── Update Lead ──────────────────────────────────────────────────────────
+  if (prospect.lead) {
+    const lead = await Lead.findOne({
+      _id:    prospect.lead,
+      admin:  adminId,
+      isDeleted: { $ne: true },
+    });
+
+    if (lead && lead.status !== 'CONVERTED') {
+      const prevStatus = lead.status;
+      lead.status      = 'CONVERTED';
+      lead.isDumped    = false;
+      lead.convertedAt = paidAt || new Date();
+      // convertedBy is the exec who filled the prospect form
+      if (prospect.filledBy) lead.convertedBy = prospect.filledBy;
+      await lead.save();
+
+      logger.info('syncLeadConversion: Lead marked CONVERTED', {
+        leadId: String(lead._id),
+        prevStatus,
+      });
+
+      // AuditLog
+      await AuditLog.create({
+        admin:         adminId,
+        performedBy:   prospect.filledBy || adminId,
+        performerType: 'USER',
+        action:        'LEAD_STATUS_CHANGED',
+        targetModel:   'Lead',
+        targetId:      lead._id,
+        before:        { status: prevStatus },
+        after:         { status: 'CONVERTED', convertedAt: lead.convertedAt },
+        note:          'Lead auto-converted on successful payment',
+      }).catch(() => {});
+    }
+  }
+
+  // ── Update Client ────────────────────────────────────────────────────────
+  if (prospect.client) {
+    await Client.updateOne(
+      {
+        _id:   prospect.client,
+        admin: adminId,
+      },
+      {
+        $set: { prospectStatus: 'CLOSED_WON' },
+      },
+    ).catch((err) => {
+      logger.warn('syncLeadConversion: Client update failed', { error: err.message });
+    });
+
+    logger.info('syncLeadConversion: Client prospectStatus → CLOSED_WON', {
+      clientId: String(prospect.client),
+    });
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // DIAGNOSTIC ENDPOINTS
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Export the sync helper so paymentSuccess.controller can call it
+exports.syncLeadConversionOnPayment = syncLeadConversionOnPayment;
 
 /**
  * POST /api/payments/webhook/test

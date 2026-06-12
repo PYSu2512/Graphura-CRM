@@ -56,7 +56,9 @@ const SERVICE_OPTIONS = [
 // Start with empty list; data will be fetched from backend
 const initialClients = [];
 
-const statusOptions = ["Interested", "Not Interested", "Talk", "Not Talk"];
+const statusOptions = ["Interested", "Not Interested", "Talk", "Not Talk", "Won"];
+// Statuses that Finance can manually set — "Won" is system-only (set on payment)
+const manualStatusOptions = ["Interested", "Not Interested", "Talk", "Not Talk"];
 
 const statusColor = (s) => {
   switch (s) {
@@ -64,6 +66,8 @@ const statusColor = (s) => {
     case "Talk":           return "bg-sky-100 text-sky-700";
     case "Not Interested": return "bg-rose-100 text-rose-700";
     case "Not Talk":       return "bg-amber-100 text-amber-700";
+    case "Won":            return "bg-violet-100 text-violet-700";
+    case "Paid":           return "bg-violet-100 text-violet-700";
     default:               return "bg-slate-100 text-slate-700";
   }
 };
@@ -304,7 +308,10 @@ export default function Clients() {
           email: p.email,
           suggestedServices: p.suggestedServices,
           suggestedAmount: p.suggestedAmount || p.netPayable || p.totalCost || 0,
-          status: p.status,
+          // Show "Won" when payment is confirmed — this is the CLOSED_WON state
+          status: (p.paymentStatus === 'SUCCESS' || p.paymentStatus === 'Paid')
+            ? 'Won'
+            : (p.status || 'Interested'),
           salesExec: p.salesExec,
           notes: p.termsAndConditions || p.requirement || '',
           requirements: p.requirements || [],
@@ -1162,9 +1169,10 @@ export default function Clients() {
   // ── KPI counts ────────────────────────────────────────────────────────────
   const total        = clients.length;
   const interested   = clients.filter((c) => c.status === "Interested").length;
-  const talks        = clients.filter((c) => c.status === "Talk").length;
   const notInterested= clients.filter((c) => c.status === "Not Interested").length;
   const notTalk      = clients.filter((c) => c.status === "Not Talk").length;
+  // Won = clients whose payment is confirmed (status updated to "Won")
+  const wonCount     = clients.filter((c) => c.status === "Won" || c.paymentStatus === "SUCCESS" || c.paymentStatus === "Paid").length;
 
   // ──────────────────────────────────────────────────────────────────────────
   return (
@@ -1194,10 +1202,10 @@ export default function Clients() {
         />
 
         {/* ── KPI cards ── */}
-        <EnhancedDashCard title="Total Clients"    value={total}         icon={<Users/>} accentColor="#2563eb" size={3} />
-        <EnhancedDashCard title="Interested"       value={interested}    icon={<CheckCircle/>} accentColor="#16a34a" size={3} />
-        <EnhancedDashCard title="Not Interested"   value={notInterested} icon={<Tag/>} accentColor="#ef4444" size={3} />
-        <EnhancedDashCard title="Not Talk"         value={notTalk}       icon={<CheckCheck/>} accentColor="#f59e0b" size={3} />
+        <EnhancedDashCard title="Total Clients"  value={total}         icon={<Users/>}       accentColor="#2563eb" size={3} />
+        <EnhancedDashCard title="Interested"     value={interested}    icon={<CheckCircle/>} accentColor="#16a34a" size={3} />
+        <EnhancedDashCard title="Not Interested" value={notInterested} icon={<Tag/>}         accentColor="#ef4444" size={3} />
+        <EnhancedDashCard title="Won / Paid"     value={wonCount}      icon={<CheckCheck/>}  accentColor="#7c3aed" size={3} />
 
         {/* ── Table ── */}
         <DataTable
@@ -1285,7 +1293,7 @@ export default function Clients() {
               value={addForm.status}
               onChange={(e) => af("status", e.target.value)}
             >
-              {statusOptions.map((o) => (
+              {manualStatusOptions.map((o) => (
                 <Option key={o} value={o} label={o} />
               ))}
             </SelectField>
@@ -1434,7 +1442,7 @@ export default function Clients() {
               value={actionForm.status}
               onChange={(e) => af("status", e.target.value)}
             >
-              {statusOptions.map((o) => (
+              {manualStatusOptions.map((o) => (
                 <Option key={o} value={o} label={o} />
               ))}
             </SelectField>

@@ -305,6 +305,22 @@ exports.verifyPayment = catchAsync(async (req, res, next) => {
   prospect.updatedBy = req.user?._id || null;
   await prospect.save();
 
+  // Sync Lead → CONVERTED + Client → CLOSED_WON when payment succeeds
+  if (payment.status === 'SUCCESS') {
+    setImmediate(async () => {
+      try {
+        const { syncLeadConversionOnPayment } = require('./paymentWebhook.controller');
+        await syncLeadConversionOnPayment({
+          adminId:    req.admin._id,
+          prospectId: String(prospect._id),
+          paidAt:     payment.paidAt || new Date(),
+        });
+      } catch (err) {
+        console.error('verifyPayment: syncLeadConversion failed', err.message);
+      }
+    });
+  }
+
   res.status(200).json(new ApiResponse(200, { payment: mapPaymentForFrontend(payment.toObject(), prospect) }, 'Payment verified/updated'));
 });
 
@@ -475,7 +491,21 @@ exports.processOfflinePayment = catchAsync(async (req, res, next) => {
   prospect.payments.push(payment._id);
   await prospect.save();
 
-  // 3. Trigger Work Order and Invoice (Async)
+  // 3. Sync Lead → CONVERTED + Client → CLOSED_WON (same as Razorpay webhook)
+  setImmediate(async () => {
+    try {
+      const { syncLeadConversionOnPayment } = require('./paymentWebhook.controller');
+      await syncLeadConversionOnPayment({
+        adminId:    req.admin._id,
+        prospectId: String(prospect._id),
+        paidAt:     payment.paidAt || new Date(),
+      });
+    } catch (err) {
+      console.error('processOfflinePayment: syncLeadConversion failed', err.message);
+    }
+  });
+
+  // 4. Trigger Work Order and Invoice (Async)
   const { autoCreateWorkOrder } = require('./workOrder.controller');
   const { autoCreateInvoice } = require('./invoice.controller');
 

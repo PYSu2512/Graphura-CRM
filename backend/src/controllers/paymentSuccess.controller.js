@@ -191,6 +191,18 @@ exports.razorpaySuccess = catchAsync(async (req, res, next) => {
             } catch (err) {
               logger.error('razorpaySuccess: autoCreateWorkOrder failed', { error: err.message });
             }
+
+            // Sync Lead → CONVERTED + Client → CLOSED_WON
+            try {
+              const { syncLeadConversionOnPayment } = require('./paymentWebhook.controller');
+              await syncLeadConversionOnPayment({
+                adminId:    payment.admin,
+                prospectId: payment.prospectForm ? String(payment.prospectForm) : null,
+                paidAt:     payment.paidAt,
+              });
+            } catch (err) {
+              logger.error('razorpaySuccess: syncLeadConversion failed', { error: err.message });
+            }
           });
         } else if (!payment && prospectId) {
           // No Payment doc exists (created before schema fix) — update ProspectForm directly

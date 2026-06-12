@@ -560,13 +560,14 @@ exports.getMyAssignedLeads = catchAsync(async (req, res, next) => {
     .sort({ updatedAt: -1 })
     .lean();
 
-  // Keep only leads assigned by Sales Team Leaders as requested business rule.
-  const leadsAssignedByTL = leads.filter((lead) => lead.assignedBy?.role === 'SALES_TL');
+  // IMPORTANT: Show ALL leads assigned to this executive regardless of who assigned them
+  // (Manager, TL, or directly by Admin — all are valid)
+  const activeLeads = leads;
 
   // Get assignment history for latest assignment metadata
   const assignmentHistory = await LeadAssignmentHistory.find({
     admin: req.admin._id,
-    lead: { $in: leadsAssignedByTL.map((lead) => lead._id) },
+    lead: { $in: activeLeads.map((lead) => lead._id) },
   })
     .sort({ assignedAt: -1 })
     .select('lead assignedAt reason')
@@ -582,20 +583,22 @@ exports.getMyAssignedLeads = catchAsync(async (req, res, next) => {
   }
 
   // Transform to frontend format
-  const transformedLeads = leadsAssignedByTL.map((l) => ({
-    id: l._id,
-    name: l.client?.name || '',
-    email: l.client?.email || '',
-    mobile: l.client?.mobile || '',
-    companyName: l.client?.companyName || '',
-    status: l.status || 'UNTOUCHED',
-    isDumped: Boolean(l.isDumped),
-    dumpReason: l.dumpReason || null,
-    createdAt: l.createdAt ? new Date(l.createdAt).toISOString().split('T')[0] : '',
-    assignedTo: l.assignedTo ? l.assignedTo.name : 'Unassigned',
-    assignedBy: l.assignedBy ? l.assignedBy.name : 'Unassigned',
-    team: l.team ? l.team.name : 'No Team',
-    assignedAt: latestAssignmentByLead.get(String(l._id))?.assignedAt
+  const transformedLeads = activeLeads.map((l) => ({
+    id:           l._id,
+    name:         l.client?.name        || '',
+    email:        l.client?.email       || '',
+    mobile:       l.client?.mobile      || '',
+    phone:        l.client?.mobile      || '', // column key alias
+    companyName:  l.client?.companyName || '',
+    status:       l.status || 'UNTOUCHED',
+    isDumped:     Boolean(l.isDumped),
+    dumpReason:   l.dumpReason  || null,
+    convertedAt:  l.convertedAt ? new Date(l.convertedAt).toISOString().split('T')[0] : null,
+    createdAt:    l.createdAt   ? new Date(l.createdAt).toISOString().split('T')[0]   : '',
+    assignedTo:   l.assignedTo  ? l.assignedTo.name  : 'Unassigned',
+    assignedBy:   l.assignedBy  ? l.assignedBy.name  : 'Unassigned',
+    team:         l.team        ? l.team.name         : 'No Team',
+    assignedAt:   latestAssignmentByLead.get(String(l._id))?.assignedAt
       ? new Date(latestAssignmentByLead.get(String(l._id)).assignedAt).toISOString().split('T')[0]
       : (l.updatedAt ? new Date(l.updatedAt).toISOString().split('T')[0] : ''),
     assignmentReason: latestAssignmentByLead.get(String(l._id))?.reason || null,
@@ -644,7 +647,7 @@ exports.updateLeadStatus = catchAsync(async (req, res, next) => {
     return next(new AppError('Only Sales Executives can update lead status', 403));
   }
 
-  // Validate status
+  // Validate status — CONVERTED is set automatically by the payment webhook, not by SE manually
   const VALID_STATUSES = ['TALK', 'INTERESTED', 'NOT_TALK', 'DUMPED'];
   if (!status || !VALID_STATUSES.includes(status)) {
     return next(new AppError(`Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}`, 400));

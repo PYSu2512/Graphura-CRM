@@ -3,6 +3,7 @@ export const STATUS_OPTIONS = [
   "Not Talk",
   "Untouched",
   "Interested",
+  "Won",
   "Dumped",
 ];
 

@@ -4,7 +4,7 @@ import {
   EnhancedDashCard,
   Heading,
 } from "../../../../components/shared/Common_Components";
-import { Archive, Flame, PhoneCall, Users, Loader2, AlertTriangle } from "lucide-react";
+import { Archive, CheckCircle2, Flame, PhoneCall, Users, Loader2, AlertTriangle } from "lucide-react";
 import { ClientLeadsTable } from "./components/ClientLeadsTable";
 import { ClientLeadDetailsModal } from "./components/ClientLeadDetailsModal";
 import { CommentModal } from "./components/CommentModal";
@@ -74,6 +74,12 @@ export default function LeadsPage() {
         accentColor: "#f59e0b",
       },
       {
+        title: "Won",
+        value: String(stats.converted || 0),
+        icon: <CheckCircle2 size={22} />,
+        accentColor: "#10b981",
+      },
+      {
         title: "Dumped",
         value: String(stats.dumped || 0),
         icon: <Archive size={22} />,
@@ -102,6 +108,7 @@ export default function LeadsPage() {
         </div>
       )}
 
+      {/* 5 stat cards — 2 rows on mobile, 5-across on large screens */}
       <DashGrid cols={12} gap={4}>
         {dashboardStats.map((item) => (
           <EnhancedDashCard

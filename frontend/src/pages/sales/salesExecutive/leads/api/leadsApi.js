@@ -150,3 +150,32 @@ export const getClientLeadById = async (id) => {
   const lead = INITIAL_CLIENT_LEADS.find((item) => item.id === id);
   return Promise.resolve(lead ?? null);
 };
+
+/**
+ * Mark lead as Won (CONVERTED)
+ * Calls the status update endpoint with CONVERTED status.
+ * POST /api/sales-executive/leads/:leadId/status  { status: 'CONVERTED' }
+ *
+ * @param {string} leadId - Lead ID to mark as won
+ * @param {string} [comment] - Optional note
+ * @returns {Promise<Object>} Updated lead data
+ * @throws {Error} If the API call fails
+ */
+export const markLeadAsWon = async (leadId, comment = null) => {
+  try {
+    const payload = { status: 'CONVERTED' };
+    if (comment) payload.comment = comment;
+
+    const response = await apiClient.post(`/sales-executive/leads/${leadId}/status`, payload);
+
+    if (response.data && response.data.data) {
+      return response.data.data;
+    }
+
+    throw new Error('Invalid server response for mark as won');
+  } catch (error) {
+    console.error(`Error marking lead ${leadId} as won:`, error);
+    throw error;
+  }
+};
+

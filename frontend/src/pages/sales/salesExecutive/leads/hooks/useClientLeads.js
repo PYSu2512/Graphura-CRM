@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { closeModal, openModal } from "../../../../../components/shared/Common_Components";
 import {
   addLeadComment,
@@ -33,7 +33,7 @@ const toDisplayStatus = (status, isDumped = false) => {
   if (normalized === "NOT_TALK") return "Not Talk";
   if (normalized === "INTERESTED") return "Interested";
   if (normalized === "TALK") return "Talk";
-  if (normalized === "CONVERTED") return "Converted";
+  if (normalized === "CONVERTED") return "Won";
   if (normalized === "DUMP" || normalized === "DUMPED") return "Dumped";
   if (normalized === "UNTOUCHED") return "Untouched";
 
@@ -51,6 +51,7 @@ const toBackendStatus = (status) => {
     "Follow Up": "TALK",
     Dumped: "DUMPED",
     Untouched: "UNTOUCHED",
+    Won: "CONVERTED",
     Converted: "CONVERTED",
   };
 
@@ -144,7 +145,7 @@ export function useClientLeads() {
         dumped: normalized.filter((l) => l.status === "Dumped" || l.isDumped).length,
         untouched: normalized.filter((l) => l.status === "Untouched").length,
         notTalk: normalized.filter((l) => l.status === "Not Talk").length,
-        converted: normalized.filter((l) => l.status === "Converted").length,
+        converted: normalized.filter((l) => l.status === "Won").length,
       });
     } catch (err) {
       const errorMsg = err.response?.data?.message || err.message || "Failed to load leads";
