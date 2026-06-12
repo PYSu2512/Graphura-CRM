@@ -18,12 +18,16 @@ import ClientLogin from "../pages/auth/ClientLogin";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import PaymentResult from "../pages/public/PaymentResult";
 import ClientTrackingPage from "../pages/public/ClientTrackingPage";
+import LandingPage from "../pages/LandingPage/Index";
 
 function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Landing Page */}
+        <Route path="/" element={<LandingPage />} />
+        
+        {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
 
         {/* ── Public pages (no auth) ── */}
         {/* Razorpay redirects the client here after payment */}
