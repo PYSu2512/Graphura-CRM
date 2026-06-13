@@ -202,28 +202,47 @@ exports.getDashboardMetrics = catchAsync(async (req, res, next) => {
     status: { $in: ["OPEN", "IN_PROGRESS", "ESCALATED"] }
   });
 
-  // 2. Companies list with user counts (latest 10)
-  const recentAdmins = await Admin.find({ isDeleted: false })
-    .sort({ createdAt: -1 })
-    .limit(10)
-    .lean();
+  // 2. Top Companies list based on user counts
+  const topAdmins = await Admin.aggregate([
+    { $match: { isDeleted: false } },
+    {
+      $lookup: {
+        from: "users",
+        localField: "_id",
+        foreignField: "admin",
+        as: "users",
+      },
+    },
+    {
+      $addFields: {
+        userCount: {
+          $size: {
+            $filter: {
+              input: "$users",
+              as: "u",
+              cond: { $eq: ["$$u.isDeleted", false] },
+            },
+          },
+        },
+      },
+    },
+    { $sort: { userCount: -1, createdAt: -1 } },
+    { $limit: 5 },
+  ]);
 
-  const companyRows = await Promise.all(
-    recentAdmins.map(async (admin) => {
-      const usersCount = await User.countDocuments({ admin: admin._id, isDeleted: false });
-      return {
-        id: admin._id,
-        company: admin.company?.name || "No Company Name",
-        admin: admin.name,
-        plan: admin.planStatus || "TRIAL",
-        users: String(usersCount),
-        revenue: "₹0", // Omit revenue as per user request
-        renewal: formatDateOnly(admin.planExpiresAt) || "N/A",
-        status: admin.isActive ? "Completed" : "Failed",
-        date: formatDateOnly(admin.createdAt),
-      };
-    })
-  );
+  const companyRows = topAdmins.map((admin) => {
+    return {
+      id: admin._id,
+      company: admin.company?.name || "No Company Name",
+      admin: admin.name,
+      plan: admin.planStatus || "TRIAL",
+      users: admin.userCount,
+      revenue: "₹0", // Omit revenue as per user request
+      renewal: formatDateOnly(admin.planExpiresAt) || "N/A",
+      status: admin.isActive ? "Completed" : "Failed",
+      date: formatDateOnly(admin.createdAt),
+    };
+  });
 
   // 3. Support Tickets (latest 10)
   const recentTickets = await SuperAdminTicket.find()

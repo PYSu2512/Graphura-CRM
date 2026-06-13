@@ -494,6 +494,8 @@ export default function Dashboard() {
           title="Top Companies"
           columns={companyCols}
           rows={companyRows}
+          defaultSortKey="users"
+          defaultSortDir="desc"
           actions={[
             { icon: <Eye size={15} />,    tooltip: "View",  variant: "ghost",   onClick: (row) => { setSelectedCompany(row);  openModal("company-view"); } },
             { icon: <Pencil size={15} />, tooltip: "Edit",  variant: "primary", onClick: (row) => openEditModal(row) },
