@@ -5,6 +5,11 @@ import apiClient from "./apiClient";
 
 const BASE = "/superadmin";
 
+export const getDashboardMetrics = async () => {
+  const { data } = await apiClient.get(`${BASE}/dashboard-metrics`);
+  return data.data;
+};
+
 export const getAllAdmins = async (params = {}) => {
   const { data } = await apiClient.get(`${BASE}/admins`, { params });
   return data.data;

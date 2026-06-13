@@ -14,6 +14,7 @@ router.post('/login', superAdminController.login);
 router.use(requireSuperAdmin);
 
 router.get('/admin-login-logs', superAdminController.getAdminLoginLogs);
+router.get('/dashboard-metrics', superAdminController.getDashboardMetrics);
 
 // Profile
 router.get('/me', superAdminController.getProfile);

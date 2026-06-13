@@ -1901,7 +1901,7 @@ const SuperAdminTicketSchema = new Schema(
     status: { type: String, enum: TICKET_STATUS, default: "OPEN" },
     priority: {
       type: String,
-      enum: ["LOW", "NORMAL", "HIGH", "URGENT"],
+      enum: ["LOW", "NORMAL", "MEDIUM", "HIGH", "URGENT"],
       default: "NORMAL",
     },
     replies: [

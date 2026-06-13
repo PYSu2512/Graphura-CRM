@@ -189,12 +189,22 @@ exports.createTicket = catchAsync(async (req, res, next) => {
 
   // If created by an ADMIN, also create a SuperAdminTicket for visibility
   if (req.userType === "ADMIN") {
-    await SuperAdminTicket.create({
+    const sat = await SuperAdminTicket.create({
       raisedBy: adminId,
       subject: subject.trim(),
       message: message.trim(),
       priority: priority || "NORMAL",
       status: "OPEN",
+    });
+
+    await AuditLog.create({
+      admin: adminId,
+      performedBy: userId,
+      performerType: "ADMIN",
+      action: "TICKET_CREATED",
+      targetModel: "SuperAdminTicket",
+      targetId: sat._id,
+      note: `Admin raised support ticket to Super Admin: "${subject.trim()}"`,
     });
   }
 
