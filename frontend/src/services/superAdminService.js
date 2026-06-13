@@ -90,3 +90,19 @@ export const updateSuperAdminProfile = async (profileData) => {
 
   return data.data;
 };
+
+// ─── Contact Queries ────────────────────────────────────────────────────────
+export const getQueries = async (params = {}) => {
+  const { data } = await apiClient.get(`${BASE}/queries`, { params });
+  return data.data;
+};
+
+export const updateQueryStatus = async (id, status) => {
+  const { data } = await apiClient.patch(`${BASE}/queries/${id}/status`, { status });
+  return data.data;
+};
+
+export const deleteQuery = async (id) => {
+  const { data } = await apiClient.delete(`${BASE}/queries/${id}`);
+  return data.data;
+};

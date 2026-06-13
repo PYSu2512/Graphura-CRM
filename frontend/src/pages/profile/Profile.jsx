@@ -211,6 +211,7 @@ export default function Profile({
   isActive = true,
   bankDetails = null,
   companyInfo = null,
+  isCompanyEditable = false,
   onUpdateProfile,
   onUpdateBankDetails,
 }) {
@@ -238,6 +239,13 @@ export default function Profile({
           bankDetails?.branchName ?? defaultProfile.bankDetails.branchName,
         upiId: bankDetails?.upiId ?? defaultProfile.bankDetails.upiId,
       },
+      companyInfo: companyInfo ? {
+        companyName: companyInfo.companyName || "",
+        companyEmail: companyInfo.companyEmail || "",
+        companyPhone: companyInfo.companyPhone || "",
+        website: companyInfo.website || "",
+        address: companyInfo.address || "",
+      } : null,
     }),
     [
       photo,
@@ -250,6 +258,7 @@ export default function Profile({
       department,
       isActive,
       bankDetails,
+      companyInfo,
     ],
   );
 
@@ -341,6 +350,12 @@ export default function Profile({
       bankDetails: { ...prev.bankDetails, [key]: value },
     }));
 
+  const setCompanyField = (key, value) =>
+    setForm((prev) => ({
+      ...prev,
+      companyInfo: { ...prev.companyInfo, [key]: value },
+    }));
+
   // ── Save Changes ──────────────────────────────────────────────────────────
   const handleSave = async () => {
     const errs = {};
@@ -355,6 +370,18 @@ export default function Profile({
       if (!form.bankDetails.ifscCode?.trim())
         errs.ifscCode = "IFSC code is required";
     }
+    if (showCompany && isCompanyEditable && form.companyInfo) {
+      if (!form.companyInfo.companyName?.trim()) errs.companyName = "Company name is required";
+      if (form.companyInfo.companyEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.companyInfo.companyEmail)) {
+        errs.companyEmail = "Invalid email address";
+      }
+      if (form.companyInfo.companyPhone && validatePhone(form.companyInfo.companyPhone)) {
+        errs.companyPhone = validatePhone(form.companyInfo.companyPhone);
+      }
+      if (form.companyInfo.website && !/^https?:\/\//.test(form.companyInfo.website)) {
+        errs.website = "Website must start with http:// or https://";
+      }
+    }
     setFieldErrors(errs);
     if (Object.keys(errs).length) return;
 
@@ -366,20 +393,25 @@ export default function Profile({
         form.phone !== saved.phone ||
         form.email !== saved.email;
 
-      if (profileFieldsChanged) {
-        console.log("Profile fields changed:", {
+      const companyFieldsChanged = showCompany && isCompanyEditable && JSON.stringify(form.companyInfo) !== JSON.stringify(saved.companyInfo);
+
+      if (profileFieldsChanged || companyFieldsChanged) {
+        const updateFn = onUpdateProfile || userService.updateProfile;
+        const payload = {
           name: form.fullName,
           phone: form.phone,
           email: form.email,
-        });
-        const updateFn = onUpdateProfile || userService.updateProfile;
-        promises.push(
-          updateFn({
-            name: form.fullName,
-            phone: form.phone,
-            email: form.email,
-          }),
-        );
+        };
+        if (companyFieldsChanged && form.companyInfo) {
+           payload.company = {
+             name: form.companyInfo.companyName,
+             email: form.companyInfo.companyEmail,
+             phone: form.companyInfo.companyPhone,
+             website: form.companyInfo.website,
+             address: form.companyInfo.address,
+           };
+        }
+        promises.push(updateFn(payload));
       }
 
       const bankFieldsChanged =
@@ -753,65 +785,82 @@ export default function Profile({
           subtitle="Organization & corporate information"
         >
           <Grid cols={12} gap={4}>
-            <DataField
-              label="Company Name"
-              id="companyName"
-              size={6}
-              icon={Building2}
-              value={companyInfo?.companyName ?? ""}
-              readOnly
-              disabled
-            />
+            <div className="col-span-12 sm:col-span-6 flex flex-col gap-1">
+              <DataField
+                label="Company Name"
+                id="companyName"
+                size={12}
+                icon={Building2}
+                value={form.companyInfo?.companyName || ""}
+                onChange={(e) => isCompanyEditable && setCompanyField("companyName", e.target.value)}
+                readOnly={!isCompanyEditable}
+                disabled={!isCompanyEditable}
+              />
+              <FieldError msg={fieldErrors.companyName} />
+            </div>
 
-            <DataField
-              label="Company Email"
-              id="companyEmail"
-              type="email"
-              size={6}
-              icon={Mail}
-              value={companyInfo?.companyEmail ?? ""}
-              readOnly
-              disabled
-            />
+            <div className="col-span-12 sm:col-span-6 flex flex-col gap-1">
+              <DataField
+                label="Company Email"
+                id="companyEmail"
+                type="email"
+                size={12}
+                icon={Mail}
+                value={form.companyInfo?.companyEmail || ""}
+                onChange={(e) => isCompanyEditable && setCompanyField("companyEmail", e.target.value)}
+                readOnly={!isCompanyEditable}
+                disabled={!isCompanyEditable}
+              />
+              <FieldError msg={fieldErrors.companyEmail} />
+            </div>
 
-            <DataField
-              label="Owner Name"
-              id="ownerName"
-              size={6}
-              icon={User}
-              value={companyInfo?.ownerName ?? ""}
-              readOnly
-              disabled
-            />
+            <div className="col-span-12 sm:col-span-6 flex flex-col gap-1">
+              <DataField
+                label="Company Phone"
+                id="companyPhone"
+                type="tel"
+                size={12}
+                icon={Phone}
+                value={form.companyInfo?.companyPhone || ""}
+                onChange={(e) => {
+                  if (isCompanyEditable) {
+                    setCompanyField("companyPhone", e.target.value);
+                    setFieldErrors((prev) => ({
+                      ...prev,
+                      companyPhone: validatePhone(e.target.value),
+                    }));
+                  }
+                }}
+                readOnly={!isCompanyEditable}
+                disabled={!isCompanyEditable}
+              />
+              <FieldError msg={fieldErrors.companyPhone} />
+            </div>
 
-            <DataField
-              label="Industry"
-              id="industry"
-              size={6}
-              icon={Briefcase}
-              value={companyInfo?.industry ?? ""}
-              readOnly
-              disabled
-            />
+            <div className="col-span-12 sm:col-span-6 flex flex-col gap-1">
+              <DataField
+                label="Website"
+                id="website"
+                size={12}
+                value={form.companyInfo?.website || ""}
+                onChange={(e) => isCompanyEditable && setCompanyField("website", e.target.value)}
+                readOnly={!isCompanyEditable}
+                disabled={!isCompanyEditable}
+              />
+              <FieldError msg={fieldErrors.website} />
+            </div>
 
-            <DataField
-              label="Founded Year"
-              id="foundedYear"
-              size={6}
-              icon={BadgeCheck}
-              value={companyInfo?.foundedYear ?? ""}
-              readOnly
-              disabled
-            />
-
-            <DataField
-              label="Website"
-              id="website"
-              size={6}
-              value={companyInfo?.website ?? ""}
-              readOnly
-              disabled
-            />
+            <div className="col-span-12 flex flex-col gap-1">
+              <DataField
+                label="Company Address"
+                id="companyAddress"
+                size={12}
+                value={form.companyInfo?.address || ""}
+                onChange={(e) => isCompanyEditable && setCompanyField("address", e.target.value)}
+                readOnly={!isCompanyEditable}
+                disabled={!isCompanyEditable}
+              />
+            </div>
           </Grid>
         </ProfileSection>
       )}

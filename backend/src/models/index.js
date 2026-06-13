@@ -845,18 +845,22 @@ TeamSchema.index({ admin: 1, leader: 1 });
 // ════════════════════════════════════════════════════════════
 const ManagementTeamSchema = new Schema(
   {
-    admin:      { type: Schema.Types.ObjectId, ref: "Admin",      required: true },
-    department: { type: Schema.Types.ObjectId, ref: "Department", required: true },
-    name:       { type: String, required: true, trim: true },
-    leader:     { type: Schema.Types.ObjectId, ref: "User",       default: null },
+    admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
+    department: {
+      type: Schema.Types.ObjectId,
+      ref: "Department",
+      required: true,
+    },
+    name: { type: String, required: true, trim: true },
+    leader: { type: Schema.Types.ObjectId, ref: "User", default: null },
     members: [
       {
-        user:     { type: Schema.Types.ObjectId, ref: "User" },
+        user: { type: Schema.Types.ObjectId, ref: "User" },
         joinedAt: { type: Date, default: Date.now },
         _id: false,
       },
     ],
-    isActive:   { type: Boolean, default: true },
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
 );
@@ -1214,7 +1218,7 @@ const ProspectFormSchema = new Schema(
     paymentFailureReason: { type: String, default: null },
     paymentNote: { type: String, default: null },
 
-    payments: [{ type: Schema.Types.ObjectId, ref: 'Payment' }],
+    payments: [{ type: Schema.Types.ObjectId, ref: "Payment" }],
 
     // ── Razorpay fields ──
     razorpayLinkToken: { type: String, default: null },
@@ -1434,8 +1438,13 @@ ProjectSchema.index({ admin: 1, workOrder: 1 });
 // ════════════════════════════════════════════════════════════
 const ProjectCounterSchema = new Schema(
   {
-    admin:  { type: Schema.Types.ObjectId, ref: "Admin", required: true, unique: true },
-    seq:    { type: Number, default: 0 },
+    admin: {
+      type: Schema.Types.ObjectId,
+      ref: "Admin",
+      required: true,
+      unique: true,
+    },
+    seq: { type: Number, default: 0 },
     prefix: { type: String, default: "PRJ", trim: true },
   },
   { timestamps: true },
@@ -2035,7 +2044,11 @@ const AnnouncementSchema = new Schema(
   {
     admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
     platformAnnouncementKey: { type: String, default: null, index: true },
-    platformTargetAdmin: { type: Schema.Types.ObjectId, ref: "Admin", default: null },
+    platformTargetAdmin: {
+      type: Schema.Types.ObjectId,
+      ref: "Admin",
+      default: null,
+    },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
     createdByAdmin: { type: Boolean, default: false },
     title: { type: String, required: true, trim: true },
@@ -2122,23 +2135,29 @@ ApiConfigSchema.index({ admin: 1, key: 1 }, { unique: true });
 // Status lifecycle: NOT_STARTED → IN_PROGRESS → REVIEW → COMPLETED | DELAYED
 // progressPercent (0-100): TL manually sets or updated by assignee.
 // ════════════════════════════════════════════════════════════
-const TASK_STATUS = ["NOT_STARTED", "IN_PROGRESS", "REVIEW", "COMPLETED", "DELAYED"];
+const TASK_STATUS = [
+  "NOT_STARTED",
+  "IN_PROGRESS",
+  "REVIEW",
+  "COMPLETED",
+  "DELAYED",
+];
 const TASK_PRIORITY = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 const ProjectTaskSchema = new Schema(
   {
-    admin:      { type: Schema.Types.ObjectId, ref: "Admin",   required: true },
-    project:    { type: Schema.Types.ObjectId, ref: "Project", required: true },
-    createdBy:  { type: Schema.Types.ObjectId, ref: "User",    required: true }, // MANAGEMENT_TL
+    admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true },
+    project: { type: Schema.Types.ObjectId, ref: "Project", required: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true }, // MANAGEMENT_TL
 
-    title:       { type: String, required: true, trim: true },
+    title: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: "" },
 
-    assignedTo:  { type: Schema.Types.ObjectId, ref: "User", default: null }, // MANAGEMENT_EMPLOYEE
-    priority:    { type: String, enum: TASK_PRIORITY, default: "MEDIUM" },
-    status:      { type: String, enum: TASK_STATUS,   default: "NOT_STARTED" },
+    assignedTo: { type: Schema.Types.ObjectId, ref: "User", default: null }, // MANAGEMENT_EMPLOYEE
+    priority: { type: String, enum: TASK_PRIORITY, default: "MEDIUM" },
+    status: { type: String, enum: TASK_STATUS, default: "NOT_STARTED" },
 
-    deadline:    { type: Date, default: null },
+    deadline: { type: Date, default: null },
     completedAt: { type: Date, default: null },
 
     // Progress 0-100 (can be set by TL or updated by employee)
@@ -2177,6 +2196,22 @@ const ProjectTrackingTokenSchema = new Schema(
 );
 
 ProjectTrackingTokenSchema.index({ admin: 1, project: 1 });
+
+const ContactQuerySchema = new Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, lowercase: true, trim: true },
+    company: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
+    message: { type: String, trim: true },
+    status: { type: String, enum: ["Read", "Unread"], default: "Unread" },
+    source: { type: String, default: "Landing Page", trim: true },
+  },
+  { timestamps: true },
+);
+
+ContactQuerySchema.index({ createdAt: -1 });
+ContactQuerySchema.index({ status: 1 });
 
 // ════════════════════════════════════════════════════════════
 // EXPORT ALL 43 MODELS
@@ -2275,4 +2310,7 @@ module.exports = {
 
   // ── Config ──
   ApiConfig: mongoose.model("ApiConfig", ApiConfigSchema),
+
+  // ── Public ──
+  ContactQuery: mongoose.model("ContactQuery", ContactQuerySchema),
 };

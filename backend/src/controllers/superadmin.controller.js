@@ -15,6 +15,7 @@ const {
   Project,
   Payment,
   Lead,
+  ContactQuery,
 } = require("../models/index");
 const {
   comparePassword,
@@ -64,7 +65,8 @@ const formatPlatformAnnouncement = (announcement) => {
   return {
     id: announcement.platformAnnouncementKey || String(announcement._id),
     title: announcement.title,
-    type: PLATFORM_ANNOUNCEMENT_TYPE_LABELS[announcement.type] || announcement.type,
+    type:
+      PLATFORM_ANNOUNCEMENT_TYPE_LABELS[announcement.type] || announcement.type,
     audience: announcement.platformTargetAdmin ? "Admin" : "All",
     audienceDetail: announcement.platformTargetAdmin
       ? `${adminName}${company ? ` (${company})` : ""}`
@@ -83,14 +85,18 @@ const createNotificationDocsForAnnouncement = async (
 ) => {
   const [admin, users] = await Promise.all([
     includeAdmin
-      ? Admin.findOne({ _id: adminId, isDeleted: false, isActive: true }).select("_id").lean()
+      ? Admin.findOne({ _id: adminId, isDeleted: false, isActive: true })
+          .select("_id")
+          .lean()
       : null,
     includeUsers
       ? User.find({
           admin: adminId,
           isDeleted: false,
           isActive: true,
-        }).select("_id").lean()
+        })
+          .select("_id")
+          .lean()
       : [],
   ]);
 
@@ -244,10 +250,12 @@ exports.getAnnouncementMeta = catchAsync(async (_req, res) => {
     new ApiResponse(
       200,
       {
-        messageTypes: Object.keys(PLATFORM_ANNOUNCEMENT_TYPE_MAP).map((label) => ({
-          label,
-          value: PLATFORM_ANNOUNCEMENT_TYPE_MAP[label],
-        })),
+        messageTypes: Object.keys(PLATFORM_ANNOUNCEMENT_TYPE_MAP).map(
+          (label) => ({
+            label,
+            value: PLATFORM_ANNOUNCEMENT_TYPE_MAP[label],
+          }),
+        ),
         audienceOptions: ["All", "Admin"],
       },
       "Platform announcement metadata retrieved successfully",
@@ -299,13 +307,17 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
 
   let targetAdmins = [];
   if (audience === "Admin") {
-    if (!targetId) return next(new AppError("Please select a target admin", 400));
+    if (!targetId)
+      return next(new AppError("Please select a target admin", 400));
     const admin = await Admin.findOne({
       _id: targetId,
       isDeleted: false,
       isActive: true,
     });
-    if (!admin) return next(new AppError("Selected admin was not found or is inactive", 404));
+    if (!admin)
+      return next(
+        new AppError("Selected admin was not found or is inactive", 404),
+      );
     targetAdmins = [admin];
   } else {
     targetAdmins = await Admin.find({
@@ -315,7 +327,9 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
   }
 
   if (targetAdmins.length === 0) {
-    return next(new AppError("No active admins found for this announcement", 404));
+    return next(
+      new AppError("No active admins found for this announcement", 404),
+    );
   }
 
   const announcementDocs = await Announcement.insertMany(
@@ -338,14 +352,10 @@ exports.createAnnouncement = catchAsync(async (req, res, next) => {
 
   await Promise.all(
     announcementDocs.map((announcement) =>
-      createNotificationDocsForAnnouncement(
-        announcement,
-        announcement.admin,
-        {
-          includeAdmin: true,
-          includeUsers: audience === "All",
-        },
-      ),
+      createNotificationDocsForAnnouncement(announcement, announcement.admin, {
+        includeAdmin: true,
+        includeUsers: audience === "All",
+      }),
     ),
   );
 
@@ -394,7 +404,8 @@ exports.getAnnouncements = catchAsync(async (_req, res) => {
 
   const grouped = new Map();
   announcements.forEach((announcement) => {
-    const key = announcement.platformAnnouncementKey || String(announcement._id);
+    const key =
+      announcement.platformAnnouncementKey || String(announcement._id);
     if (!grouped.has(key)) grouped.set(key, announcement);
   });
 
@@ -512,7 +523,9 @@ exports.toggleAdminStatus = catchAsync(async (req, res, next) => {
 exports.getAdminById = catchAsync(async (req, res, next) => {
   const { id } = req.params;
 
-  const admin = await Admin.findOne({ _id: id, isDeleted: false }).populate("plan");
+  const admin = await Admin.findOne({ _id: id, isDeleted: false }).populate(
+    "plan",
+  );
   if (!admin) {
     return next(new AppError("Admin not found", 404));
   }
@@ -526,7 +539,10 @@ exports.getAdminById = catchAsync(async (req, res, next) => {
     .populate("client", "name")
     .populate("project", "name");
 
-  const totalLeads = await Lead.countDocuments({ admin: id, isDeleted: { $ne: true } });
+  const totalLeads = await Lead.countDocuments({
+    admin: id,
+    isDeleted: { $ne: true },
+  });
   const activeLeads = await Lead.countDocuments({
     admin: id,
     isDeleted: { $ne: true },
@@ -621,6 +637,67 @@ exports.updateTicketStatus = catchAsync(async (req, res, next) => {
     .json(
       new ApiResponse(200, { ticket }, "Ticket status updated successfully"),
     );
+});
+
+/**
+ * CONTACT QUERIES
+ */
+
+exports.getQueries = catchAsync(async (req, res, next) => {
+  const queries = await ContactQuery.find().sort({ createdAt: -1 }).lean();
+
+  // Map to frontend structure
+  const formattedQueries = queries.map((q) => ({
+    id: q._id.toString(),
+    name: q.name,
+    company: q.company,
+    email: q.email,
+    phone: q.phone,
+    message: q.message,
+    status: q.status,
+    date: formatDateOnly(q.createdAt),
+  }));
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, formattedQueries, "Queries retrieved successfully"),
+    );
+});
+
+exports.updateQueryStatus = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!["Read", "Unread"].includes(status)) {
+    return next(new AppError("Status must be Read or Unread", 400));
+  }
+
+  const query = await ContactQuery.findByIdAndUpdate(
+    id,
+    { status },
+    { new: true, runValidators: true },
+  );
+
+  if (!query) {
+    return next(new AppError("Query not found", 404));
+  }
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, query, `Query status updated to ${status}`));
+});
+
+exports.deleteQuery = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const query = await ContactQuery.findByIdAndDelete(id);
+
+  if (!query) {
+    return next(new AppError("Query not found", 404));
+  }
+
+  res.status(200).json(new ApiResponse(200, null, "Query deleted permanently"));
 });
 
 /**

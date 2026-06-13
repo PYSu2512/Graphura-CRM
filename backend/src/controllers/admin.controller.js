@@ -35,7 +35,7 @@ exports.getAdminProfile = catchAsync(async (req, res, next) => {
   );
 });
 exports.updateAdminProfile = catchAsync(async (req, res, next) => {
-  const { name, email, phone } = req.body;
+  const { name, email, phone, company } = req.body;
 
   const admin = await Admin.findById(req.admin._id);
 
@@ -57,6 +57,19 @@ exports.updateAdminProfile = catchAsync(async (req, res, next) => {
     }
 
     admin.email = email.toLowerCase();
+  }
+
+  if (company) {
+    if (!admin.company) admin.company = {};
+    if (company.name !== undefined) admin.company.name = company.name;
+    if (company.email !== undefined) admin.company.email = company.email;
+    if (company.phone !== undefined) admin.company.phone = company.phone;
+    if (company.website !== undefined) admin.company.website = company.website;
+    
+    if (company.address !== undefined) {
+      if (!admin.company.address) admin.company.address = {};
+      admin.company.address.line1 = company.address;
+    }
   }
 
   await admin.save();

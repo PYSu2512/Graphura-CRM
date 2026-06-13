@@ -1,4 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  getQueries,
+  updateQueryStatus,
+  deleteQuery as apiDeleteQuery,
+} from "../../../services/superAdminService";
+
 import {
   Heading,
   DataTable,
@@ -16,79 +22,66 @@ import { Eye, Trash2, MailOpen, Mail, MessageSquare } from "lucide-react";
 
 const queryCols = [
   { key: "name", label: "Name" },
+  { key: "company", label: "Company" },
   { key: "email", label: "Mail" },
   { key: "phone", label: "Phone" },
   { key: "message", label: "Message" },
   { key: "status", label: "Status" },
 ];
 
-const initialQueries = [
-  {
-    id: "q-1",
-    name: "Arjun Singhania",
-    email: "arjun.s@google.com",
-    phone: "+91 98765 43210",
-    message:
-      "Interested in the Enterprise plan for our company of 250+ users. Please share custom quote details and pricing sheet.",
-    status: "Unread",
-    date: "2026-06-11",
-  },
-  {
-    id: "q-2",
-    name: "Sarah Jenkins",
-    email: "sarah.j@nexustech.io",
-    phone: "+1 415 555 2671",
-    message:
-      "Experiencing trouble with API Webhook configurations. Are there code examples for Node.js integrations?",
-    status: "Read",
-    date: "2026-06-10",
-  },
-  {
-    id: "q-3",
-    name: "Vikram Malhotra",
-    email: "vikram@malhotragroup.co.in",
-    phone: "+91 88888 99999",
-    message:
-      "Do you offer on-premise deployments or custom data residency options for the CRM inside India?",
-    status: "Unread",
-    date: "2026-06-09",
-  },
-  {
-    id: "q-4",
-    name: "Elena Rostova",
-    email: "elena.rostova@designlab.cc",
-    phone: "+7 901 123 4567",
-    message:
-      "Is there an affiliate program or agency pricing model for styling client dashboards?",
-    status: "Read",
-    date: "2026-06-08",
-  },
-];
-
 export default function Queries() {
-  const [queries, setQueries] = useState(initialQueries);
+  const [queries, setQueries] = useState([]);
   const [selectedQuery, setSelectedQuery] = useState(null);
   const [deleteQueryId, setDeleteQueryId] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleToggleRead = (id) => {
-    setQueries((prev) =>
-      prev.map((q) => {
-        if (q.id === id) {
-          const nextStatus = q.status === "Read" ? "Unread" : "Read";
-          toast.success(`Query marked as ${nextStatus}`);
-          return { ...q, status: nextStatus };
-        }
-        return q;
-      }),
-    );
+  useEffect(() => {
+    fetchQueries();
+  }, []);
+
+  const fetchQueries = async () => {
+    try {
+      setLoading(true);
+      const data = await getQueries();
+      setQueries(data || []);
+    } catch (error) {
+      toast.error(error.message || "Failed to fetch queries");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteQuery = () => {
+  const handleToggleRead = async (id) => {
+    try {
+      const q = queries.find((query) => query.id === id);
+      const nextStatus = q.status === "Read" ? "Unread" : "Read";
+      await updateQueryStatus(id, nextStatus);
+      setQueries((prev) =>
+        prev.map((q) => {
+          if (q.id === id) {
+            return { ...q, status: nextStatus };
+          }
+          return q;
+        }),
+      );
+      toast.success(`Query marked as ${nextStatus}`);
+    } catch (error) {
+      toast.error(error.message || "Failed to update query status");
+    }
+  };
+
+  const handleDeleteQuery = async () => {
     if (!deleteQueryId) return;
-    setQueries((prev) => prev.filter((q) => q.id !== deleteQueryId));
-    toast.success("Query deleted successfully");
-    closeModal("query-delete-modal");
-    setDeleteQueryId(null);
+    try {
+      await apiDeleteQuery(deleteQueryId);
+      setQueries((prev) => prev.filter((q) => q.id !== deleteQueryId));
+      toast.success("Query deleted successfully");
+    } catch (error) {
+      toast.error(error.message || "Failed to delete query");
+    } finally {
+      closeModal("query-delete-modal");
+      setDeleteQueryId(null);
+    }
   };
 
   const actions = [
@@ -126,20 +119,32 @@ export default function Queries() {
     },
   ];
 
-  const handleBulkMarkAsRead = (selectedRows) => {
-    const idsToUpdate = selectedRows.map((row) => row.id);
-    setQueries((prev) =>
-      prev.map((q) =>
-        idsToUpdate.includes(q.id) ? { ...q, status: "Read" } : q,
-      ),
-    );
-    toast.success("Selected queries marked as Read");
+  const handleBulkMarkAsRead = async (selectedRows) => {
+    try {
+      const idsToUpdate = selectedRows.map((row) => row.id);
+      await Promise.all(idsToUpdate.map((id) => updateQueryStatus(id, "Read")));
+      setQueries((prev) =>
+        prev.map((q) =>
+          idsToUpdate.includes(q.id) ? { ...q, status: "Read" } : q,
+        ),
+      );
+      toast.success("Selected queries marked as Read");
+    } catch (error) {
+      toast.error("Failed to update some queries");
+      fetchQueries();
+    }
   };
 
-  const handleBulkDelete = (selectedRows) => {
-    const idsToDelete = selectedRows.map((row) => row.id);
-    setQueries((prev) => prev.filter((q) => !idsToDelete.includes(q.id)));
-    toast.success("Selected queries deleted successfully");
+  const handleBulkDelete = async (selectedRows) => {
+    try {
+      const idsToDelete = selectedRows.map((row) => row.id);
+      await Promise.all(idsToDelete.map((id) => apiDeleteQuery(id)));
+      setQueries((prev) => prev.filter((q) => !idsToDelete.includes(q.id)));
+      toast.success("Selected queries deleted successfully");
+    } catch (error) {
+      toast.error("Failed to delete some queries");
+      fetchQueries();
+    }
   };
 
   const bulkActions = [
@@ -209,6 +214,7 @@ export default function Queries() {
         searchable={true}
         exportable={true}
         exportFileName="contact_queries"
+        isLoading={loading}
         filters={[
           {
             title: "Status",
@@ -225,6 +231,7 @@ export default function Queries() {
           <div className="flex flex-col gap-5">
             <ModalGrid title="Sender Information" cols={2}>
               <ModalData label="Name" value={selectedQuery.name} />
+              <ModalData label="Company" value={selectedQuery.company} />
               <ModalData label="Mail" value={selectedQuery.email} />
               <ModalData label="Phone" value={selectedQuery.phone} />
               <ModalData label="Date Received" value={selectedQuery.date} />

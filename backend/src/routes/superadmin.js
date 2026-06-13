@@ -35,4 +35,9 @@ router.post('/announcements', superAdminController.createAnnouncement);
 router.get('/support-tickets', superAdminController.getSupportTickets);
 router.patch('/support-tickets/:id/status', superAdminController.updateTicketStatus);
 
+// Contact Queries Management
+router.get('/queries', superAdminController.getQueries);
+router.patch('/queries/:id/status', superAdminController.updateQueryStatus);
+router.delete('/queries/:id', superAdminController.deleteQuery);
+
 module.exports = router;

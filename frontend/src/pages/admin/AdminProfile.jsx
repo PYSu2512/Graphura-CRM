@@ -49,16 +49,16 @@ const AdminProfile = () => {
       photo="https://i.pravatar.cc/150?img=12"
       name={adminData.name}
       email={adminData.email}
-      phone={adminData.phone || "N/A"}
+      phone={adminData.phone || ""}
       role="Admin"
       department="Administration"
+      isCompanyEditable={true}
       companyInfo={{
-        companyName: adminData.company?.name || "N/A",
-        ownerName: adminData.name,
-        companyEmail: adminData.company?.email || adminData.email,
-        industry: "CRM Platform",
-        foundedYear: new Date(adminData.createdAt).getFullYear(),
-        website: adminData.company?.website || "N/A",
+        companyName: adminData.company?.name || "",
+        companyEmail: adminData.company?.email || "",
+        companyPhone: adminData.company?.phone || "",
+        website: adminData.company?.website || "",
+        address: adminData.company?.address?.line1 || "",
       }}
       onUpdateProfile={updateProfile}
     />
