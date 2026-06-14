@@ -127,6 +127,7 @@ const generateReferenceToken = (prefix = 'pay') => `${prefix}_${crypto.randomByt
 
 module.exports = {
   createPaymentLink,
+  loadRazorpayCredentials,
   // find existing link by reference id (paginated lookup)
   fetchPaymentLinkByReference: async (referenceId, adminId = null) => {
     const creds = await loadRazorpayCredentials(adminId);

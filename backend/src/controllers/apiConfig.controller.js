@@ -41,7 +41,7 @@ exports.updateRazorpayConfig = catchAsync(async (req, res, next) => {
           value: encrypt(config.value),
           description: config.description,
           isEncrypted: true,
-          updatedBy: req.user?._id
+          updatedBy: req.admin._id,
         },
         { upsert: true, new: true, runValidators: true }
       );
@@ -106,13 +106,12 @@ exports.generateRazorpaySecret = catchAsync(async (req, res, next) => {
     { upsert: true, new: true, runValidators: true }
   );
 
-  // Audit
   try {
     await AuditLog.create({
       admin: req.admin._id,
-      performedBy: req.user?._id,
-      performerType: req.user ? 'ADMIN' : 'SUPER_ADMIN',
-      action: 'API_CONFIG_UPDATE',
+      performedBy: req.admin._id,
+      performerType: 'ADMIN',
+      action: 'ADMIN_UPDATED',
       targetModel: 'ApiConfig',
       targetId: doc._id,
       note: 'Generated new Razorpay webhook secret via admin UI'
