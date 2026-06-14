@@ -434,25 +434,24 @@ export default function CookiePolicy() {
         <div className="mt-3 bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
           <p>
             <span className="font-semibold text-slate-700">Company:</span>{" "}
-            Graphura Technologies
+            Graphura India Private Limited
           </p>
           <p>
-            <span className="font-semibold text-slate-700">Privacy &amp; Cookies:</span>{" "}
+            <span className="font-semibold text-slate-700">Email:</span>{" "}
             <a
-              href="mailto:privacy@graphura.com"
+              href="mailto:official@graphura.in"
               className="text-[#2a465a] hover:underline font-medium"
             >
-              privacy@graphura.com
+              official@graphura.in
             </a>
           </p>
           <p>
-            <span className="font-semibold text-slate-700">General Support:</span>{" "}
-            <a
-              href="mailto:support@graphura.com"
-              className="text-[#2a465a] hover:underline font-medium"
-            >
-              support@graphura.com
-            </a>
+            <span className="font-semibold text-slate-700">Phone:</span>{" "}
+            +91 73780 21327
+          </p>
+          <p>
+            <span className="font-semibold text-slate-700">Address:</span>{" "}
+            Graphura India Private Limited, near RSF, Pataudi, Gurgaon, Haryana 122503
           </p>
         </div>
         <p className="text-xs text-slate-500 mt-3">

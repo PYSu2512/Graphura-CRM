@@ -1,5 +1,6 @@
 import { useState, memo, useCallback } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { createPortal } from "react-dom";
 import {
   BarChart2,
   Bell,
@@ -852,14 +853,111 @@ function SectionLabel({ label, expanded }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// LOGOUT HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** Determine the correct login redirect based on stored session data */
+function getLoginRoute() {
+  try {
+    if (sessionStorage.getItem("superAdmin") || sessionStorage.getItem("accessToken") === null) {
+      const sa = sessionStorage.getItem("superAdmin");
+      if (sa) return "/super-admin-login";
+    }
+    const admin = sessionStorage.getItem("admin");
+    if (admin) return "/admin-login";
+
+    const user = sessionStorage.getItem("user");
+    if (user) {
+      const parsed = JSON.parse(user);
+      const role = parsed?.role?.toUpperCase?.() || "";
+      if (role === "SUPER_ADMIN") return "/super-admin-login";
+      if (role === "ADMIN") return "/admin-login";
+    }
+    // All department roles (sales, finance, management) → /login
+    return "/login";
+  } catch {
+    return "/login";
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOGOUT CONFIRMATION MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+function LogoutModal({ onConfirm, onCancel, isLoggingOut }) {
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
+        onClick={onCancel}
+      />
+
+      {/* Modal card */}
+      <div className="relative z-10 w-full max-w-sm bg-white rounded-3xl shadow-2xl p-6 flex flex-col gap-5">
+        {/* Icon + message */}
+        <div className="flex flex-col items-center gap-3 pt-2">
+          <div className="w-14 h-14 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center">
+            <LogOut size={26} className="text-rose-500" />
+          </div>
+          <p className="text-base font-black text-[#2a465a] text-center">
+            Confirm Logout
+          </p>
+          <p className="text-sm text-slate-500 text-center leading-relaxed">
+            Are you sure you want to sign out? You will be redirected to the
+            login page.
+          </p>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-3">
+          <button
+            onClick={onCancel}
+            disabled={isLoggingOut}
+            className="flex-1 py-2.5 rounded-2xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition active:scale-95 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoggingOut}
+            className="flex-1 py-2.5 rounded-2xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition active:scale-95 shadow-md shadow-rose-500/20 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {isLoggingOut ? "Signing out…" : "Logout"}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SIDEBAR
 // ─────────────────────────────────────────────────────────────────────────────
 function Sidebar({ expanded, onExpand, onNavClick }) {
   const role = useRole();
   const menu = MENUS[role] ?? MENUS.admin;
+  const navigate = useNavigate();
 
-  const stableOnExpand = useCallback(() => onExpand?.(), [onExpand]);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const stableOnExpand   = useCallback(() => onExpand?.(),   [onExpand]);
   const stableOnNavClick = useCallback(() => onNavClick?.(), [onNavClick]);
+
+  const handleLogoutConfirm = useCallback(async () => {
+    setIsLoggingOut(true);
+    try {
+      const loginRoute = getLoginRoute();
+      // Clear all session / local storage
+      sessionStorage.clear();
+      localStorage.clear();
+      navigate(loginRoute, { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+      setShowLogoutModal(false);
+    }
+  }, [navigate]);
 
   return (
     <div className="flex h-full w-full flex-col bg-[#1a2e3f] pb-3 font-sans rounded-r-lg">
@@ -926,14 +1024,16 @@ function Sidebar({ expanded, onExpand, onNavClick }) {
         className={`mt-auto border-t border-white/6 ${expanded ? "px-3 pt-3" : "px-2 pt-3 flex justify-center"}`}
       >
         {expanded ? (
-          <div
+          <button
+            type="button"
+            onClick={() => setShowLogoutModal(true)}
             style={{ opacity: 1, transition: "opacity 150ms ease" }}
-            className="flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2.5 hover:bg-white/8 transition-colors duration-150 cursor-pointer group"
+            className="w-full flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2.5 hover:bg-rose-500/10 transition-colors duration-150 cursor-pointer group"
           >
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white shadow-sm">
               {menu.initials}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 text-left">
               <p className="text-[13px] font-semibold text-slate-200 truncate">
                 {menu.title}
               </p>
@@ -943,17 +1043,30 @@ function Sidebar({ expanded, onExpand, onNavClick }) {
             </div>
             <LogOut
               size={14}
-              className="text-slate-600 group-hover:text-slate-400 transition-colors flex-shrink-0"
+              className="text-slate-600 group-hover:text-rose-400 transition-colors flex-shrink-0"
             />
-          </div>
+          </button>
         ) : (
-          <Tooltip label={menu.title}>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white shadow-sm cursor-pointer">
+          <Tooltip label="Logout">
+            <button
+              type="button"
+              onClick={() => setShowLogoutModal(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white shadow-sm cursor-pointer hover:from-rose-400 hover:to-rose-600 transition-all duration-200"
+            >
               {menu.initials}
-            </div>
+            </button>
           </Tooltip>
         )}
       </div>
+
+      {/* Logout confirmation modal */}
+      {showLogoutModal && (
+        <LogoutModal
+          onConfirm={handleLogoutConfirm}
+          onCancel={() => setShowLogoutModal(false)}
+          isLoggingOut={isLoggingOut}
+        />
+      )}
     </div>
   );
 }

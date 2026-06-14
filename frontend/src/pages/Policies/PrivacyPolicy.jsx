@@ -275,10 +275,10 @@ export default function PrivacyPolicy() {
         <p>
           To exercise any of these rights, contact us at{" "}
           <a
-            href="mailto:privacy@graphura.com"
+            href="mailto:official@graphura.in"
             className="text-[#2a465a] hover:underline font-semibold"
           >
-            privacy@graphura.com
+            official@graphura.in
           </a>
           . We will respond within 30 days.
         </p>
@@ -314,10 +314,10 @@ export default function PrivacyPolicy() {
           our systems. If you believe a minor has provided us with personal
           data, please contact us at{" "}
           <a
-            href="mailto:privacy@graphura.com"
+            href="mailto:official@graphura.in"
             className="text-[#2a465a] hover:underline font-semibold"
           >
-            privacy@graphura.com
+            official@graphura.in
           </a>
           .
         </p>
@@ -348,25 +348,24 @@ export default function PrivacyPolicy() {
         <div className="mt-3 bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-2">
           <p>
             <span className="font-semibold text-slate-700">Data Controller:</span>{" "}
-            Graphura Technologies
+            Graphura India Private Limited
           </p>
           <p>
-            <span className="font-semibold text-slate-700">Privacy Email:</span>{" "}
+            <span className="font-semibold text-slate-700">Email:</span>{" "}
             <a
-              href="mailto:privacy@graphura.com"
+              href="mailto:official@graphura.in"
               className="text-[#2a465a] hover:underline font-medium"
             >
-              privacy@graphura.com
+              official@graphura.in
             </a>
           </p>
           <p>
-            <span className="font-semibold text-slate-700">General Support:</span>{" "}
-            <a
-              href="mailto:support@graphura.com"
-              className="text-[#2a465a] hover:underline font-medium"
-            >
-              support@graphura.com
-            </a>
+            <span className="font-semibold text-slate-700">Phone:</span>{" "}
+            +91 73780 21327
+          </p>
+          <p>
+            <span className="font-semibold text-slate-700">Address:</span>{" "}
+            Graphura India Private Limited, near RSF, Pataudi, Gurgaon, Haryana 122503
           </p>
         </div>
         <p className="text-xs text-slate-500 mt-3">

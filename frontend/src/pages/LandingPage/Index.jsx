@@ -1516,7 +1516,7 @@ function Contact() {
             </p>
             {[
 
-              ["🎧", "Technical Support", "support@graphura.in"],
+              ["🎧", "Technical Support", "official@graphura.in"],
               ["📞", "Phone", "+91 73780 21327"],
               [
                 "📍",
@@ -1711,7 +1711,7 @@ function Footer() {
     {
       icon: "📧",
       label: "Email",
-      value: "support@graphura.in",
+      value: "official@graphura.in",
     },
     {
       icon: "📞",
