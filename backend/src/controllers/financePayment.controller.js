@@ -178,12 +178,14 @@ exports.sendRazorpayLink = catchAsync(async (req, res, next) => {
   const backendBase = process.env.BACKEND_PUBLIC_URL || process.env.NGROK_URL || `http://localhost:${process.env.PORT || 5000}`;
   const callbackUrl = `${backendBase}/api/payments/razorpay-success?prospectId=${prospectId}`;
   
+  const randomSuffix = require('crypto').randomBytes(3).toString('hex');
+  const uniqueRefId = `PROSPECT-${String(prospect._id)}-${randomSuffix}`;
   const linkResult = await createPaymentLink({
     adminId: req.admin._id,
     amount,
     currency: 'INR',
     description: receipt,
-    referenceId: receipt,
+    referenceId: uniqueRefId,
     customer,
     callbackUrl,
   });
@@ -192,7 +194,7 @@ exports.sendRazorpayLink = catchAsync(async (req, res, next) => {
   if (linkResult && linkResult.ok === false) {
     try {
       const { fetchPaymentLinkByReference } = require('../services/razorpay.service');
-      const existing = await fetchPaymentLinkByReference(receipt, req.admin._id);
+      const existing = await fetchPaymentLinkByReference(uniqueRefId, req.admin._id);
       if (existing) {
         linkResult.ok = true;
         linkResult.linkId = existing.id;
@@ -228,6 +230,8 @@ exports.sendRazorpayLink = catchAsync(async (req, res, next) => {
   prospect.razorpayLinkUrl = linkResult.linkUrl || paymentDoc.paymentLinkUrl;
   prospect.razorpayLinkStatus = linkResult.linkUrl ? 'SENT' : 'PENDING';
   prospect.razorpayPaymentLinkId = linkResult.linkId || paymentDoc.paymentLinkId || null;
+  prospect.razorpayPaymentId = null;
+  prospect.razorpayOrderId = linkResult.orderId || null;
   prospect.razorpayLinkSentAt = new Date();
   prospect.paymentStatus = 'PENDING';
   prospect.updatedBy = req.user?._id || null;
@@ -248,7 +252,7 @@ exports.sendRazorpayLink = catchAsync(async (req, res, next) => {
           companyName: prospect.client.companyName || prospect.company || '',
           linkUrl: linkResult.linkUrl || paymentDoc.paymentLinkUrl,
           amount,
-          referenceId: `PROSPECT-${String(prospect._id)}`,
+          referenceId: uniqueRefId,
         });
         paymentDoc.paymentLinkStatus = 'SENT';
       }
@@ -543,14 +547,31 @@ exports.processOfflinePayment = catchAsync(async (req, res, next) => {
 exports.fetchExistingRazorpayLink = catchAsync(async (req, res, next) => {
   if (!requireFinanceRole(req, next)) return;
   const { prospectId } = req.params;
-  const { ProspectForm } = require('../models');
+  const { ProspectForm, Payment } = require('../models');
   const prospect = await ProspectForm.findOne({ _id: prospectId, admin: req.admin._id });
   if (!prospect) return next(new AppError('Prospect not found', 404));
-  const receipt = `PROSPECT-${String(prospect._id)}`;
-  const { fetchPaymentLinkByReference } = require('../services/razorpay.service');
-  const found = await fetchPaymentLinkByReference(receipt, req.admin._id);
-  if (!found) return res.status(404).json(new ApiResponse(404, null, 'No payment link found for this prospect'));
-  return res.status(200).json(new ApiResponse(200, { link: { id: found.id, url: found.short_url || found.url }, raw: found }, 'Existing link found'));
+
+  // Find latest payment for this prospect
+  const payment = await Payment.findOne({ prospectForm: prospect._id, paymentLinkId: { $ne: null } }).sort({ createdAt: -1 });
+  if (!payment) return res.status(404).json(new ApiResponse(404, null, 'No payment link found for this prospect'));
+
+  const { loadRazorpayCredentials } = require('../services/razorpay.service');
+  const axios = require('axios');
+  const creds = await loadRazorpayCredentials(req.admin._id);
+  if (!creds.keyId || !creds.keySecret) {
+    return res.status(400).json(new ApiResponse(400, null, 'Razorpay credentials not configured'));
+  }
+  const auth = Buffer.from(`${creds.keyId}:${creds.keySecret}`).toString('base64');
+  try {
+    const response = await axios.get(`https://api.razorpay.com/v1/payment_links/${payment.paymentLinkId}`, {
+      headers: { Authorization: `Basic ${auth}` },
+      timeout: 10000,
+    });
+    const found = response.data;
+    return res.status(200).json(new ApiResponse(200, { link: { id: found.id, url: found.short_url || found.url }, raw: found }, 'Existing link found'));
+  } catch (err) {
+    return res.status(404).json(new ApiResponse(404, null, 'No payment link found for this prospect on Razorpay'));
+  }
 });
 
 /**
@@ -583,7 +604,83 @@ exports.recreatePaymentLink = catchAsync(async (req, res, next) => {
     { $set: { paymentLinkStatus: 'EXPIRED' } },
   );
 
-  // Now delegate to sendRazorpayLink which will create a fresh link
-  // (no existing SENT/PENDING payment found → creates new)
-  return exports.sendRazorpayLink(req, res, next);
+  // Force-create a brand new link without sending it immediately
+  const { createPaymentLink } = require('../services/razorpay.service');
+  const customer = {
+    name: prospect.client?.name || prospect.contactPerson || '',
+    email: recipientEmail,
+    contact: prospect.client?.mobile || req.body?.mobile,
+  };
+  const receipt = `PROSPECT-${String(prospect._id)}`;
+  const backendBase = process.env.BACKEND_PUBLIC_URL || process.env.NGROK_URL || `http://localhost:${process.env.PORT || 5000}`;
+  const callbackUrl = `${backendBase}/api/payments/razorpay-success?prospectId=${prospectId}`;
+  
+  const randomSuffix = require('crypto').randomBytes(3).toString('hex');
+  const uniqueRefId = `PROSPECT-${String(prospect._id)}-${randomSuffix}`;
+  const linkResult = await createPaymentLink({
+    adminId: req.admin._id,
+    amount,
+    currency: 'INR',
+    description: receipt,
+    referenceId: uniqueRefId,
+    customer,
+    callbackUrl,
+  });
+
+  // If createPaymentLink returned ok:false and contained no link, try fetching existing link explicitly
+  if (linkResult && linkResult.ok === false) {
+    try {
+      const { fetchPaymentLinkByReference } = require('../services/razorpay.service');
+      const existing = await fetchPaymentLinkByReference(uniqueRefId, req.admin._id);
+      if (existing) {
+        linkResult.ok = true;
+        linkResult.linkId = existing.id;
+        linkResult.linkUrl = existing.short_url || existing.url;
+        linkResult.raw = existing;
+        linkResult.note = linkResult.note || 'found_existing_by_reference_id_after_retry';
+      }
+    } catch (err) {
+      console.warn('Failed fetching existing payment link after create failure', err && err.message ? err.message : err);
+    }
+  }
+
+  const paymentDoc = await Payment.create({
+    admin: req.admin._id,
+    prospectForm: prospect._id,
+    client: prospect.client?._id || undefined,
+    amount,
+    paymentType: prospect.paymentType || 'FULL',
+    status: 'PENDING',
+    paymentProvider: 'RAZORPAY',
+    paymentLinkId: linkResult.linkId || null,
+    paymentLinkUrl: linkResult.linkUrl || null,
+    paymentLinkStatus: linkResult.ok === false ? 'FAILED' : 'PENDING',
+    razorpayOrderId: linkResult.orderId || null,
+    sentAt: null,
+    sentBy: null,
+    rawResponse: linkResult.raw || null,
+  });
+
+  // Attach payment to prospect
+  prospect.payments = prospect.payments || [];
+  prospect.payments.push(paymentDoc._id);
+  prospect.razorpayLinkUrl = linkResult.linkUrl || paymentDoc.paymentLinkUrl;
+  prospect.razorpayLinkStatus = 'PENDING';
+  prospect.razorpayPaymentLinkId = linkResult.linkId || paymentDoc.paymentLinkId || null;
+  prospect.razorpayPaymentId = null;
+  prospect.razorpayOrderId = linkResult.orderId || null;
+  prospect.razorpayLinkSentAt = null;
+  prospect.paymentStatus = 'PENDING';
+  prospect.updatedBy = req.user?._id || null;
+  await prospect.save();
+
+  const responsePayload = {
+    payment: mapPaymentForFrontend(paymentDoc.toObject(), prospect),
+    link: { id: paymentDoc.paymentLinkId, url: paymentDoc.paymentLinkUrl },
+    email: { success: false, reason: 'Link created but not sent yet. Click Send Link to notify the client.' }
+  };
+  if (linkResult && linkResult.ok === false) responsePayload.linkError = linkResult.error || 'Link creation failed';
+
+  return res.status(200).json(new ApiResponse(200, responsePayload, 'Payment link recreated successfully'));
 });
+

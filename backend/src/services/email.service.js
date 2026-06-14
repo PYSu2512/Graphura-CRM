@@ -7,6 +7,8 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const logger = require("../utils/logger");
+const { generateInvoicePdf } = require("./pdf.service");
+
 
 const isValidEmail = (email) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
@@ -513,6 +515,7 @@ const sendInvoiceEmail = async (payload) => {
 
     const {
       email,
+      invoiceId,
       clientName,
       companyName,
       invoiceNumber,
@@ -562,6 +565,9 @@ const sendInvoiceEmail = async (payload) => {
 
     const htmlContent = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Invoice ${invoiceNumber}</title></head><body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;"><div style="max-width:680px;margin:32px auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);"><div style="background:#1e293b;padding:28px 32px;color:#fff;"><h1 style="margin:0;font-size:22px;font-weight:900;">${senderName || "Graphura CRM"}</h1><p style="margin:6px 0 0;color:#94a3b8;font-size:12px;">${senderAddress || ""}</p><p style="margin:0;font-size:18px;font-weight:900;">TAX INVOICE</p><p style="margin:6px 0 0;color:#94a3b8;font-size:13px;">${invoiceNumber}</p><p style="margin:4px 0 0;color:#94a3b8;font-size:12px;">Date: ${fmtDate(invoiceDate)}</p><span style="display:inline-block;margin-top:8px;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:700;background:${statusBg};color:${statusColor};">${status}</span></div><div style="padding:24px 32px 0;"><p style="margin:0 0 6px;font-size:11px;font-weight:700;text-transform:uppercase;color:#94a3b8;">Bill To</p><div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;"><p style="margin:0;font-size:15px;font-weight:700;color:#1e293b;">${clientName || "Client"}</p>${companyName ? `<p style="margin:4px 0 0;font-size:13px;color:#475569;">${companyName}</p>` : ""}<p style="margin:4px 0 0;font-size:13px;color:#475569;">${email}</p></div></div><div style="padding:24px 32px 0;"><table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;"><thead><tr style="background:#1e293b;color:#fff;"><th style="padding:10px 12px;text-align:left;font-size:12px;">Description</th><th style="padding:10px 12px;text-align:center;font-size:12px;">Qty</th><th style="padding:10px 12px;text-align:right;font-size:12px;">Rate</th><th style="padding:10px 12px;text-align:right;font-size:12px;">Amount</th></tr></thead><tbody>${itemRows || '<tr><td colspan="4" style="padding:12px;color:#64748b;">Professional Services</td></tr>'}</tbody></table></div><div style="padding:20px 32px 0;"><table style="width:260px;margin-left:auto;border-collapse:collapse;"><tr><td style="padding:6px 12px;font-size:13px;color:#475569;">Subtotal</td><td style="padding:6px 12px;font-size:13px;text-align:right;">${fmtAmt(subtotal)}</td></tr><tr><td style="padding:6px 12px;font-size:13px;color:#475569;">GST (${gstPercent}%)</td><td style="padding:6px 12px;font-size:13px;text-align:right;">${fmtAmt(gstAmount)}</td></tr>${discount > 0 ? `<tr><td style="padding:6px 12px;font-size:13px;color:#475569;">Discount</td><td style="padding:6px 12px;font-size:13px;text-align:right;color:#ef4444;">- ${fmtAmt(discount)}</td></tr>` : ""}<tr style="border-top:2px solid #1e293b;"><td style="padding:10px 12px;font-size:15px;font-weight:900;color:#1e293b;">Grand Total</td><td style="padding:10px 12px;font-size:15px;font-weight:900;color:#1e293b;text-align:right;">${fmtAmt(totalAmount)}</td></tr></table></div>${notes ? `<div style="padding:20px 32px 0;"><div style="background:#f0f9ff;border-left:4px solid #0ea5e9;border-radius:8px;padding:12px 16px;"><p style="margin:0;font-size:12px;color:#0369a1;"><strong>Notes:</strong> ${notes}</p></div></div>` : ""}<div style="padding:24px 32px;margin-top:24px;border-top:1px solid #e2e8f0;text-align:center;"><p style="margin:0;font-size:12px;color:#94a3b8;">Thank you for your business! — ${senderName || "Graphura CRM"}</p></div></div></body></html>`;
 
+    const cleanInvoiceNum = String(invoiceNumber || "Invoice").replace(/[^a-zA-Z0-9.-]/g, "_");
+    const pdfBuffer = await generateInvoicePdf(payload);
+
     const response = await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
@@ -569,6 +575,12 @@ const sendInvoiceEmail = async (payload) => {
         to: [{ email, name: clientName || "Client" }],
         subject: `Invoice ${invoiceNumber} from ${senderName || "Graphura CRM"}`,
         htmlContent,
+        attachment: [
+          {
+            name: `Invoice_${cleanInvoiceNum}.pdf`,
+            content: pdfBuffer.toString("base64"),
+          }
+        ]
       },
       {
         headers: {

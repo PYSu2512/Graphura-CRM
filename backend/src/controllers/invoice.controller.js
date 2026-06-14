@@ -231,6 +231,7 @@ exports.sendInvoice = catchAsync(async (req, res, next) => {
   try {
     await sendInvoiceEmail({
       email,
+      invoiceId: inv._id,
       clientName: inv.clientName || 'Client',
       companyName: inv.clientCompany || '',
       invoiceNumber: inv.invoiceNumber,

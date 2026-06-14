@@ -6,7 +6,6 @@ import {
   HeadingForDataTable,
   DataTable,
   GLineChart,
-  GColumnChart,
   GDoughnutChart,
   GPieChart,
 } from "../../components/shared/Common_Components";
@@ -30,8 +29,6 @@ import {
   revenueExpenseData,
   paymentStatusData,
   expenseCategoryData,
-  monthlyRevenueTargetData,
-  pendingActionsData,
   quickInsightsData,
 } from "./FinanceDashboardData";
 import {
@@ -134,15 +131,7 @@ export default function FinanceDashboard() {
     );
   }
 
-  // Derive target data from dynamic revenue if available
-  const dynamicRevenueTargetData =
-    data.revenueExpenseData?.length > 0
-      ? data.revenueExpenseData.map((item, index) => ({
-          name: item.name,
-          revenue: item.revenue,
-          target: [50, 48, 55, 60, 65, 70, 72, 75, 78, 80, 82, 88][index] || 50,
-        }))
-      : monthlyRevenueTargetData;
+  // No target data derivation needed
 
   return (
     <div className="flex flex-col gap-6">
@@ -196,18 +185,8 @@ export default function FinanceDashboard() {
         />
       </DashGrid>
 
-      {/* ── Charts Row 2: Revenue vs Target column + Expense by Category pie ── */}
+      {/* ── Charts Row 2: Expense by Category pie & Quick Insights side-by-side ── */}
       <DashGrid cols={12} gap={4}>
-        <GColumnChart
-          title="Monthly Revenue vs Target"
-          subtitle="Actual revenue against expected target (₹ Lakhs)"
-          data={dynamicRevenueTargetData}
-          bars={[
-            { key: "revenue", color: "#3b82f6", label: "Revenue (L)" },
-            { key: "target", color: "#f59e0b", label: "Target (L)" },
-          ]}
-          size={7}
-        />
         <GPieChart
           title="Expense by Category"
           subtitle="Category-wise expense distribution"
@@ -216,44 +195,8 @@ export default function FinanceDashboard() {
               ? data.expenseByCat
               : expenseCategoryData
           }
-          size={5}
+          size={6}
         />
-      </DashGrid>
-
-      {/* ── Pending Actions + Quick Insights ── */}
-      <DashGrid cols={12} gap={4}>
-        {/* Pending Actions */}
-        <div className="col-span-12 lg:col-span-6">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm h-full">
-            <h3 className="text-sm font-bold text-[#2a465a] mb-4 uppercase tracking-wider">
-              ⚡ Pending Actions
-            </h3>
-            <div className="grid grid-cols-2 gap-3">
-              {pendingActionsData.map((item, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl p-4 border"
-                  style={{
-                    borderColor: item.color + "40",
-                    backgroundColor: item.color + "10",
-                  }}
-                >
-                  <p
-                    className="text-2xl font-black"
-                    style={{ color: item.color }}
-                  >
-                    {item.count}
-                  </p>
-                  <p className="text-xs font-semibold text-slate-600 mt-1">
-                    {item.title}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Insights */}
         <div className="col-span-12 lg:col-span-6">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm h-full">
             <h3 className="text-sm font-bold text-[#2a465a] mb-4 uppercase tracking-wider">

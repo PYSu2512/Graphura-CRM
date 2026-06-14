@@ -38,11 +38,12 @@ function printInvoicePDF(inv, company = {}) {
 
   const itemRows = (inv.lineItems || []).map((item, i) => `
     <tr style="background:${i % 2 === 0 ? "#f8fafc" : "#fff"}">
+      <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${i + 1}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;">${item.name || "Service"}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:center;">${item.qty || 1}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:right;">${fmtAmt(item.price)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid #e2e8f0;text-align:right;">${fmtAmt(item.amount)}</td>
-    </tr>`).join("") || `<tr><td colspan="4" style="padding:12px;color:#64748b;">Professional Services</td></tr>`;
+    </tr>`).join("") || `<tr><td colspan="5" style="padding:12px;color:#64748b;">Professional Services</td></tr>`;
 
   const statusBg = inv.status === "PAID" ? "#d1fae5" : inv.status === "SENT" ? "#dbeafe" : "#fef3c7";
   const statusFg = inv.status === "PAID" ? "#065f46" : inv.status === "SENT" ? "#1e40af" : "#92400e";

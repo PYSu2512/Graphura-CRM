@@ -57,6 +57,8 @@ export default function Payments() {
   const [verifyForm, setVerifyForm] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [sendingLinkId, setSendingLinkId] = useState(null);
+  const [recreatingLinkId, setRecreatingLinkId] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     successful: 0,
@@ -112,22 +114,26 @@ export default function Payments() {
   // Polling mechanism: refresh payment status every 10 seconds
   // This helps catch webhook updates in real-time
   useEffect(() => {
-    // Only start polling if there are pending payments
     const hasPending = payments.some(
       (p) => p.status === "Pending" || p.paymentLinkStatus === "SENT",
     );
 
-    if (hasPending && !pollingActive) {
-      setPollingActive(true);
-      const pollInterval = setInterval(() => {
-        loadPayments();
-      }, 10000); // Refresh every 10 seconds
-
-      return () => {
-        clearInterval(pollInterval);
-        setPollingActive(false);
-      };
+    if (!hasPending) {
+      if (pollingActive) setPollingActive(false);
+      return;
     }
+
+    if (!pollingActive) {
+      setPollingActive(true);
+    }
+
+    const pollInterval = setInterval(() => {
+      loadPayments();
+    }, 10000); // Refresh every 10 seconds
+
+    return () => {
+      clearInterval(pollInterval);
+    };
   }, [payments, pollingActive, loadPayments]);
 
   const total = stats.total || payments.length;
@@ -157,6 +163,8 @@ export default function Payments() {
     openModal("pay-verify");
   };
   const sendRazorpayLink = async (row) => {
+    setSendingLinkId(row.prospectId);
+    const tid = toast.loading("Sending payment link…");
     try {
       const response = await apiClient.post(
         `/finance/payments/${row.prospectId}/send-razorpay-link`,
@@ -169,14 +177,20 @@ export default function Payments() {
       );
       const emailResult = response?.data?.data?.email;
       if (emailResult && emailResult.success === false) {
-        setError(
+        toast.error(
           emailResult.reason ||
             "Payment link created, but email delivery failed",
+          { id: tid },
         );
+      } else {
+        toast.success("Payment link sent successfully!", { id: tid });
       }
       await loadPayments();
     } catch (sendError) {
+      toast.error(sendError?.message || "Failed to send Razorpay link", { id: tid });
       setError(sendError?.message || "Failed to send Razorpay link");
+    } finally {
+      setSendingLinkId(null);
     }
   };
   const markFailed = async (row) => {
@@ -199,9 +213,10 @@ export default function Payments() {
   };
 
   const recreateLink = async (row) => {
+    setRecreatingLinkId(row.prospectId);
     try {
       toast.loading("Creating new payment link…", { id: "recreate" });
-      const response = await apiClient.post(
+      await apiClient.post(
         `/finance/payments/${row.prospectId}/recreate-link`,
         {
           email: row.email,
@@ -209,15 +224,7 @@ export default function Payments() {
         },
       );
       toast.dismiss("recreate");
-      const emailResult = response?.data?.data?.email;
-      if (emailResult?.success) {
-        toast.success("New payment link created and sent!");
-      } else {
-        toast.success(
-          "New payment link created. Email: " +
-            (emailResult?.reason || "check logs"),
-        );
-      }
+      toast.success("New payment link created! Click 'Send Link' to send it to client.");
       await loadPayments();
     } catch (err) {
       toast.dismiss("recreate");
@@ -226,6 +233,8 @@ export default function Payments() {
           err?.message ||
           "Failed to recreate link",
       );
+    } finally {
+      setRecreatingLinkId(null);
     }
   };
 
@@ -283,9 +292,9 @@ export default function Payments() {
   ];
 
   const paymentLinkActionLabel = (row) =>
-    row?.link ? "Resend Link" : "Send Razorpay Link";
+    row?.linkStatus === "SENT" ? "Resend Link" : "Send Razorpay Link";
   const paymentLinkActionTooltip = (row) =>
-    row?.link ? "Resend Link" : "Send Razorpay Link";
+    row?.linkStatus === "SENT" ? "Resend Link" : "Send Razorpay Link";
 
   return (
     <div className="flex flex-col gap-6">
@@ -355,6 +364,7 @@ export default function Payments() {
             variant: "primary",
             onClick: sendRazorpayLink,
             show: (row) => row.status !== "Successful",
+            loading: (row) => sendingLinkId === row.prospectId,
           },
           {
             icon: <RefreshCw size={15} />,
@@ -362,6 +372,7 @@ export default function Payments() {
             variant: "ghost",
             onClick: recreateLink,
             show: (row) => row.status !== "Successful",
+            loading: (row) => recreatingLinkId === row.prospectId,
           },
           {
             icon: <Eye size={15} />,
