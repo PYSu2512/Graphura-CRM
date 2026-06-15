@@ -334,18 +334,11 @@ export default function Payments() {
           size={2}
         />
         <EnhancedDashCard
-          title="Partial"
-          value={partial}
-          icon={<Split size={22} />}
-          accentColor="#8b5cf6"
-          size={2}
-        />
-        <EnhancedDashCard
           title="Full"
           value={full}
           icon={<DollarSign size={22} />}
           accentColor="#14b8a6"
-          size={2}
+          size={3}
         />
       </DashGrid>
 
@@ -484,9 +477,9 @@ export default function Payments() {
                 onChange={(e) =>
                   setVerifyForm((p) => ({ ...p, type: e.target.value }))
                 }
+                disabled={true}
               >
                 <Option value="Full" label="Full" />
-                <Option value="Partial" label="Partial" />
               </SelectField>
               <DataField
                 label="Amount (₹)"

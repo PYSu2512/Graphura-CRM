@@ -10,24 +10,18 @@ const validate = (form) => {
   const errors = {};
   if (!form.email) errors.email = "Email is required";
   else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = "Enter a valid email";
-  if (form.paymentType === "Partial") {
-    const partial = parseFloat(form.partialAmount) || 0;
-    const remaining = form.remainingAmount || 0;
-    if (partial <= 0) errors.partialAmount = "Enter a valid partial amount";
-    if (partial > remaining) errors.partialAmount = "Partial amount cannot exceed remaining amount";
-  }
   return errors;
 };
 
 export default function GlobalPayment() {
   const [step, setStep] = useState(1); // 1=identify, 1.5=select, 2=payment, 3=result
-  const [form, setForm] = useState({ email: "", mobile: "", name: "", service: "", totalAmount: 0, paidAmount: 0, remainingAmount: 0, paymentType: "Full", partialAmount: "", prospectId: "" });
+  const [form, setForm] = useState({ email: "", mobile: "", name: "", service: "", totalAmount: 0, paidAmount: 0, remainingAmount: 0, paymentType: "Full", prospectId: "" });
   const [prospects, setProspects] = useState([]);
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
-  const payAmount = form.paymentType === "Full" ? form.remainingAmount : parseFloat(form.partialAmount) || 0;
+  const payAmount = form.remainingAmount;
 
   const findClient = async () => {
     const errs = {};
@@ -119,7 +113,7 @@ export default function GlobalPayment() {
   };
 
   const reset = () => {
-    setForm({ email: "", mobile: "", name: "", service: "", totalAmount: 0, paidAmount: 0, remainingAmount: 0, paymentType: "Full", partialAmount: "", prospectId: "" });
+    setForm({ email: "", mobile: "", name: "", service: "", totalAmount: 0, paidAmount: 0, remainingAmount: 0, paymentType: "Full", prospectId: "" });
     setProspects([]);
     setErrors({});
     setResult(null);
@@ -218,17 +212,9 @@ export default function GlobalPayment() {
             </div>
 
             <Grid cols={12} gap={4}>
-              <SelectField label="Payment Type" id="gp-type" value={form.paymentType} onChange={e => setForm(p => ({ ...p, paymentType: e.target.value }))} size={12}>
+              <SelectField label="Payment Type" id="gp-type" value={form.paymentType} onChange={e => setForm(p => ({ ...p, paymentType: e.target.value }))} size={12} disabled={true}>
                 <Option value="Full" label="Full Payment" />
-                <Option value="Partial" label="Partial Payment" />
               </SelectField>
-
-              {form.paymentType === "Partial" && (
-                <>
-                  <DataField label="Partial Amount (₹)" id="gp-partial" type="number" placeholder="Enter amount" value={form.partialAmount} onChange={e => setForm(p => ({ ...p, partialAmount: e.target.value }))} size={12} />
-                  {errors.partialAmount && <div className="col-span-12 text-xs text-rose-500 font-semibold -mt-2">{errors.partialAmount}</div>}
-                </>
-              )}
 
               {/* Pay Amount Preview */}
               <div className="col-span-12 bg-[#2a465a] rounded-2xl px-4 py-3 flex justify-between items-center shadow-md">
