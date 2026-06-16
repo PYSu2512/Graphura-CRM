@@ -373,13 +373,6 @@ const SuperAdminLogin = () => {
                 ) : null}
               </div>
 
-              {/* Forgot */}
-              <div className="flex justify-end text-xs font-bold pt-2">
-                <Link to="/forgot-password" className="text-crm-navy hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
-
               {/* Submit */}
               <button
                 type="submit"

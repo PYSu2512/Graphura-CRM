@@ -7,7 +7,9 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   Users, UserCheck, UserX, Target, Download, Upload, UserPlus,
-  CheckCircle2, AlertTriangle, X,
+  CheckCircle2, AlertTriangle, X, Eye, Pencil, Trash2,
+  Building2, CreditCard, User as UserIcon, Phone, Mail,
+  CalendarDays, BadgeCheck, Landmark,
 } from "lucide-react";
 import {
   DashGrid, EnhancedDashCard, DataTable,
@@ -90,6 +92,9 @@ export default function AllUsers() {
   const [editForm,   setEditForm]   = useState({});
   const [isSaving,   setIsSaving]   = useState(false);
 
+  // View state
+  const [viewUser,    setViewUser]    = useState(null);
+
   // Delete state
   const [deleteUser,  setDeleteUser]  = useState(null);
   const [isDeleting,  setIsDeleting]  = useState(false);
@@ -129,6 +134,12 @@ export default function AllUsers() {
         isActive:     u.isActive,
         joinedDate:   u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "N/A",
         avatar:       u.name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2),
+        // extra profile fields for view modal
+        address:      u.address || {},
+        bankDetails:  u.bankDetails || {},
+        profilePic:   u.profilePic || "",
+        isProfileComplete: u.isProfileComplete,
+        lastLoginAt:  u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "Never",
       })));
     } catch (err) {
       showToast("Failed to load users", err?.message, "error");
@@ -194,14 +205,21 @@ export default function AllUsers() {
     return (roleDeptMap[dept?.name] || []).filter((r) => r !== "ADMIN" && r !== "SUPER_ADMIN");
   }, [quickDept, roleDeptMap, departments]);
 
+  // ── View handler ───────────────────────────────────────────────────────────
+  const openView = (row) => {
+    const full = usersList.find((u) => u.id === row.id);
+    setViewUser(full || row);
+    openModal("view-user-modal");
+  };
+
   // ── Edit handlers ──────────────────────────────────────────────────────────
   const openEdit = (row) => {
     const full = usersList.find((u) => u.id === row.id);
     setEditUser(full || row);
     setEditForm({
       name:     full?.name     || "",
+      email:    full?.email    || "",
       mobile:   full?.mobile   || "",
-      role:     full?.role     || "",
       isActive: full?.isActive ?? true,
     });
     openModal("edit-user-modal");
@@ -212,15 +230,15 @@ export default function AllUsers() {
     try {
       await apiClient.put(`/users/${editUser.id}`, {
         name:     editForm.name,
+        email:    editForm.email,
         phone:    editForm.mobile,
-        role:     editForm.role,
         isActive: editForm.isActive,
       });
       showToast("User updated", `${editForm.name} has been updated successfully.`, "success");
       closeModal("edit-user-modal");
       fetchUsers();
     } catch (err) {
-      showToast("Update failed", err?.message || "Could not update user.", "error");
+      showToast("Update failed", err?.response?.data?.message || err?.message || "Could not update user.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -458,9 +476,75 @@ export default function AllUsers() {
     }
   };
 
+  // ── Custom CSV Export ─────────────────────────────────────────────────────
+  const handleExportUsers = () => {
+    if (!usersList.length) return;
+
+    const headers = [
+      "Name", "Email", "Mobile", "Role", "Department",
+      "Status", "Joined Date", "Last Login", "Profile Complete",
+      // Bank details
+      "Beneficiary Name", "Bank Name", "Branch", "Account Number", "IFSC Code", "UPI ID",
+    ];
+
+    const escape = (val) => {
+      const str = val == null ? "-" : String(val).trim() === "" ? "-" : String(val);
+      return str.includes(",") || str.includes("\n") || str.includes('"')
+        ? `"${str.replace(/"/g, '""')}"`
+        : str;
+    };
+
+    const rows = usersList.map((u) => {
+      const bd = u.bankDetails || {};
+      return [
+        u.name,
+        u.email,
+        u.mobile,
+        u.role,
+        u.department,
+        u.status,
+        u.joinedDate,
+        u.lastLoginAt,
+        u.isProfileComplete ? "Yes" : "No",
+        // Bank details — "-" if not filled
+        bd.beneficiaryName || "-",
+        bd.bankName        || "-",
+        bd.branch          || "-",
+        bd.accountNumber   || "-",
+        bd.ifscCode        || "-",
+        bd.upiId           || "-",
+      ].map(escape);
+    });
+
+    const csvLines = [headers.map(escape).join(","), ...rows.map((r) => r.join(","))];
+    const blob = new Blob(["\uFEFF" + csvLines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "User_Records.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const actions = [
-    { label: "Edit",   variant: "primary", onClick: openEdit   },
-    { label: "Delete", variant: "danger",  onClick: openDelete },
+    {
+      icon: <Eye size={15} />,
+      tooltip: "View Details",
+      variant: "ghost",
+      onClick: openView,
+    },
+    {
+      icon: <Pencil size={15} />,
+      tooltip: "Edit User",
+      variant: "primary",
+      onClick: openEdit,
+    },
+    {
+      icon: <Trash2 size={15} />,
+      tooltip: "Terminate / Delete User",
+      variant: "danger",
+      onClick: openDelete,
+    },
   ];
 
   return (
@@ -485,6 +569,10 @@ export default function AllUsers() {
           <button onClick={handleDownloadSample}
             className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition active:scale-95">
             <Download size={14} /> Sample CSV
+          </button>
+          <button onClick={handleExportUsers} disabled={!usersList.length}
+            className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition active:scale-95 disabled:opacity-50">
+            <Download size={14} /> Export Users
           </button>
           <button onClick={handleBulkUploadClick} disabled={isBulkUploading}
             className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition active:scale-95 disabled:opacity-60">
@@ -559,8 +647,7 @@ export default function AllUsers() {
       {/* Table */}
       <DataTable
         title="User Records"
-        exportable
-        exportFileName="User Record"
+        exportable={false}
         columns={columns}
         rows={usersList}
         actions={actions}
@@ -584,6 +671,144 @@ export default function AllUsers() {
         ]}
       />
 
+      {/* ── View User Modal ── */}
+      <Modal id="view-user-modal" title="User Details">
+        {viewUser && (
+          <div className="space-y-5">
+            {/* Avatar + name header */}
+            <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-[#2a465a]/5 to-[#2a465a]/10 rounded-2xl border border-[#2a465a]/10">
+              <div className="w-14 h-14 rounded-2xl bg-[#2a465a] flex items-center justify-center text-white font-black text-xl flex-shrink-0">
+                {viewUser.avatar}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-black text-[#2a465a] text-base">{viewUser.name}</p>
+                <p className="text-sm text-slate-500">{viewUser.email}</p>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                    viewUser.isActive
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-rose-100 text-rose-700"
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${viewUser.isActive ? "bg-emerald-500" : "bg-rose-500"}`} />
+                    {viewUser.status}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sky-100 text-sky-700">
+                    {viewUser.role?.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Basic Info */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <UserIcon size={14} className="text-[#2a465a]" />
+                <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Basic Information</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Mobile</p>
+                  <p className="text-sm font-semibold text-[#2a465a]">{viewUser.mobile}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Department</p>
+                  <p className="text-sm font-semibold text-[#2a465a]">{viewUser.department}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Joined</p>
+                  <p className="text-sm font-semibold text-[#2a465a]">{viewUser.joinedDate}</p>
+                </div>
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Last Login</p>
+                  <p className="text-sm font-semibold text-[#2a465a]">{viewUser.lastLoginAt}</p>
+                </div>
+                <div className="col-span-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Profile Complete</p>
+                  <p className={`text-sm font-semibold ${viewUser.isProfileComplete ? "text-emerald-600" : "text-amber-600"}`}>
+                    {viewUser.isProfileComplete ? "✓ Profile is complete" : "⚠ Profile not yet completed"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Details */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Landmark size={14} className="text-[#2a465a]" />
+                <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Bank Details</p>
+              </div>
+              {viewUser.bankDetails && Object.values(viewUser.bankDetails).some(Boolean) ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {viewUser.bankDetails.beneficiaryName && (
+                    <div className="col-span-2 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Beneficiary Name</p>
+                      <p className="text-sm font-semibold text-[#2a465a]">{viewUser.bankDetails.beneficiaryName}</p>
+                    </div>
+                  )}
+                  {viewUser.bankDetails.bankName && (
+                    <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Bank Name</p>
+                      <p className="text-sm font-semibold text-[#2a465a]">{viewUser.bankDetails.bankName}</p>
+                    </div>
+                  )}
+                  {viewUser.bankDetails.branch && (
+                    <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Branch</p>
+                      <p className="text-sm font-semibold text-[#2a465a]">{viewUser.bankDetails.branch}</p>
+                    </div>
+                  )}
+                  {viewUser.bankDetails.accountNumber && (
+                    <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Account Number</p>
+                      <p className="text-sm font-semibold text-[#2a465a] font-mono tracking-wider">
+                        {viewUser.bankDetails.accountNumber}
+                      </p>
+                    </div>
+                  )}
+                  {viewUser.bankDetails.ifscCode && (
+                    <div className="p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">IFSC Code</p>
+                      <p className="text-sm font-semibold text-[#2a465a] font-mono">{viewUser.bankDetails.ifscCode}</p>
+                    </div>
+                  )}
+                  {viewUser.bankDetails.upiId && (
+                    <div className="col-span-2 p-3 rounded-xl bg-blue-50 border border-blue-100">
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">UPI ID</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-[#2a465a]">{viewUser.bankDetails.upiId}</p>
+                        {/^[\w.\-+]+@[\w]+$/.test(viewUser.bankDetails.upiId) ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700">
+                            <BadgeCheck size={11} /> Valid
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700">
+                            <AlertTriangle size={11} /> Invalid format
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-slate-200 bg-slate-50/60 text-center gap-2">
+                  <CreditCard size={24} className="text-slate-300" />
+                  <p className="text-sm font-semibold text-slate-400">No bank details added yet</p>
+                  <p className="text-xs text-slate-400">The user hasn't completed their bank details setup.</p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                onClick={() => closeModal("view-user-modal")}
+                className="px-4 py-2.5 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition">
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
       {/* ── Edit Modal ── */}
       <Modal id="edit-user-modal" title="Edit User">
         <div className="space-y-4">
@@ -599,25 +824,28 @@ export default function AllUsers() {
             </div>
           )}
           <Grid cols={12} gap={4}>
-            <DataField label="Full Name" id="edit-name" size={12}
+            <DataField label="Full Name" id="edit-name" size={6}
               value={editForm.name || ""}
               onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} />
-            <DataField label="Mobile" id="edit-mobile" type="tel" size={12}
+            <DataField label="Email" id="edit-email" type="email" size={6}
+              value={editForm.email || ""}
+              onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} />
+            <DataField label="Mobile" id="edit-mobile" type="tel" size={6}
               value={editForm.mobile || ""}
               onChange={(e) => setEditForm((f) => ({ ...f, mobile: e.target.value }))} />
-            <SelectField label="Role" id="edit-role" size={6} value={editForm.role || ""} searchable={false}
-              onChange={(e) => setEditForm((f) => ({ ...f, role: e.target.value }))}>
-              {editRoles.map((r) => (
-                <Option key={r} value={r}
-                  label={r.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())} />
-              ))}
-            </SelectField>
             <SelectField label="Status" id="edit-status" size={6}
               value={editForm.isActive ? "Active" : "Inactive"} searchable={false}
               onChange={(e) => setEditForm((f) => ({ ...f, isActive: e.target.value === "Active" }))}>
               <Option value="Active"   label="Active"   />
               <Option value="Inactive" label="Inactive" />
             </SelectField>
+            <div className="col-span-12 flex flex-col gap-1.5">
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em] select-none">Role</label>
+              <div className="flex items-center gap-2 px-4 py-3.5 rounded-2xl border border-slate-200 bg-slate-100 text-sm font-medium text-slate-500 cursor-not-allowed">
+                <span className="flex-1">{editUser?.role?.replace(/_/g, " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) || "—"}</span>
+                <span className="text-[10px] font-bold text-slate-400 bg-slate-200 px-2 py-0.5 rounded-full">Read-only</span>
+              </div>
+            </div>
           </Grid>
           <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
             <button onClick={() => closeModal("edit-user-modal")}

@@ -791,25 +791,33 @@ exports.adminUpdateUser = catchAsync(async (req, res, next) => {
   if (!adminId) return next(new AppError('Admin authentication required', 401));
 
   const { id } = req.params;
-  const { name, phone, isActive, role } = req.body;
+  const { name, phone, isActive, email } = req.body;
 
   const user = await User.findOne({ _id: id, admin: adminId, isDeleted: false });
   if (!user) return next(new AppError('User not found', 404));
 
-  const before = { name: user.name, phone: user.phone, isActive: user.isActive, role: user.role };
+  const before = { name: user.name, phone: user.phone, isActive: user.isActive, email: user.email };
 
   if (name     !== undefined) user.name     = name.trim();
   if (phone    !== undefined) user.phone    = phone.trim();
   if (isActive !== undefined) user.isActive = Boolean(isActive);
 
-  // Role change: validate role belongs to user's department
-  if (role !== undefined && role !== user.role) {
-    const dept = await Department.findById(user.department);
-    const allowedRoles = ROLE_DEPARTMENT_MAP[dept?.name] || [];
-    if (!allowedRoles.includes(role)) {
-      return next(new AppError(`Role ${role} is not valid for department ${dept?.name}`, 400));
+  // Email change: validate uniqueness within the same tenant
+  if (email !== undefined && email.toLowerCase().trim() !== user.email) {
+    const normalizedEmail = email.toLowerCase().trim();
+    if (!/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      return next(new AppError('Invalid email address format', 422));
     }
-    user.role = role;
+    const duplicate = await User.findOne({
+      email: normalizedEmail,
+      admin: adminId,
+      isDeleted: false,
+      _id: { $ne: id },
+    });
+    if (duplicate) {
+      return next(new AppError('Email is already registered in your organization', 409));
+    }
+    user.email = normalizedEmail;
   }
 
   await user.save();
@@ -817,7 +825,7 @@ exports.adminUpdateUser = catchAsync(async (req, res, next) => {
   await AuditLog.create({
     admin: adminId, performedBy: adminId, performerType: 'ADMIN',
     action: 'USER_UPDATED', targetModel: 'User', targetId: user._id,
-    before, after: { name: user.name, phone: user.phone, isActive: user.isActive, role: user.role },
+    before, after: { name: user.name, phone: user.phone, isActive: user.isActive, email: user.email },
   }).catch(() => {});
 
   res.status(200).json(
