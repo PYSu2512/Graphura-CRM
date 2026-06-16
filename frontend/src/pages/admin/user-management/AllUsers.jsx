@@ -648,6 +648,7 @@ export default function AllUsers() {
       <DataTable
         title="User Records"
         exportable={false}
+        onRefresh={fetchUsers}
         columns={columns}
         rows={usersList}
         actions={actions}

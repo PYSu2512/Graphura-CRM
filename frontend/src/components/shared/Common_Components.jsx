@@ -1124,6 +1124,7 @@ export const DataTable = ({
   // Example: userProfile="name"  → the "name" column gets an avatar prefix
   userProfile,
   onApplyFilters,      // (filters) => void
+  onRefresh,           // () => void — if provided, shows a Refresh button in the toolbar
   defaultSortKey,
   defaultSortDir = "asc",
 }) => {
@@ -1136,6 +1137,17 @@ export const DataTable = ({
     key: defaultSortKey !== undefined ? defaultSortKey : (columns?.[0]?.key || null),
     direction: defaultSortDir,
   });
+
+  // ── Refresh spin state ─────────────────────────────────────────────────────
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const handleRefresh = () => {
+    if (!onRefresh || isRefreshing) return;
+    setIsRefreshing(true);
+    Promise.resolve(onRefresh()).finally(() => {
+      // Keep the spin for at least 600ms so it feels intentional
+      setTimeout(() => setIsRefreshing(false), 600);
+    });
+  };
 
   // ── Filter modal state ──────────────────────────────────────────────────────
   const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -1491,6 +1503,27 @@ export const DataTable = ({
 
         {/* Filter button + page size — flex-1 on mobile so it fills remaining space */}
         <div className="flex flex-1 items-center gap-2 whitespace-nowrap sm:flex-none">
+          {/* Refresh button — only shown when onRefresh prop is provided */}
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="flex items-center justify-center w-10 h-10 rounded-2xl border border-slate-200 bg-white text-[#2a465a] hover:bg-slate-50 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Refresh data"
+            >
+              <svg
+                width="15" height="15" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                className={isRefreshing ? "animate-spin" : ""}
+              >
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+            </button>
+          )}
+
           {/* Export CSV button — only shown when exportable={true} */}
           {exportable && (
             <button
