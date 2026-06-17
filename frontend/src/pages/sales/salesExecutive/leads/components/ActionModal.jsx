@@ -7,19 +7,18 @@ import {
   closeModal,
 } from "../../../../../components/shared/Common_Components";
 
-const ACTION_OPTIONS = [
-  "Talk",
-  "Interested",
-  "Not Interested",
-  "Follow Up",
-  "Not Talk",
-];
+// Full set of options for a fresh lead
+const ALL_ACTION_OPTIONS = ["Talk", "Interested", "Not Interested", "Follow Up", "Not Talk"];
+
+// After a lead has been Talked — only outcome options, no more Talk/Follow Up/Not Talk
+const POST_TALK_ACTION_OPTIONS = ["Interested", "Not Interested"];
 
 const FOLLOW_UP_TYPES = ["Call", "WhatsApp", "Email", "Meeting"];
 const PRIORITIES = ["High", "Medium", "Low"];
 
 export function ActionModal({
   selectedLead,
+  leadStatus,
   actionValue,
   setActionValue,
   commentText,
@@ -30,6 +29,10 @@ export function ActionModal({
   setProspectForm,
   onSave,
 }) {
+  // After the lead has been talked to, only show outcome actions
+  const isTalked = leadStatus === "Talk";
+  const ACTION_OPTIONS = isTalked ? POST_TALK_ACTION_OPTIONS : ALL_ACTION_OPTIONS;
+
   const updateFollowUp = (key, value) => {
     setFollowUpForm((prev) => ({ ...prev, [key]: value }));
   };

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import {
-  Edit, Loader2, Users, Target, TrendingUp, Send, Eye, Phone, Mail,
+  Loader2, Users, Target, TrendingUp, Send, Eye, Phone,
   Building, RefreshCw, AlertCircle,
 } from "lucide-react";
 import {
@@ -34,7 +33,7 @@ const STATUS_CARD_CFG = {
 };
 
 // ── Prospect Card ─────────────────────────────────────────────────────────────
-const ProspectCard = ({ prospect, onView, onEdit, index }) => {
+const ProspectCard = ({ prospect, onView, index }) => {
   const cfg = STATUS_CARD_CFG[prospect.status] || STATUS_CARD_CFG.Talk;
   return (
     <div
@@ -79,12 +78,6 @@ const ProspectCard = ({ prospect, onView, onEdit, index }) => {
           >
             View Details
           </button>
-          <button
-            onClick={e => { e.stopPropagation(); onEdit(prospect); }}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-colors"
-          >
-            <Edit size={13} /> Edit
-          </button>
         </div>
       </div>
     </div>
@@ -93,7 +86,6 @@ const ProspectCard = ({ prospect, onView, onEdit, index }) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 const ProspectList = () => {
-  const navigate = useNavigate();
   const [prospects, setProspects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedProspect, setSelectedProspect] = useState(null);
@@ -222,15 +214,6 @@ const ProspectList = () => {
                 if (prospect) { setSelectedProspect(prospect); openModal("prospect-view"); }
               },
             },
-            {
-              icon: <Edit size={15} />,
-              tooltip: "Edit Prospect",
-              variant: "ghost",
-              onClick: (row) => {
-                const prospect = prospects.find((p) => String(p.id) === String(row._id));
-                if (prospect) navigate(`/sales-executive/edit-prospect/${prospect.id}`);
-              },
-            },
           ]}
         />
       ) : (
@@ -244,8 +227,7 @@ const ProspectList = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {prospects.map((p, i) => (
               <ProspectCard key={p.id} prospect={p} index={i}
-                onView={handleView}
-                onEdit={(p) => navigate(`/sales-executive/edit-prospect/${p.id}`)} />
+                onView={handleView} />
             ))}
           </div>
         )

@@ -7,8 +7,9 @@
  * Rules:
  *  - Executive can VIEW their own dump leads (view modal only)
  *  - Restore is Manager/Admin only — not shown to Sales Executive
+ *  - Red notification banner shown when dump leads exist
  */
-import { Archive, CalendarX2, Database, RotateCcw } from 'lucide-react';
+import { Archive, CalendarX2, Database, RotateCcw, AlertTriangle } from 'lucide-react';
 import {
   Button,
   DashGrid,
@@ -66,6 +67,27 @@ export default function DumpDataPage() {
     <div className="mx-auto max-w-7xl space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <Heading primaryText="Dump Data" />
 
+      {/* ── Red event notification banner — shown when dump leads exist ── */}
+      {!loading && (stats.totalDump ?? 0) > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 px-4 py-3 shadow-sm">
+          <AlertTriangle size={20} className="mt-0.5 shrink-0 text-red-600" />
+          <div className="flex-1">
+            <p className="text-sm font-bold text-red-700">
+              🗑️ {stats.totalDump} Lead{stats.totalDump > 1 ? 's' : ''} in Dump
+            </p>
+            <p className="mt-0.5 text-xs text-red-600">
+              {stats.noResponse > 0
+                ? `${stats.noResponse} lead${stats.noResponse > 1 ? 's' : ''} auto-dumped after 3× No Response. `
+                : ''}
+              {stats.todayDumped > 0
+                ? `${stats.todayDumped} dumped today.`
+                : ''}
+              {' '}Only your manager or admin can restore these leads.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* ── Stats ── */}
       <DashGrid cols={12} gap={4}>
         {statCards.map((item) => (
@@ -105,6 +127,14 @@ export default function DumpDataPage() {
       <Modal id="dump-view-modal" title="Dump Lead Details" size="md">
         {viewTarget && (
           <div className="space-y-5">
+            {/* Red event badge in modal */}
+            <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
+              <AlertTriangle size={15} className="text-red-500 shrink-0" />
+              <span className="text-xs font-semibold text-red-700">
+                This lead is in Dump — contact your manager to restore it.
+              </span>
+            </div>
+
             <ModalProfile
               name={viewTarget.name}
               subtitle={viewTarget.mobile}
