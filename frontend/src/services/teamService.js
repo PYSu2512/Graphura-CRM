@@ -28,8 +28,20 @@ export const teamService = {
     const response = await apiClient.get(`${base}/${teamId}`);
     return response.data;
   },
+  updateTeam: async (teamId, payload) => {
+    const response = await apiClient.put(`${base}/${teamId}`, payload);
+    return response.data;
+  },
+  deleteTeam: async (teamId) => {
+    const response = await apiClient.delete(`${base}/${teamId}`);
+    return response.data;
+  },
   addTeamMember: async (teamId, userId) => {
     const response = await apiClient.post(`${base}/${teamId}/members`, { userId });
+    return response.data;
+  },
+  removeTeamMember: async (teamId, userId) => {
+    const response = await apiClient.delete(`${base}/${teamId}/members/${userId}`);
     return response.data;
   },
   getLeadAssignmentTargets: async (role = 'SALES_TL') => {

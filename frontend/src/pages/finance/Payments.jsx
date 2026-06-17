@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import apiClient from "../../services/apiClient";
+import { maskId } from "../../utils/idMask";
 
 const fmt = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
 const fmtDate = (value) => {
@@ -404,7 +405,7 @@ export default function Payments() {
             <ModalProfile
               name={selected.client}
               subtitle={`${selected.method} · ${selected.type} Payment`}
-              meta={`Payment ID: ${selected.id}`}
+              meta={`Ref: ${maskId(selected.id, 'PAY')} · ${selected.method}`}
             />
             <ModalGrid title="Razorpay Info" cols={2}>
               <ModalData
@@ -454,7 +455,7 @@ export default function Payments() {
           <div className="flex flex-col gap-4">
             <ModalProfile
               name={selected.client}
-              subtitle={`Payment ID: ${selected.id}`}
+              subtitle={`Amount: ${fmt(selected.amount)} · Ref: ${maskId(selected.id, 'PAY')}`}
               meta={`Amount: ${fmt(selected.amount)}`}
             />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

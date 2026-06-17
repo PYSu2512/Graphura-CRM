@@ -13,7 +13,6 @@ const maskSecret = (secret) => {
 };
 
 exports.updateRazorpayConfig = catchAsync(async (req, res, next) => {
-  console.log('--- RAZORPAY SAVE START ---', req.body);
   const { mode, keyId, keySecret, webhookSecret, isActive, nickname } = req.body;
   if (!mode || !['test', 'live'].includes(mode)) {
     return next(new AppError('Invalid or missing mode', 400));
@@ -64,10 +63,8 @@ exports.updateRazorpayConfig = catchAsync(async (req, res, next) => {
       );
     }
 
-    console.log(`SUCCESS: Razorpay ${mode} configuration successfully saved/updated for admin ${req.admin._id}`);
     res.status(200).json(new ApiResponse(200, null, 'Config updated'));
   } }catch (error) {
-    console.error(`FAILED: Razorpay ${mode} configuration save failed for admin ${req.admin?._id || 'unknown'}. Error:`, error.message);
     return next(new AppError(error.message, 500));
   }
 });
@@ -168,7 +165,6 @@ exports.generateRazorpaySecret = catchAsync(async (req, res, next) => {
     });
   } catch (err) {
     // audit failure shouldn't block the response
-    console.warn('Failed to write audit log for webhook secret generation', err.message || err);
   }
 
   // Return plaintext secret once — admin must copy it now

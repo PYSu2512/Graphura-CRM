@@ -712,7 +712,6 @@ exports.forgetPassword = catchAsync(async (req, res, next) => {
   // 4. Send Email
   // Construct token string as `userId.rawToken` to allow fast lookup later
   const lookupToken = `${user._id.toString()}.${rawToken}`;
-  console.log("RESET TOKEN:", lookupToken);
   await sendPasswordResetEmail(normalizedEmail, lookupToken, user.name);
 
   // 5. Audit Log

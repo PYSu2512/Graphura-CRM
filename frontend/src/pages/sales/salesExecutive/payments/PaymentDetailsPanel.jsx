@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { maskId } from "../../../../utils/idMask";
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const STATUS_CFG = {
@@ -58,7 +59,7 @@ export default function PaymentDetailsPanel({ payment, onClose, onRetry, addToas
       doc.setFontSize(22);
       doc.text("INVOICE", 14, 22);
       doc.setFontSize(11);
-      doc.text(`Transaction ID: ${payment.id}`, 14, 32);
+      doc.text(`Transaction Ref: ${maskId(payment.id, 'TXN')}`, 14, 32);
       doc.text(`Client Name:    ${payment.clientName}`, 14, 38);
       doc.text(`Date:           ${new Date(payment.date).toLocaleDateString()}`, 14, 44);
       doc.text(`Status:         ${payment.status}`, 14, 50);
@@ -71,7 +72,7 @@ export default function PaymentDetailsPanel({ payment, onClose, onRetry, addToas
         theme: "striped",
         headStyles: { fillColor: [26, 46, 63] },
       });
-      doc.save(`${payment.id}_Invoice.pdf`);
+      doc.save(`INV_${maskId(payment.id, 'TXN')}.pdf`);
       addToast(`Invoice ${payment.invoiceId} downloaded.`, "success");
     } catch {
       addToast("Failed to generate invoice PDF.", "error");
@@ -92,7 +93,7 @@ export default function PaymentDetailsPanel({ payment, onClose, onRetry, addToas
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50 flex-shrink-0">
           <div>
             <h2 className="text-base font-black text-[#1a2e3f]">Transaction Details</h2>
-            <p className="text-xs text-slate-400 mt-0.5 font-mono">{payment.id}</p>
+            <p className="text-xs text-slate-400 mt-0.5">Ref: {maskId(payment.id, 'TXN')}</p>
           </div>
           <button onClick={onClose}
             className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-colors">

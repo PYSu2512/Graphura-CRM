@@ -7,7 +7,8 @@ function App() {
     <AttendanceProvider>
       <AppRoutes />
       <Toaster
-        position="top-right"
+        position="bottom-right"
+        containerStyle={{ zIndex: 99999 }}
         toastOptions={{
           duration: 4000,
           style: {

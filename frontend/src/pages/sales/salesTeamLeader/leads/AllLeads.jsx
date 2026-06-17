@@ -10,6 +10,7 @@ import {
   LEAD_STATUS_OPTIONS,
 } from "./leadsStore";
 import apiClient from "../../../../services/apiClient";
+import { maskId } from "../../../../utils/idMask";
 
 const COLS = [
   { key: "name",        label: "Name" },
@@ -359,7 +360,7 @@ export default function AllLeads() {
       <Modal id="tl-lead-view" title="Lead Details" size="md">
         {viewRow && (
           <div className="flex flex-col gap-4">
-            <ModalProfile name={viewRow.name} subtitle={`${viewRow.companyName} · ${viewRow.status}`} meta={`ID: ${viewRow.id}`} />
+            <ModalProfile name={viewRow.name} subtitle={`${viewRow.companyName} · ${viewRow.status}`} meta={`Ref: ${maskId(viewRow.id, 'LEA')}`} />
             <ModalGrid title="Contact" cols={2}>
               <ModalData label="Mobile" value={viewRow.mobile} />
               <ModalData label="Email"  value={viewRow.email} />

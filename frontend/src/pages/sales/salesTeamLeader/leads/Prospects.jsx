@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import apiClient from "../../../../services/apiClient";
 import toast from "react-hot-toast";
+import { maskId } from "../../../../utils/idMask";
 
 const COLS = [
   { key: "name",          label: "Name" },
@@ -118,7 +119,7 @@ export default function Prospects() {
             <ModalProfile
               name={viewRow.name}
               subtitle={`${viewRow.companyName} · ${viewRow.status}`}
-              meta={`ID: ${viewRow.id} · Executive: ${viewRow.assignedTo}`}
+              meta={`Ref: ${maskId(viewRow.id, 'PRO')} · Executive: ${viewRow.assignedTo}`}
             />
             <ModalGrid title="Contact" cols={2}>
               <ModalData label="Mobile" value={viewRow.mobile} />

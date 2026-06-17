@@ -9,6 +9,7 @@ import { GPieChart } from "../../components/shared/Common_Components";
 import { Receipt, CheckCircle, XCircle, RotateCcw, Calendar, Eye, Pencil, Trash2 } from "lucide-react";
 import { getExpenses, getExpenseChart, createExpense, updateExpense, deleteExpense } from "../../services/financeService";
 import toast from "react-hot-toast";
+import { maskId } from "../../utils/idMask";
 
 const categories = ["Operations", "Marketing", "Salaries", "Technology", "Miscellaneous", "Travel", "Utilities"];
 
@@ -157,7 +158,7 @@ export default function Expenses() {
       <Modal id="exp-view" title="Expense Details" size="md">
         {selected && (
           <div className="flex flex-col gap-4">
-            <ModalProfile name={selected.title} subtitle={selected.category} meta={`Expense ID: ${selected.expenseId}`} />
+            <ModalProfile name={selected.title} subtitle={selected.category} meta={`Ref: ${maskId(selected._id || selected.expenseId, 'EXP')}`} />
             <ModalGrid title="Expense Info" cols={2}>
               <ModalData label="Amount" value={`₹${parseFloat(selected.amount).toLocaleString()}`} />
               <ModalData label="Payment Status" value={selected.status} />

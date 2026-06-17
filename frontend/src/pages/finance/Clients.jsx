@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import apiClient from "../../services/apiClient";
 import toast from "react-hot-toast";
+import { maskId } from "../../utils/idMask";
 import {
   Heading,
   DashGrid,
@@ -1342,7 +1343,7 @@ export default function Clients() {
             <ModalProfile
               name={selected.client}
               subtitle={`Sales Executive: ${selected.salesExec}`}
-              meta={`Client ID: ${selected.id}`}
+              meta={`Ref: ${maskId(selected.id, 'CLT')} · ${selected.status}`}
             />
 
             <ModalGrid title="Contact" cols={2}>
@@ -1442,7 +1443,7 @@ export default function Clients() {
             {/* Profile strip */}
             <ModalProfile
               name={selected.client}
-              subtitle={`Client ID: ${selected.id}`}
+              subtitle={`Status: ${selected.status} · Ref: ${maskId(selected.id, 'CLT')}`}
               meta={`Current status: ${selected.status}`}
             />
 

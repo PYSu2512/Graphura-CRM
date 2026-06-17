@@ -27,6 +27,15 @@ router.get('/:id/available-members', userTeamController.getAvailableMembers);
 // Add member to team (user must be allowed)
 router.post('/:id/members', userTeamController.addTeamMember);
 
+// Remove member from team
+router.delete('/:id/members/:userId', userTeamController.removeTeamMember);
+
+// Update team (name, leader)
+router.put('/:id', userTeamController.updateTeam);
+
+// Delete team (soft delete)
+router.delete('/:id', userTeamController.deleteTeam);
+
 // Get single team details (scoped to user's department) — MUST come last
 router.get('/:id', userTeamController.getUserTeamById);
 

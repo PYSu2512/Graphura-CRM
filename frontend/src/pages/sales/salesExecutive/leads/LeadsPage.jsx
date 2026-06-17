@@ -142,6 +142,7 @@ export default function LeadsPage() {
 
       <ActionModal
         selectedLead={actionLead}
+        leadStatus={actionLead?.status}
         actionValue={actionValue}
         setActionValue={setActionValue}
         commentText={commentText}

@@ -46,6 +46,17 @@ exports.createTeam = async (teamData, performedBy) => {
     if (!leaderUser) {
       throw new AppError('Team leader not found or does not belong to this department', 400);
     }
+
+    // ONE-TEAM-PER-LEADER: a SALES_TL can only lead one team
+    const leaderHasTeam = await Team.findOne({
+      admin,
+      leader,
+      isDeleted: false,
+    });
+    if (leaderHasTeam) {
+      throw new AppError(`${leaderUser.name} already leads team "${leaderHasTeam.name}". A Team Leader can only lead one team.`, 409);
+    }
+
     teamLeader = leader;
 
     // Add leader as a member automatically

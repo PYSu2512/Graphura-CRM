@@ -11,6 +11,7 @@ import { paymentService } from "../../../../services/paymentService";
 import PaymentDetailsPanel from "./PaymentDetailsPanel";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { maskId } from "../../../../utils/idMask";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const fmt = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
@@ -175,7 +176,7 @@ export default function PaymentsPage() {
       doc.setFontSize(22);
       doc.text("INVOICE", 14, 22);
       doc.setFontSize(11);
-      doc.text(`Transaction ID: ${payment.id}`, 14, 32);
+      doc.text(`Transaction Ref: ${maskId(payment.id, 'TXN')}`, 14, 32);
       doc.text(`Client Name: ${payment.clientName}`, 14, 38);
       doc.text(`Date: ${new Date(payment.date).toLocaleDateString()}`, 14, 44);
       doc.text(`Status: ${payment.status}`, 14, 50);
@@ -191,8 +192,8 @@ export default function PaymentsPage() {
         headStyles: { fillColor: [42, 70, 90] }
       });
 
-      doc.save(`${payment.id}_Invoice.pdf`);
-      addToast(`Invoice downloaded for ${payment.id}.`, "success");
+      doc.save(`INV_${maskId(payment.id, 'TXN')}.pdf`);
+      addToast(`Invoice downloaded for ${payment.clientName}.`, "success");
     } catch (err) {
       console.error(err);
       addToast("Failed to generate PDF.", "error");
@@ -452,7 +453,7 @@ export default function PaymentsPage() {
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
                     <p className="text-sm font-bold text-[#1a2e3f]">{p.clientName}</p>
-                    <p className="text-xs font-mono text-slate-400 mt-0.5">{p.id}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Ref: {maskId(p.id, 'TXN')}</p>
                   </div>
                   <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200 flex-shrink-0">
                     Pending
